@@ -1,13 +1,13 @@
 # 开发顺序
 
-当前阶段是 **S3 · MVCC/WAL**，待开工。各阶段的目标、验收命令、结果和证据按编号留在 `current-task/`。
+最近的开发任务是[启动五节点 Compose 并验收 Raft KV](current-task/2026-11-06-raft-compose.md)。后续任务按实际需求在 `current-task/` 记录。
 
-| 阶段 | 状态 | 任务记录 |
+| 阶段 | 状态 | 范围 |
 | --- | --- | --- |
-| S0 · 脚手架 | 已验收 | [脚手架](current-task/S0-scaffold.md) |
-| S1 · Raft 纯核心 | 已验收 | [Raft 纯核心](current-task/S1-raft-core.md) |
-| S2 · 容器 Raft | 已验收 | [容器 Raft](current-task/S2-raft-compose.md)，R03 判定在 S4 |
-| S3 · MVCC/WAL | 待开工 | [单节点事务与恢复](current-task/S3-mvcc-wal.md) |
+| S0 · 脚手架 | 已验收 | 公共契约、工具链、Compose 冒烟 |
+| S1 · Raft 纯核心 | 已验收 | 选举、复制、提交与读屏障 |
+| S2 · 容器 Raft | 已验收 | R01/R02 和 R03 历史采集，R03 判定在 S4 |
+| S3 · MVCC/WAL | 待开始 | RC/SI、墓碑和写冲突、自写 WAL、检查点、AS OF、Analysis/Redo/Undo 与 CLR，验收 T01/T02/T03 |
 | S4 · 一致性验证 | 待开始 | V01/V02/V03、R03 和 T02 历史回放 |
 | S5 · 课程交付 | 待开始 | 演示、选型对比、时序图和报告 |
 
