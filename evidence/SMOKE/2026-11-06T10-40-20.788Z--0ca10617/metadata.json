@@ -1,0 +1,20 @@
+{
+  "startedAt": "2026-11-06T10:40:20.788Z",
+  "endedAt": "2026-11-06T10:40:34.847Z",
+  "gitSha": null,
+  "parameters": {
+    "mode": "scaffold-smoke",
+    "nodeIds": [
+      "raft-1",
+      "raft-2",
+      "raft-3",
+      "raft-4",
+      "raft-5"
+    ],
+    "image": "minidb-lab:local"
+  },
+  "environment": {
+    "node": "v24.21.0",
+    "imageId": "sha256:3a3fee83bd072f318a7a89d110d2718839db4999b766160442ca09bd912937a8"
+  }
+}

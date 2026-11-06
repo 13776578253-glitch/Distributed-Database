@@ -1,0 +1,95 @@
+> docker compose config --quiet
+
+> docker volume create minidb-lab-raft-1
+minidb-lab-raft-1
+
+> docker volume create minidb-lab-raft-2
+minidb-lab-raft-2
+
+> docker volume create minidb-lab-raft-3
+minidb-lab-raft-3
+
+> docker volume create minidb-lab-raft-4
+minidb-lab-raft-4
+
+> docker volume create minidb-lab-raft-5
+minidb-lab-raft-5
+
+> docker compose build --provenance=false raft-1
+#1 [internal] load local bake definitions
+#1 reading from stdin 536B 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 130B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:24.21.0-bookworm-slim
+#3 DONE 0.1s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 91B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 166B done
+#5 DONE 0.0s
+
+#6 [1/3] FROM docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
+#6 resolve docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 0.0s done
+#6 DONE 0.1s
+
+#7 [2/3] WORKDIR /app
+#7 CACHED
+
+#8 [3/3] COPY src ./src
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 exporting manifest sha256:0f2b1cdf27784218fe99f0fbb2de8487a0cea6dac2f318d18f98d2cc1895a21f done
+#9 exporting config sha256:533aea0bebeb38bfa0e56e2a4e9347b04c2385335d587ce77c76dbad5ab6613b done
+#9 naming to docker.io/library/minidb-lab:local done
+#9 unpacking to docker.io/library/minidb-lab:local
+#9 unpacking to docker.io/library/minidb-lab:local 0.0s done
+#9 DONE 0.1s
+
+#10 resolving provenance for metadata file
+#10 DONE 0.0s
+ Image minidb-lab:local Building 
+ Image minidb-lab:local Built 
+
+> docker compose up -d --no-build --wait --wait-timeout 60
+ Container minidb-lab-raft-2-1 Running 
+ Container minidb-lab-raft-3-1 Running 
+ Container minidb-lab-raft-4-1 Running 
+ Container minidb-lab-raft-5-1 Running 
+ Container minidb-lab-raft-1-1 Running 
+ Container minidb-lab-raft-2-1 Waiting 
+ Container minidb-lab-raft-3-1 Waiting 
+ Container minidb-lab-raft-4-1 Waiting 
+ Container minidb-lab-raft-5-1 Waiting 
+ Container minidb-lab-raft-1-1 Waiting 
+ Container minidb-lab-raft-5-1 Healthy 
+ Container minidb-lab-raft-2-1 Healthy 
+ Container minidb-lab-raft-4-1 Healthy 
+ Container minidb-lab-raft-1-1 Healthy 
+ Container minidb-lab-raft-3-1 Healthy 
+
+> docker image inspect minidb-lab:local --format {{.Id}}
+sha256:0f2b1cdf27784218fe99f0fbb2de8487a0cea6dac2f318d18f98d2cc1895a21f
+
+> docker compose ps -q raft-1
+7649464a268e1d13a72a8140ceb75d9f850946f7999d571113e6f0d042f7e969
+
+> docker inspect 7649464a268e1d13a72a8140ceb75d9f850946f7999d571113e6f0d042f7e969 --format {{.Image}}
+sha256:947cc59f06aa10a7797041d3882bac9b51af27afc034a80e390ec92e1044d53f
+
+Error: raft-1 image
+> docker compose logs --no-color
+raft-4-1  | raft-4 listening on 8080 (scaffold-smoke)
+raft-1-1  | raft-1 listening on 8080 (scaffold-smoke)
+raft-5-1  | raft-5 listening on 8080 (scaffold-smoke)
+raft-3-1  | raft-3 listening on 8080 (scaffold-smoke)
+raft-2-1  | raft-2 listening on 8080 (scaffold-smoke)
+

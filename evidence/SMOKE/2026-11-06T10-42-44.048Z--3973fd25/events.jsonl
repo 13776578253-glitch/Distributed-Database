@@ -1,0 +1,2 @@
+{"at":"2026-11-06T10:42:46.622Z","kind":"assertion","details":{"name":"raft-1 health","passed":true,"details":{"port":18081,"status":200,"health":{"nodeId":"raft-1","mode":"scaffold-smoke"}}}}
+{"at":"2026-11-06T10:42:46.858Z","kind":"assertion","details":{"name":"raft-1 image","passed":false,"details":{"imageId":"sha256:947cc59f06aa10a7797041d3882bac9b51af27afc034a80e390ec92e1044d53f"}}}

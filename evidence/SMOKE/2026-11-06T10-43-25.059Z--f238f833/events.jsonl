@@ -1,0 +1,15 @@
+{"at":"2026-11-06T10:43:38.060Z","kind":"assertion","details":{"name":"raft-1 health","passed":true,"details":{"port":18081,"status":200,"health":{"nodeId":"raft-1","mode":"scaffold-smoke"}}}}
+{"at":"2026-11-06T10:43:38.340Z","kind":"assertion","details":{"name":"raft-1 image","passed":true,"details":{"imageId":"sha256:0f2b1cdf27784218fe99f0fbb2de8487a0cea6dac2f318d18f98d2cc1895a21f"}}}
+{"at":"2026-11-06T10:43:38.408Z","kind":"assertion","details":{"name":"raft-1 dedicated volume","passed":true,"details":{"mount":"minidb-lab-raft-1"}}}
+{"at":"2026-11-06T10:43:38.412Z","kind":"assertion","details":{"name":"raft-2 health","passed":true,"details":{"port":18082,"status":200,"health":{"nodeId":"raft-2","mode":"scaffold-smoke"}}}}
+{"at":"2026-11-06T10:43:38.690Z","kind":"assertion","details":{"name":"raft-2 image","passed":true,"details":{"imageId":"sha256:0f2b1cdf27784218fe99f0fbb2de8487a0cea6dac2f318d18f98d2cc1895a21f"}}}
+{"at":"2026-11-06T10:43:38.758Z","kind":"assertion","details":{"name":"raft-2 dedicated volume","passed":true,"details":{"mount":"minidb-lab-raft-2"}}}
+{"at":"2026-11-06T10:43:38.761Z","kind":"assertion","details":{"name":"raft-3 health","passed":true,"details":{"port":18083,"status":200,"health":{"nodeId":"raft-3","mode":"scaffold-smoke"}}}}
+{"at":"2026-11-06T10:43:39.022Z","kind":"assertion","details":{"name":"raft-3 image","passed":true,"details":{"imageId":"sha256:0f2b1cdf27784218fe99f0fbb2de8487a0cea6dac2f318d18f98d2cc1895a21f"}}}
+{"at":"2026-11-06T10:43:39.090Z","kind":"assertion","details":{"name":"raft-3 dedicated volume","passed":true,"details":{"mount":"minidb-lab-raft-3"}}}
+{"at":"2026-11-06T10:43:39.093Z","kind":"assertion","details":{"name":"raft-4 health","passed":true,"details":{"port":18084,"status":200,"health":{"nodeId":"raft-4","mode":"scaffold-smoke"}}}}
+{"at":"2026-11-06T10:43:39.395Z","kind":"assertion","details":{"name":"raft-4 image","passed":true,"details":{"imageId":"sha256:0f2b1cdf27784218fe99f0fbb2de8487a0cea6dac2f318d18f98d2cc1895a21f"}}}
+{"at":"2026-11-06T10:43:39.462Z","kind":"assertion","details":{"name":"raft-4 dedicated volume","passed":true,"details":{"mount":"minidb-lab-raft-4"}}}
+{"at":"2026-11-06T10:43:39.465Z","kind":"assertion","details":{"name":"raft-5 health","passed":true,"details":{"port":18085,"status":200,"health":{"nodeId":"raft-5","mode":"scaffold-smoke"}}}}
+{"at":"2026-11-06T10:43:39.756Z","kind":"assertion","details":{"name":"raft-5 image","passed":true,"details":{"imageId":"sha256:0f2b1cdf27784218fe99f0fbb2de8487a0cea6dac2f318d18f98d2cc1895a21f"}}}
+{"at":"2026-11-06T10:43:39.835Z","kind":"assertion","details":{"name":"raft-5 dedicated volume","passed":true,"details":{"mount":"minidb-lab-raft-5"}}}

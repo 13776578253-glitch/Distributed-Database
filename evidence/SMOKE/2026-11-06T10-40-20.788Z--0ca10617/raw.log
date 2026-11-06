@@ -1,0 +1,209 @@
+> docker compose config --quiet
+
+> docker volume create minidb-lab-raft-1
+minidb-lab-raft-1
+
+> docker volume create minidb-lab-raft-2
+minidb-lab-raft-2
+
+> docker volume create minidb-lab-raft-3
+minidb-lab-raft-3
+
+> docker volume create minidb-lab-raft-4
+minidb-lab-raft-4
+
+> docker volume create minidb-lab-raft-5
+minidb-lab-raft-5
+
+> docker compose up -d --build --wait --wait-timeout 60
+#1 [internal] load local bake definitions
+#1 reading from stdin 2.33kB 0.0s done
+#1 DONE 0.0s
+
+#2 [raft-2 internal] load build definition from Dockerfile
+#2 transferring dockerfile: 130B 0.0s done
+#2 DONE 0.1s
+
+#3 [raft-1 internal] load metadata for docker.io/library/node:24.21.0-bookworm-slim
+#3 DONE 0.1s
+
+#4 [raft-3 internal] load .dockerignore
+#4 transferring context:
+#4 transferring context: 91B 0.0s done
+#4 DONE 0.1s
+
+#5 [raft-1 1/3] FROM docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
+#5 resolve docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 0.1s done
+#5 resolve docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 0.1s done
+#5 CACHED
+
+#6 [raft-4 internal] load build context
+#6 transferring context: 2.10kB done
+#6 DONE 0.1s
+
+#7 [raft-3 2/3] WORKDIR /app
+#7 DONE 0.1s
+
+#7 [raft-2 2/3] WORKDIR /app
+#7 DONE 0.1s
+
+#8 [raft-5 3/3] COPY src ./src
+#8 DONE 0.1s
+
+#8 [raft-2 3/3] COPY src ./src
+#8 DONE 0.1s
+
+#9 [raft-2] exporting to image
+#9 exporting layers
+#9 exporting layers 0.4s done
+#9 exporting manifest sha256:52e75d556611f1dc1d607c1de841d48d4e6f28f84b09b94804c50c5f64b258a2 0.1s done
+#9 exporting config sha256:b3eaf664d27587d4cb93bbfd45e85b88a5c1768526cca5db261b102bff7f325c
+#9 exporting config sha256:b3eaf664d27587d4cb93bbfd45e85b88a5c1768526cca5db261b102bff7f325c 0.2s done
+#9 exporting attestation manifest sha256:b69bfc9519d1a32b554191c7555db0e2904787cfe93ad53ebcde5bd7d825dacc
+#9 exporting attestation manifest sha256:b69bfc9519d1a32b554191c7555db0e2904787cfe93ad53ebcde5bd7d825dacc 0.2s done
+#9 exporting manifest list sha256:e193565546c0af19567e988a7588897e631cd0afcfd8b7b48cafe7ba13452b00
+#9 exporting manifest list sha256:e193565546c0af19567e988a7588897e631cd0afcfd8b7b48cafe7ba13452b00 0.2s done
+#9 naming to docker.io/library/minidb-lab:local 0.1s done
+#9 unpacking to docker.io/library/minidb-lab:local
+#9 unpacking to docker.io/library/minidb-lab:local 0.2s done
+#9 DONE 1.5s
+
+#10 [raft-3] exporting to image
+#10 exporting layers 0.4s done
+#10 exporting manifest sha256:5991cf26bfd384faf2018a1a54735d9935d995cdaf771c464eaba795ec117cd5 0.1s done
+#10 exporting config sha256:3ebc0112b464f951006bf4cf2ebf89c6a44a16bcd39821648714efb90934a2f7 0.2s done
+#10 exporting attestation manifest sha256:fc8cbd3a22bc4e0a3ae42728c601b13ea2526813c623ae307859a191d0f16fa9 0.2s done
+#10 exporting manifest list sha256:adda8fb74221eac027ac842c7e5cebe96abdd4c910e68ebf461e75f6d36e7d9e 0.1s done
+#10 naming to docker.io/library/minidb-lab:local 0.1s done
+#10 unpacking to docker.io/library/minidb-lab:local 0.2s done
+#10 DONE 1.5s
+
+#11 [raft-1] exporting to image
+#11 exporting layers 0.4s done
+#11 exporting manifest sha256:0f2b1cdf27784218fe99f0fbb2de8487a0cea6dac2f318d18f98d2cc1895a21f 0.2s done
+#11 exporting config sha256:533aea0bebeb38bfa0e56e2a4e9347b04c2385335d587ce77c76dbad5ab6613b 0.2s done
+#11 exporting attestation manifest sha256:53054041b274041577a08de2b1b4bbc10161843d9d36773efb4141f71b45e91a 0.2s done
+#11 exporting manifest list sha256:3c7b9e1a7cbb87e746c8819bc7fecfd9ddb63ead54050ba891640c55f0d70573 0.1s done
+#11 naming to docker.io/library/minidb-lab:local 0.0s done
+#11 unpacking to docker.io/library/minidb-lab:local 0.2s done
+#11 DONE 1.5s
+
+#12 [raft-4] exporting to image
+#12 exporting layers 0.4s done
+#12 exporting manifest sha256:3793adbe7b76ee7219c056446a940f503d394c0e2ffa00ab4aee655bebdf819c 0.2s done
+#12 exporting config sha256:34bda357502e813b3037bfd5053fdfb691f013e88fc2a60b7c460b225e60d2ef 0.2s done
+#12 exporting attestation manifest sha256:a536f0f080408288212e17d81851fb61b6618dde006ab16e185c321ee02b7933 0.2s done
+#12 exporting manifest list sha256:ddf883bee3e79a3c1c0c0aa1c2605bbf79025392f151f9369c56bdc6f9997a61 0.1s done
+#12 naming to docker.io/library/minidb-lab:local done
+#12 unpacking to docker.io/library/minidb-lab:local 0.2s done
+#12 DONE 1.5s
+
+#13 [raft-5] exporting to image
+#13 exporting layers 0.4s done
+#13 exporting manifest sha256:4448785c77ae8108f68247c224ed0b30ccf969fa0da508f6e8de951d8eba37ea 0.1s done
+#13 exporting config sha256:094ae94b685848bbdb4de6e80829797cbecd9b22712686d952940804d45bea4a 0.2s done
+#13 exporting attestation manifest sha256:528ea84c378985d79a76dbe514481f9af1407cb34b6deffd79bbb29e4c78fa61 0.2s done
+#13 exporting manifest list sha256:3a3fee83bd072f318a7a89d110d2718839db4999b766160442ca09bd912937a8 0.2s done
+#13 naming to docker.io/library/minidb-lab:local 0.0s done
+#13 unpacking to docker.io/library/minidb-lab:local 0.2s done
+#13 DONE 1.5s
+
+#14 [raft-3] resolving provenance for metadata file
+#14 DONE 0.4s
+
+#15 [raft-5] resolving provenance for metadata file
+#15 DONE 0.1s
+
+#16 [raft-1] resolving provenance for metadata file
+#16 DONE 0.3s
+
+#17 [raft-2] resolving provenance for metadata file
+#17 DONE 0.2s
+
+#18 [raft-4] resolving provenance for metadata file
+#18 DONE 0.0s
+ Image minidb-lab:local Building 
+ Image minidb-lab:local Building 
+ Image minidb-lab:local Building 
+ Image minidb-lab:local Building 
+ Image minidb-lab:local Building 
+ Image minidb-lab:local Built 
+ Image minidb-lab:local Built 
+ Image minidb-lab:local Built 
+ Image minidb-lab:local Built 
+ Image minidb-lab:local Built 
+ Network minidb-lab_default Creating 
+ Network minidb-lab_default Creating 
+ Network minidb-lab_default Created 
+ Network minidb-lab_default Created 
+ Container minidb-lab-raft-5-1 Creating 
+ Container minidb-lab-raft-3-1 Creating 
+ Container minidb-lab-raft-1-1 Creating 
+ Container minidb-lab-raft-2-1 Creating 
+ Container minidb-lab-raft-4-1 Creating 
+ Container minidb-lab-raft-2-1 Created 
+ Container minidb-lab-raft-5-1 Created 
+ Container minidb-lab-raft-3-1 Created 
+ Container minidb-lab-raft-1-1 Created 
+ Container minidb-lab-raft-4-1 Created 
+ Container minidb-lab-raft-4-1 Starting 
+ Container minidb-lab-raft-3-1 Starting 
+ Container minidb-lab-raft-2-1 Starting 
+ Container minidb-lab-raft-5-1 Starting 
+ Container minidb-lab-raft-1-1 Starting 
+ Container minidb-lab-raft-3-1 Started 
+ Container minidb-lab-raft-2-1 Started 
+ Container minidb-lab-raft-5-1 Started 
+ Container minidb-lab-raft-4-1 Started 
+ Container minidb-lab-raft-1-1 Started 
+ Container minidb-lab-raft-2-1 Waiting 
+ Container minidb-lab-raft-3-1 Waiting 
+ Container minidb-lab-raft-4-1 Waiting 
+ Container minidb-lab-raft-5-1 Waiting 
+ Container minidb-lab-raft-1-1 Waiting 
+ Container minidb-lab-raft-3-1 Healthy 
+ Container minidb-lab-raft-2-1 Healthy 
+ Container minidb-lab-raft-5-1 Healthy 
+ Container minidb-lab-raft-4-1 Healthy 
+ Container minidb-lab-raft-1-1 Healthy 
+
+> docker image inspect minidb-lab:local --format {{.Id}}
+sha256:3a3fee83bd072f318a7a89d110d2718839db4999b766160442ca09bd912937a8
+
+> docker compose ps -q raft-1
+b6075ed6a431c8b6f6d74980db69e693c85a8a9c116a0659ef6224d14c40b222
+
+> docker inspect b6075ed6a431c8b6f6d74980db69e693c85a8a9c116a0659ef6224d14c40b222 --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-lab-raft-1
+
+> docker compose ps -q raft-2
+7cfa484566341e1fe2785888f4776c7d897807b2bcd1885eac56c637cacf97ea
+
+> docker inspect 7cfa484566341e1fe2785888f4776c7d897807b2bcd1885eac56c637cacf97ea --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-lab-raft-2
+
+> docker compose ps -q raft-3
+1d0ca9f54e2ecadb256331403108dd52b42bc653c9bc645b05768f384575ced3
+
+> docker inspect 1d0ca9f54e2ecadb256331403108dd52b42bc653c9bc645b05768f384575ced3 --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-lab-raft-3
+
+> docker compose ps -q raft-4
+467d7f49a9eda9f4ecd47de51903682b95aaa23c23d8aa16b5e6ca2a4ab87bbf
+
+> docker inspect 467d7f49a9eda9f4ecd47de51903682b95aaa23c23d8aa16b5e6ca2a4ab87bbf --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-lab-raft-4
+
+> docker compose ps -q raft-5
+0b708ff618a547d9fed03c6901efaedf81acffe3a9fbbc37e23261ba4d8affc1
+
+> docker inspect 0b708ff618a547d9fed03c6901efaedf81acffe3a9fbbc37e23261ba4d8affc1 --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-lab-raft-5
+
+> docker compose logs --no-color
+raft-2-1  | raft-2 listening on 8080 (scaffold-smoke)
+raft-4-1  | raft-4 listening on 8080 (scaffold-smoke)
+raft-3-1  | raft-3 listening on 8080 (scaffold-smoke)
+raft-5-1  | raft-5 listening on 8080 (scaffold-smoke)
+raft-1-1  | raft-1 listening on 8080 (scaffold-smoke)
+

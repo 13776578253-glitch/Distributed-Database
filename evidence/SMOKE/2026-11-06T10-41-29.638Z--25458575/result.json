@@ -1,0 +1,145 @@
+{
+  "experimentId": "SMOKE",
+  "runId": "2026-11-06T10-41-29.638Z--25458575",
+  "startedAt": "2026-11-06T10:41:29.638Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "raft-1 health",
+      "passed": true,
+      "details": {
+        "port": 18081,
+        "status": 200,
+        "health": {
+          "nodeId": "raft-1",
+          "mode": "scaffold-smoke"
+        }
+      }
+    },
+    {
+      "name": "raft-1 image",
+      "passed": true,
+      "details": {
+        "imageId": "sha256:947cc59f06aa10a7797041d3882bac9b51af27afc034a80e390ec92e1044d53f"
+      }
+    },
+    {
+      "name": "raft-1 dedicated volume",
+      "passed": true,
+      "details": {
+        "mount": "minidb-lab-raft-1"
+      }
+    },
+    {
+      "name": "raft-2 health",
+      "passed": true,
+      "details": {
+        "port": 18082,
+        "status": 200,
+        "health": {
+          "nodeId": "raft-2",
+          "mode": "scaffold-smoke"
+        }
+      }
+    },
+    {
+      "name": "raft-2 image",
+      "passed": true,
+      "details": {
+        "imageId": "sha256:947cc59f06aa10a7797041d3882bac9b51af27afc034a80e390ec92e1044d53f"
+      }
+    },
+    {
+      "name": "raft-2 dedicated volume",
+      "passed": true,
+      "details": {
+        "mount": "minidb-lab-raft-2"
+      }
+    },
+    {
+      "name": "raft-3 health",
+      "passed": true,
+      "details": {
+        "port": 18083,
+        "status": 200,
+        "health": {
+          "nodeId": "raft-3",
+          "mode": "scaffold-smoke"
+        }
+      }
+    },
+    {
+      "name": "raft-3 image",
+      "passed": true,
+      "details": {
+        "imageId": "sha256:947cc59f06aa10a7797041d3882bac9b51af27afc034a80e390ec92e1044d53f"
+      }
+    },
+    {
+      "name": "raft-3 dedicated volume",
+      "passed": true,
+      "details": {
+        "mount": "minidb-lab-raft-3"
+      }
+    },
+    {
+      "name": "raft-4 health",
+      "passed": true,
+      "details": {
+        "port": 18084,
+        "status": 200,
+        "health": {
+          "nodeId": "raft-4",
+          "mode": "scaffold-smoke"
+        }
+      }
+    },
+    {
+      "name": "raft-4 image",
+      "passed": true,
+      "details": {
+        "imageId": "sha256:947cc59f06aa10a7797041d3882bac9b51af27afc034a80e390ec92e1044d53f"
+      }
+    },
+    {
+      "name": "raft-4 dedicated volume",
+      "passed": true,
+      "details": {
+        "mount": "minidb-lab-raft-4"
+      }
+    },
+    {
+      "name": "raft-5 health",
+      "passed": true,
+      "details": {
+        "port": 18085,
+        "status": 200,
+        "health": {
+          "nodeId": "raft-5",
+          "mode": "scaffold-smoke"
+        }
+      }
+    },
+    {
+      "name": "raft-5 image",
+      "passed": true,
+      "details": {
+        "imageId": "sha256:947cc59f06aa10a7797041d3882bac9b51af27afc034a80e390ec92e1044d53f"
+      }
+    },
+    {
+      "name": "raft-5 dedicated volume",
+      "passed": true,
+      "details": {
+        "mount": "minidb-lab-raft-5"
+      }
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "experimentId": "SMOKE",
+  "runId": "2026-11-06T10-42-13.385Z--19304613",
+  "startedAt": "2026-11-06T10:42:13.385Z",
+  "status": "FAIL",
+  "assertionResults": [
+    {
+      "name": "raft-1 health",
+      "passed": true,
+      "details": {
+        "port": 18081,
+        "status": 200,
+        "health": {
+          "nodeId": "raft-1",
+          "mode": "scaffold-smoke"
+        }
+      }
+    },
+    {
+      "name": "raft-1 image",
+      "passed": false,
+      "details": {
+        "imageId": "sha256:947cc59f06aa10a7797041d3882bac9b51af27afc034a80e390ec92e1044d53f"
+      }
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

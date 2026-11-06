@@ -1,0 +1,10 @@
+{"at":"2026-11-06T10:40:32.978Z","kind":"assertion","details":{"name":"raft-1 health","passed":true,"details":{"port":18081,"status":200,"health":{"nodeId":"raft-1","mode":"scaffold-smoke"}}}}
+{"at":"2026-11-06T10:40:33.298Z","kind":"assertion","details":{"name":"raft-1 dedicated volume","passed":true,"details":{"mount":"minidb-lab-raft-1"}}}
+{"at":"2026-11-06T10:40:33.305Z","kind":"assertion","details":{"name":"raft-2 health","passed":true,"details":{"port":18082,"status":200,"health":{"nodeId":"raft-2","mode":"scaffold-smoke"}}}}
+{"at":"2026-11-06T10:40:33.604Z","kind":"assertion","details":{"name":"raft-2 dedicated volume","passed":true,"details":{"mount":"minidb-lab-raft-2"}}}
+{"at":"2026-11-06T10:40:33.610Z","kind":"assertion","details":{"name":"raft-3 health","passed":true,"details":{"port":18083,"status":200,"health":{"nodeId":"raft-3","mode":"scaffold-smoke"}}}}
+{"at":"2026-11-06T10:40:33.936Z","kind":"assertion","details":{"name":"raft-3 dedicated volume","passed":true,"details":{"mount":"minidb-lab-raft-3"}}}
+{"at":"2026-11-06T10:40:33.940Z","kind":"assertion","details":{"name":"raft-4 health","passed":true,"details":{"port":18084,"status":200,"health":{"nodeId":"raft-4","mode":"scaffold-smoke"}}}}
+{"at":"2026-11-06T10:40:34.298Z","kind":"assertion","details":{"name":"raft-4 dedicated volume","passed":true,"details":{"mount":"minidb-lab-raft-4"}}}
+{"at":"2026-11-06T10:40:34.302Z","kind":"assertion","details":{"name":"raft-5 health","passed":true,"details":{"port":18085,"status":200,"health":{"nodeId":"raft-5","mode":"scaffold-smoke"}}}}
+{"at":"2026-11-06T10:40:34.579Z","kind":"assertion","details":{"name":"raft-5 dedicated volume","passed":true,"details":{"mount":"minidb-lab-raft-5"}}}

@@ -1,0 +1,150 @@
+> docker compose config --quiet
+
+> docker volume create minidb-lab-raft-1
+minidb-lab-raft-1
+
+> docker volume create minidb-lab-raft-2
+minidb-lab-raft-2
+
+> docker volume create minidb-lab-raft-3
+minidb-lab-raft-3
+
+> docker volume create minidb-lab-raft-4
+minidb-lab-raft-4
+
+> docker volume create minidb-lab-raft-5
+minidb-lab-raft-5
+
+> docker compose build raft-1
+#1 [internal] load local bake definitions
+#1 reading from stdin 536B 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 130B 0.0s done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:24.21.0-bookworm-slim
+#3 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 91B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 166B done
+#5 DONE 0.0s
+
+#6 [1/3] FROM docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
+#6 resolve docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 0.1s done
+#6 DONE 0.1s
+
+#7 [2/3] WORKDIR /app
+#7 CACHED
+
+#8 [3/3] COPY src ./src
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 exporting manifest sha256:0f2b1cdf27784218fe99f0fbb2de8487a0cea6dac2f318d18f98d2cc1895a21f done
+#9 exporting config sha256:533aea0bebeb38bfa0e56e2a4e9347b04c2385335d587ce77c76dbad5ab6613b 0.0s done
+#9 exporting attestation manifest sha256:fa5fc1b6731534274c1d2e6996240951a2884699fd957df7f72287b0e7d2d411 0.0s done
+#9 exporting manifest list sha256:947cc59f06aa10a7797041d3882bac9b51af27afc034a80e390ec92e1044d53f 0.0s done
+#9 naming to docker.io/library/minidb-lab:local
+#9 naming to docker.io/library/minidb-lab:local done
+#9 unpacking to docker.io/library/minidb-lab:local 0.0s done
+#9 DONE 0.2s
+
+#10 resolving provenance for metadata file
+#10 DONE 0.0s
+ Image minidb-lab:local Building 
+ Image minidb-lab:local Built 
+
+> docker compose up -d --no-build --wait --wait-timeout 60
+ Container minidb-lab-raft-3-1 Recreate 
+ Container minidb-lab-raft-1-1 Recreate 
+ Container minidb-lab-raft-2-1 Recreate 
+ Container minidb-lab-raft-4-1 Recreate 
+ Container minidb-lab-raft-5-1 Recreate 
+ Container minidb-lab-raft-5-1 Recreated 
+ Container minidb-lab-raft-1-1 Recreated 
+ Container minidb-lab-raft-4-1 Recreated 
+ Container minidb-lab-raft-2-1 Recreated 
+ Container minidb-lab-raft-3-1 Recreated 
+ Container minidb-lab-raft-5-1 Starting 
+ Container minidb-lab-raft-3-1 Starting 
+ Container minidb-lab-raft-2-1 Starting 
+ Container minidb-lab-raft-4-1 Starting 
+ Container minidb-lab-raft-1-1 Starting 
+ Container minidb-lab-raft-5-1 Started 
+ Container minidb-lab-raft-2-1 Started 
+ Container minidb-lab-raft-3-1 Started 
+ Container minidb-lab-raft-1-1 Started 
+ Container minidb-lab-raft-4-1 Started 
+ Container minidb-lab-raft-5-1 Waiting 
+ Container minidb-lab-raft-1-1 Waiting 
+ Container minidb-lab-raft-2-1 Waiting 
+ Container minidb-lab-raft-3-1 Waiting 
+ Container minidb-lab-raft-4-1 Waiting 
+ Container minidb-lab-raft-5-1 Healthy 
+ Container minidb-lab-raft-2-1 Healthy 
+ Container minidb-lab-raft-3-1 Healthy 
+ Container minidb-lab-raft-1-1 Healthy 
+ Container minidb-lab-raft-4-1 Healthy 
+
+> docker image inspect minidb-lab:local --format {{.Id}}
+sha256:947cc59f06aa10a7797041d3882bac9b51af27afc034a80e390ec92e1044d53f
+
+> docker compose ps -q raft-1
+7649464a268e1d13a72a8140ceb75d9f850946f7999d571113e6f0d042f7e969
+
+> docker inspect 7649464a268e1d13a72a8140ceb75d9f850946f7999d571113e6f0d042f7e969 --format {{.Image}}
+sha256:947cc59f06aa10a7797041d3882bac9b51af27afc034a80e390ec92e1044d53f
+
+> docker inspect 7649464a268e1d13a72a8140ceb75d9f850946f7999d571113e6f0d042f7e969 --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-lab-raft-1
+
+> docker compose ps -q raft-2
+f92d9fa7313c307f486729c119cf6a98fcf5e9b553a6542e9cc0564dfdce9d22
+
+> docker inspect f92d9fa7313c307f486729c119cf6a98fcf5e9b553a6542e9cc0564dfdce9d22 --format {{.Image}}
+sha256:947cc59f06aa10a7797041d3882bac9b51af27afc034a80e390ec92e1044d53f
+
+> docker inspect f92d9fa7313c307f486729c119cf6a98fcf5e9b553a6542e9cc0564dfdce9d22 --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-lab-raft-2
+
+> docker compose ps -q raft-3
+c2d5c7cd730aab163dbf67042a6f4480e51ee33c4b620570d0861a7d3406ad1b
+
+> docker inspect c2d5c7cd730aab163dbf67042a6f4480e51ee33c4b620570d0861a7d3406ad1b --format {{.Image}}
+sha256:947cc59f06aa10a7797041d3882bac9b51af27afc034a80e390ec92e1044d53f
+
+> docker inspect c2d5c7cd730aab163dbf67042a6f4480e51ee33c4b620570d0861a7d3406ad1b --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-lab-raft-3
+
+> docker compose ps -q raft-4
+9cfff1a83befe8964c35f4fd0abb2589893f7eecf3b17082bfc4dd4bef592a02
+
+> docker inspect 9cfff1a83befe8964c35f4fd0abb2589893f7eecf3b17082bfc4dd4bef592a02 --format {{.Image}}
+sha256:947cc59f06aa10a7797041d3882bac9b51af27afc034a80e390ec92e1044d53f
+
+> docker inspect 9cfff1a83befe8964c35f4fd0abb2589893f7eecf3b17082bfc4dd4bef592a02 --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-lab-raft-4
+
+> docker compose ps -q raft-5
+fd619196b6a6e6744dc5e707ffd7328d522fe8ba9195344442fdb413be39f6c8
+
+> docker inspect fd619196b6a6e6744dc5e707ffd7328d522fe8ba9195344442fdb413be39f6c8 --format {{.Image}}
+sha256:947cc59f06aa10a7797041d3882bac9b51af27afc034a80e390ec92e1044d53f
+
+> docker inspect fd619196b6a6e6744dc5e707ffd7328d522fe8ba9195344442fdb413be39f6c8 --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-lab-raft-5
+
+> docker compose logs --no-color
+raft-5-1  | raft-5 listening on 8080 (scaffold-smoke)
+raft-3-1  | raft-3 listening on 8080 (scaffold-smoke)
+raft-1-1  | raft-1 listening on 8080 (scaffold-smoke)
+raft-2-1  | raft-2 listening on 8080 (scaffold-smoke)
+raft-4-1  | raft-4 listening on 8080 (scaffold-smoke)
+
