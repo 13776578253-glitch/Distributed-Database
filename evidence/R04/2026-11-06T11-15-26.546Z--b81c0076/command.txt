@@ -1,0 +1,2 @@
+# Run from this evidence directory in PowerShell.
+Get-Content -Raw -LiteralPath './probe.mjs' | docker run --rm -i --network none --pull never --mount type=volume,destination=/data minidb-lab:local node --input-type=module -

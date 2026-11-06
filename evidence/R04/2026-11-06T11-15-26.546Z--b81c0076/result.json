@@ -1,0 +1,118 @@
+{
+  "experimentId": "R04",
+  "runId": "2026-11-06T11-15-26.546Z--b81c0076",
+  "startedAt": "2026-11-06T11:15:26.546Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "same image as R01 and R02",
+      "passed": true,
+      "details": {
+        "imageId": "sha256:83d0ea5c40147c59b104c0099972a4d443ae1d1fbcb03c7cc7dc5a555e2d16a4"
+      }
+    },
+    {
+      "name": "old entries stored by a quorum remain uncommitted",
+      "passed": true,
+      "details": {
+        "experiment": "cross-term",
+        "state": "current-term-entry-blocked",
+        "oldTermEntries": {
+          "a": 65,
+          "b": 64,
+          "c": 64,
+          "d": 64,
+          "e": 64
+        },
+        "nodeId": "a",
+        "role": "leader",
+        "term": 2,
+        "leader": "a",
+        "commitIndex": 0,
+        "lastApplied": 0,
+        "logLength": 66,
+        "ready": false
+      }
+    },
+    {
+      "name": "current-term no-op commits the prefix",
+      "passed": true,
+      "details": {
+        "experiment": "cross-term",
+        "state": "current-term-entry-released",
+        "nodeId": "a",
+        "role": "leader",
+        "term": 2,
+        "leader": "a",
+        "commitIndex": 66,
+        "lastApplied": 66,
+        "logLength": 66,
+        "ready": true,
+        "value": 63
+      }
+    },
+    {
+      "name": "SIGKILL preserves hard state and acknowledged log",
+      "passed": true,
+      "details": {
+        "experiment": "sqlite-sigkill",
+        "acknowledged": {
+          "vote": {
+            "kind": "vote",
+            "term": 7,
+            "granted": true
+          },
+          "append": {
+            "kind": "append",
+            "term": 7,
+            "success": true
+          },
+          "status": {
+            "nodeId": "b",
+            "role": "follower",
+            "term": 7,
+            "leader": "a",
+            "commitIndex": 1,
+            "lastApplied": 1,
+            "logLength": 1,
+            "ready": false
+          }
+        },
+        "exitCode": null,
+        "signal": "SIGKILL",
+        "hardState": {
+          "term": 7,
+          "votedFor": "a",
+          "entries": [
+            {
+              "term": 7,
+              "command": {
+                "type": "put",
+                "key": "durable",
+                "value": "acknowledged"
+              }
+            }
+          ]
+        },
+        "sameTermSecondVoteGranted": false,
+        "recovered": {
+          "nodeId": "b",
+          "role": "follower",
+          "term": 7,
+          "leader": "a",
+          "commitIndex": 1,
+          "lastApplied": 1,
+          "logLength": 1,
+          "ready": false
+        }
+      }
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

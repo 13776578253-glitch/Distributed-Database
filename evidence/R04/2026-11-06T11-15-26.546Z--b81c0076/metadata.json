@@ -1,0 +1,19 @@
+{
+  "startedAt": "2026-11-06T11:15:26.546Z",
+  "endedAt": "2026-11-06T11:15:28.105Z",
+  "gitSha": "9a9971c442b305e43927f2f4640f971d14dc6eb5",
+  "gitDirty": true,
+  "parameters": {
+    "transport": "deterministic in-process",
+    "storage": "SQLite on an anonymous Docker volume",
+    "checks": [
+      "cross-term commit",
+      "SQLite SIGKILL recovery"
+    ]
+  },
+  "environment": {
+    "node": "v24.21.0",
+    "imageId": "sha256:83d0ea5c40147c59b104c0099972a4d443ae1d1fbcb03c7cc7dc5a555e2d16a4",
+    "imageSourceGitSha": "90d642a3fc168b216478797725009d199b641c0e"
+  }
+}
