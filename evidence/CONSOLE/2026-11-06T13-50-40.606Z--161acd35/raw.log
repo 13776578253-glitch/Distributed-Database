@@ -1,0 +1,151 @@
+> docker compose ps --all --quiet raft-1 raft-2 raft-3 raft-4 raft-5
+7a172178403d638ce7d586ee62280b1d49630af830bbb3a570758cf40a48a592
+442991db5421d0a9f41debc72ec47eb47726ed663f6de11cb2ad3cf04b18b8c7
+89714ac38a662ff14d70a307ab019ba14350c485211790d567ec401a002b3dc5
+b29a7fa879dfdac777bb56802a96c18a0d597f4f89a5b00a449960b1bb109670
+bb099032d7768dfad8aefd76b1d524858ea1b9f6466f982836d8ca45d460d7f7
+
+> playwright-cli -s=raft-observer-attach snapshot
+### Page
+- Page URL: http://127.0.0.1:5173/
+- Page Title: Raft Cluster · Distributed Database
+### Snapshot
+```yaml
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: Distributed Database
+      - generic [ref=e14]: Raft 观测控制台
+  - main [ref=e15]:
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - paragraph [ref=e18]: 集群观测
+        - heading "Raft Cluster" [level=1] [ref=e19]
+        - paragraph [ref=e20]: 查看五节点角色、任期和日志进度。
+      - generic [ref=e21]:
+        - status [ref=e22]: 轮询中
+        - generic [ref=e24]: 每 3 秒刷新
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - term [ref=e27]: HTTP 可达
+        - definition [ref=e28]:
+          - text: "5"
+          - generic [ref=e29]: / 5
+          - generic [ref=e30]: 多数派门槛 3 / 5 · 协议多数派待观测
+      - generic [ref=e31]:
+        - term [ref=e32]: 自报 Leader
+        - definition [ref=e33]:
+          - text: raft-5
+          - generic [ref=e34]: raft-5 · 任期 12
+      - generic [ref=e35]:
+        - term [ref=e36]: 观测到的最高任期
+        - definition [ref=e37]:
+          - text: "12"
+          - generic [ref=e38]:
+            - text: 最近采样
+            - time [ref=e39]: 21:50:40
+    - generic [ref=e40]:
+      - region [ref=e41]:
+        - generic [ref=e42]:
+          - heading "节点拓扑" [level=2] [ref=e43]
+          - paragraph [ref=e44]: 选择节点查看详情。连线表示固定成员关系。
+        - list [ref=e56]:
+          - listitem [ref=e57]:
+            - button "raft-1 Follower 任期 12 · 可达" [pressed] [ref=e58] [cursor=pointer]:
+              - strong [ref=e59]: raft-1
+              - generic [ref=e60]: Follower
+              - generic [ref=e62]: 任期 12 · 可达
+          - listitem [ref=e63]:
+            - button "raft-2 Follower 任期 12 · 可达" [ref=e64] [cursor=pointer]:
+              - strong [ref=e65]: raft-2
+              - generic [ref=e66]: Follower
+              - generic [ref=e68]: 任期 12 · 可达
+          - listitem [ref=e69]:
+            - button "raft-3 Follower 任期 12 · 可达" [ref=e70] [cursor=pointer]:
+              - strong [ref=e71]: raft-3
+              - generic [ref=e72]: Follower
+              - generic [ref=e74]: 任期 12 · 可达
+          - listitem [ref=e75]:
+            - button "raft-4 Follower 任期 12 · 可达" [ref=e76] [cursor=pointer]:
+              - strong [ref=e77]: raft-4
+              - generic [ref=e78]: Follower
+              - generic [ref=e80]: 任期 12 · 可达
+          - listitem [ref=e81]:
+            - button "raft-5 Leader 任期 12 · 可达" [ref=e82] [cursor=pointer]:
+              - strong [ref=e83]: raft-5
+              - generic [ref=e84]: Leader
+              - generic [ref=e86]: 任期 12 · 可达
+      - complementary [ref=e87]:
+        - generic [ref=e88]:
+          - paragraph [ref=e89]: 节点详情
+          - generic [ref=e90]:
+            - heading "raft-1" [level=2] [ref=e91]
+            - generic [ref=e92]: Follower
+        - generic [ref=e93]:
+          - generic [ref=e94]:
+            - term [ref=e95]: 当前任期
+            - definition [ref=e96]: "12"
+          - generic [ref=e97]:
+            - term [ref=e98]: 节点报告的 Leader
+            - definition [ref=e99]: raft-5
+          - generic [ref=e100]:
+            - term [ref=e101]:
+              - text: Leader 就绪
+              - code [ref=e102]: ready
+            - definition [ref=e103]: "false"
+        - generic [ref=e104]:
+          - heading "日志进度" [level=3] [ref=e105]
+          - generic [ref=e106]:
+            - generic [ref=e107]:
+              - term [ref=e108]:
+                - text: 日志长度
+                - code [ref=e109]: logLength
+              - definition [ref=e110]: "27"
+            - generic [ref=e111]:
+              - term [ref=e112]:
+                - text: 已提交
+                - code [ref=e113]: commitIndex
+              - definition [ref=e114]: "27"
+            - generic [ref=e115]:
+              - term [ref=e116]:
+                - text: 已应用
+                - code [ref=e117]: lastApplied
+              - definition [ref=e118]: "27"
+        - group [ref=e119]:
+          - generic "已提交前缀摘要" [ref=e120] [cursor=pointer]
+        - generic [ref=e121]:
+          - text: 节点采样
+          - time [ref=e122]: 21:50:40
+```
+
+> playwright-cli -s=raft-observer-attach click e82
+### Ran Playwright code
+```js
+await page.getByRole('button', { name: 'raft-5 Leader 任期 12 · 可达' }).click();
+```
+### Page
+- Page URL: http://127.0.0.1:5173/
+- Page Title: Raft Cluster · Distributed Database
+### Snapshot
+- [Snapshot](.playwright-cli\page-2026-11-06T13-50-42-135Z.yml)
+
+> playwright-cli -s=raft-observer-attach run-code async page => (async (page, status) => {
+    const panel = page.locator('#node-details');
+    await panel.getByRole('heading', {name: status.nodeId, exact:true}).waitFor();
+    if (await page.locator('.nodes button').count() !== 5) throw new Error('Expected five members');
+    for (const field of ['logLength', 'commitIndex', 'lastApplied', 'ready']) {
+      const value = await panel.locator('dl > div').filter({has: panel.getByText(field, {exact:true})}).locator('dd').textContent();
+      if (value !== String(status[field])) throw new Error(field + ' mismatch');
+    }
+    const errors = await page.evaluate(() => performance.getEntriesByType('resource')
+      .filter(entry => new URL(entry.name).origin !== location.origin).map(entry => entry.name));
+    if (errors.length) throw new Error('Cross-origin requests: ' + errors.join());
+    return { nodeId: status.nodeId, role: status.role, term: status.term, sameOrigin: true, logLength: status.logLength, commitIndex: status.commitIndex, lastApplied: status.lastApplied };
+  })(page,{"nodeId":"raft-5","role":"leader","term":12,"leader":"raft-5","commitIndex":27,"lastApplied":27,"logLength":27,"ready":true,"committedDigest":"6cc6ef225e6775e53ac2d0597908066a415f0de9fd6c4e8e62104fd78db318eb"})
+### Error
+TimeoutError: locator.textContent: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('#node-details').locator('dl > div').filter({ has: locator('#node-details').getByText('logLength', { exact: true }) }).locator('dd')[22m
+
+
+Error: Playwright: run-code

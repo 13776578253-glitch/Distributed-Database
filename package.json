@@ -9,14 +9,23 @@
   "packageManager": "pnpm@11.25.0",
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p web/tsconfig.json",
+    "console": "node scripts/console.ts",
+    "build:web": "vite build --config web/vite.config.ts",
     "demo": "node scripts/demo.ts",
     "experiment": "node scripts/experiment.ts",
     "reset:destructive": "node scripts/reset.ts"
   },
   "devDependencies": {
     "@types/node": "24.10.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "typescript": "5.9.3",
+    "vite": "7.3.7",
     "vitest": "4.0.18"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   }
 }

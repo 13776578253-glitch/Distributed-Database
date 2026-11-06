@@ -1,0 +1,6 @@
+pnpm console
+COMPOSE_FILE=<isolated-compose.json> CONSOLE_PORT=5174 pnpm console
+Playwright CLI --browser msedge: compare attached UI with node HTTP status, click nodes and inspect details
+docker compose -f <isolated-compose.json> kill -s SIGKILL <leader>
+docker compose -f <isolated-compose.json> start <former-leader>
+Playwright CLI: assert changed DOM via polling and capture desktop and narrow layouts

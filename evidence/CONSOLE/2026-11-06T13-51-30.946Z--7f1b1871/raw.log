@@ -1,0 +1,516 @@
+> docker compose ps --all --quiet raft-1 raft-2 raft-3 raft-4 raft-5
+7a172178403d638ce7d586ee62280b1d49630af830bbb3a570758cf40a48a592
+442991db5421d0a9f41debc72ec47eb47726ed663f6de11cb2ad3cf04b18b8c7
+89714ac38a662ff14d70a307ab019ba14350c485211790d567ec401a002b3dc5
+b29a7fa879dfdac777bb56802a96c18a0d597f4f89a5b00a449960b1bb109670
+bb099032d7768dfad8aefd76b1d524858ea1b9f6466f982836d8ca45d460d7f7
+
+> playwright-cli -s=raft-observer-attach snapshot
+### Page
+- Page URL: http://127.0.0.1:5173/
+- Page Title: Raft Cluster · Distributed Database
+### Snapshot
+```yaml
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: Distributed Database
+      - generic [ref=e14]: Raft 观测控制台
+  - main [ref=e15]:
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - paragraph [ref=e18]: 集群观测
+        - heading "Raft Cluster" [level=1] [ref=e19]
+        - paragraph [ref=e20]: 查看五节点角色、任期和日志进度。
+      - generic [ref=e21]:
+        - status [ref=e22]: 轮询中
+        - generic [ref=e24]: 每 3 秒刷新
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - term [ref=e27]: HTTP 可达
+        - definition [ref=e28]:
+          - text: "5"
+          - generic [ref=e29]: / 5
+          - generic [ref=e30]: 多数派门槛 3 / 5 · 协议多数派待观测
+      - generic [ref=e31]:
+        - term [ref=e32]: 自报 Leader
+        - definition [ref=e33]:
+          - text: raft-5
+          - generic [ref=e34]: raft-5 · 任期 12
+      - generic [ref=e35]:
+        - term [ref=e36]: 观测到的最高任期
+        - definition [ref=e37]:
+          - text: "12"
+          - generic [ref=e38]:
+            - text: 最近采样
+            - time [ref=e39]: 21:51:29
+    - generic [ref=e40]:
+      - region [ref=e41]:
+        - generic [ref=e42]:
+          - heading "节点拓扑" [level=2] [ref=e43]
+          - paragraph [ref=e44]: 选择节点查看详情。连线表示固定成员关系。
+        - list [ref=e56]:
+          - listitem [ref=e57]:
+            - button "raft-1 Follower 任期 12 · 可达" [ref=e58] [cursor=pointer]:
+              - strong [ref=e59]: raft-1
+              - generic [ref=e60]: Follower
+              - generic [ref=e62]: 任期 12 · 可达
+          - listitem [ref=e63]:
+            - button "raft-2 Follower 任期 12 · 可达" [ref=e64] [cursor=pointer]:
+              - strong [ref=e65]: raft-2
+              - generic [ref=e66]: Follower
+              - generic [ref=e68]: 任期 12 · 可达
+          - listitem [ref=e69]:
+            - button "raft-3 Follower 任期 12 · 可达" [ref=e70] [cursor=pointer]:
+              - strong [ref=e71]: raft-3
+              - generic [ref=e72]: Follower
+              - generic [ref=e74]: 任期 12 · 可达
+          - listitem [ref=e75]:
+            - button "raft-4 Follower 任期 12 · 可达" [ref=e76] [cursor=pointer]:
+              - strong [ref=e77]: raft-4
+              - generic [ref=e78]: Follower
+              - generic [ref=e80]: 任期 12 · 可达
+          - listitem [ref=e81]:
+            - button "raft-5 Leader 任期 12 · 可达" [active] [pressed] [ref=e82] [cursor=pointer]:
+              - strong [ref=e83]: raft-5
+              - generic [ref=e84]: Leader
+              - generic [ref=e86]: 任期 12 · 可达
+      - complementary [ref=e123]:
+        - generic [ref=e88]:
+          - paragraph [ref=e89]: 节点详情
+          - generic [ref=e90]:
+            - heading "raft-5" [level=2] [ref=e124]
+            - generic [ref=e92]: Leader
+        - generic [ref=e93]:
+          - generic [ref=e94]:
+            - term [ref=e95]: 当前任期
+            - definition [ref=e96]: "12"
+          - generic [ref=e97]:
+            - term [ref=e98]: 节点报告的 Leader
+            - definition [ref=e99]: raft-5
+          - generic [ref=e100]:
+            - term [ref=e101]:
+              - text: Leader 就绪
+              - code [ref=e102]: ready
+            - definition [ref=e103]: "true"
+        - generic [ref=e104]:
+          - heading "日志进度" [level=3] [ref=e105]
+          - generic [ref=e106]:
+            - generic [ref=e107]:
+              - term [ref=e108]:
+                - text: 日志长度
+                - code [ref=e109]: logLength
+              - definition [ref=e110]: "27"
+            - generic [ref=e111]:
+              - term [ref=e112]:
+                - text: 已提交
+                - code [ref=e113]: commitIndex
+              - definition [ref=e114]: "27"
+            - generic [ref=e115]:
+              - term [ref=e116]:
+                - text: 已应用
+                - code [ref=e117]: lastApplied
+              - definition [ref=e118]: "27"
+        - group [ref=e119]:
+          - generic "已提交前缀摘要" [ref=e120] [cursor=pointer]
+        - generic [ref=e121]:
+          - text: 节点采样
+          - time [ref=e122]: 21:51:29
+```
+
+> playwright-cli -s=raft-observer-attach click e82
+### Ran Playwright code
+```js
+await page.getByRole('button', { name: 'raft-5 Leader 任期 12 · 可达' }).click();
+```
+### Page
+- Page URL: http://127.0.0.1:5173/
+- Page Title: Raft Cluster · Distributed Database
+### Snapshot
+- [Snapshot](.playwright-cli\page-2026-11-06T13-51-33-043Z.yml)
+
+> playwright-cli -s=raft-observer-attach run-code async page => (async (page, status) => {
+    const panel = page.locator('#node-details');
+    await panel.getByRole('heading', {name: status.nodeId, exact:true}).waitFor();
+    if (await page.locator('.nodes button').count() !== 5) throw new Error('Expected five members');
+    for (const field of ['logLength', 'commitIndex', 'lastApplied', 'ready']) {
+      const value = await panel.locator('dl > div').filter({has: page.getByText(field, {exact:true})}).locator('dd').textContent();
+      if (value !== String(status[field])) throw new Error(field + ' mismatch');
+    }
+    const errors = await page.evaluate(() => performance.getEntriesByType('resource')
+      .filter(entry => new URL(entry.name).origin !== location.origin).map(entry => entry.name));
+    if (errors.length) throw new Error('Cross-origin requests: ' + errors.join());
+    return { nodeId: status.nodeId, role: status.role, term: status.term, sameOrigin: true, logLength: status.logLength, commitIndex: status.commitIndex, lastApplied: status.lastApplied };
+  })(page,{"nodeId":"raft-5","role":"leader","term":12,"leader":"raft-5","commitIndex":27,"lastApplied":27,"logLength":27,"ready":true,"committedDigest":"6cc6ef225e6775e53ac2d0597908066a415f0de9fd6c4e8e62104fd78db318eb"})
+### Result
+{"nodeId":"raft-5","role":"leader","term":12,"sameOrigin":true,"logLength":27,"commitIndex":27,"lastApplied":27}
+### Ran Playwright code
+```js
+await (async page => (async (page, status) => {
+    const panel = page.locator('#node-details');
+    await panel.getByRole('heading', {name: status.nodeId, exact:true}).waitFor();
+    if (await page.locator('.nodes button').count() !== 5) throw new Error('Expected five members');
+    for (const field of ['logLength', 'commitIndex', 'lastApplied', 'ready']) {
+      const value = await panel.locator('dl > div').filter({has: page.getByText(field, {exact:true})}).locator('dd').textContent();
+      if (value !== String(status[field])) throw new Error(field + ' mismatch');
+    }
+    const errors = await page.evaluate(() => performance.getEntriesByType('resource')
+      .filter(entry => new URL(entry.name).origin !== location.origin).map(entry => entry.name));
+    if (errors.length) throw new Error('Cross-origin requests: ' + errors.join());
+    return { nodeId: status.nodeId, role: status.role, term: status.term, sameOrigin: true, logLength: status.logLength, commitIndex: status.commitIndex, lastApplied: status.lastApplied };
+  })(page,{"nodeId":"raft-5","role":"leader","term":12,"leader":"raft-5","commitIndex":27,"lastApplied":27,"logLength":27,"ready":true,"committedDigest":"6cc6ef225e6775e53ac2d0597908066a415f0de9fd6c4e8e62104fd78db318eb"}))(page);
+```
+
+> playwright-cli -s=raft-observer-attach screenshot --filename=D:\Desktop\code\Distributed Database\evidence\CONSOLE\2026-11-06T13-51-30.946Z--7f1b1871\desktop.png
+### Result
+- [Screenshot of viewport](..\..\..\evidence\CONSOLE\2026-11-06T13-51-30.946Z--7f1b1871\desktop.png)
+### Ran Playwright code
+```js
+// Screenshot viewport and save it as ..\..\..\evidence\CONSOLE\2026-11-06T13-51-30.946Z--7f1b1871\desktop.png
+await page.screenshot({
+  path: '..\\..\\..\\evidence\\CONSOLE\\2026-11-06T13-51-30.946Z--7f1b1871\\desktop.png',
+  scale: 'css',
+  type: 'png'
+});
+```
+
+> docker compose -f D:\Desktop\code\Distributed Database\.scratch\console-acceptance\2026-11-06T13-47-00Z--40ceea1e\compose.json ps --all --format json
+{"Command":"\"docker-entrypoint.s…\"","CreatedAt":"2026-11-06 21:47:29 +0800 +08","Engine":"","ExitCode":0,"Health":"healthy","ID":"3ab4b23e1deb","Image":"minidb-console-40ceea1e:local","Labels":"com.docker.compose.depends_on=,com.docker.compose.oneoff=False,com.docker.compose.project=minidb-console-40ceea1e,com.docker.compose.project.working_dir=D:\\Desktop\\code\\Distributed Database\\.scratch\\console-acceptance\\2026-11-06T13-47-00Z--40ceea1e,com.docker.compose.service=raft-1,com.docker.compose.config-hash=a169f643d88243d3bdb97e5430a217dcaef7dff745363f3fb527b66f1fb49784,com.docker.compose.container-number=1,com.docker.compose.image=sha256:58a68cd5175f73d6a94034b4649865d928a2ec4bc0d9958f4c7f4d8c54de162c,com.docker.compose.project.config_files=D:\\Desktop\\code\\Distributed Database\\.scratch\\console-acceptance\\2026-11-06T13-47-00Z--40ceea1e\\compose.json,com.docker.compose.version=5.5.0,desktop.docker.io/ports.scheme=v2,desktop.docker.io/ports/8080/tcp=127.0.0.1:19081","LocalVolumes":"1","Mounts":"minidb-console…","Name":"minidb-console-40ceea1e-raft-1-1","Names":"minidb-console-40ceea1e-raft-1-1","Networks":"minidb-console-40ceea1e_default","Ports":"127.0.0.1:19081-\u003e8080/tcp","Project":"minidb-console-40ceea1e","Publishers":[{"URL":"127.0.0.1","TargetPort":8080,"PublishedPort":19081,"Protocol":"tcp"}],"RunningFor":"4 minutes ago","Service":"raft-1","Size":"0B","State":"running","Status":"Up 4 minutes (healthy)"}
+{"Command":"\"docker-entrypoint.s…\"","CreatedAt":"2026-11-06 21:47:29 +0800 +08","Engine":"","ExitCode":0,"Health":"healthy","ID":"bc68d0ac21f9","Image":"minidb-console-40ceea1e:local","Labels":"com.docker.compose.oneoff=False,com.docker.compose.project.config_files=D:\\Desktop\\code\\Distributed Database\\.scratch\\console-acceptance\\2026-11-06T13-47-00Z--40ceea1e\\compose.json,com.docker.compose.service=raft-2,desktop.docker.io/ports/8080/tcp=127.0.0.1:19082,com.docker.compose.container-number=1,com.docker.compose.image=sha256:58a68cd5175f73d6a94034b4649865d928a2ec4bc0d9958f4c7f4d8c54de162c,com.docker.compose.project=minidb-console-40ceea1e,com.docker.compose.project.working_dir=D:\\Desktop\\code\\Distributed Database\\.scratch\\console-acceptance\\2026-11-06T13-47-00Z--40ceea1e,com.docker.compose.version=5.5.0,desktop.docker.io/ports.scheme=v2,com.docker.compose.config-hash=6433e5103d57c414168ea74c75f992ea0a11a4526e7091ddbbee3eb687c6af15,com.docker.compose.depends_on=","LocalVolumes":"1","Mounts":"minidb-console…","Name":"minidb-console-40ceea1e-raft-2-1","Names":"minidb-console-40ceea1e-raft-2-1","Networks":"minidb-console-40ceea1e_default","Ports":"127.0.0.1:19082-\u003e8080/tcp","Project":"minidb-console-40ceea1e","Publishers":[{"URL":"127.0.0.1","TargetPort":8080,"PublishedPort":19082,"Protocol":"tcp"}],"RunningFor":"4 minutes ago","Service":"raft-2","Size":"0B","State":"running","Status":"Up 4 minutes (healthy)"}
+{"Command":"\"docker-entrypoint.s…\"","CreatedAt":"2026-11-06 21:47:29 +0800 +08","Engine":"","ExitCode":0,"Health":"healthy","ID":"3629c46b8f33","Image":"minidb-console-40ceea1e:local","Labels":"com.docker.compose.config-hash=47216e52a0a519b418be9b7e39a3ea359df5243c3b479a24dbbabdadb537f13b,com.docker.compose.image=sha256:58a68cd5175f73d6a94034b4649865d928a2ec4bc0d9958f4c7f4d8c54de162c,com.docker.compose.project.config_files=D:\\Desktop\\code\\Distributed Database\\.scratch\\console-acceptance\\2026-11-06T13-47-00Z--40ceea1e\\compose.json,com.docker.compose.project.working_dir=D:\\Desktop\\code\\Distributed Database\\.scratch\\console-acceptance\\2026-11-06T13-47-00Z--40ceea1e,com.docker.compose.version=5.5.0,desktop.docker.io/ports/8080/tcp=127.0.0.1:19083,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.oneoff=False,com.docker.compose.project=minidb-console-40ceea1e,com.docker.compose.service=raft-3,desktop.docker.io/ports.scheme=v2","LocalVolumes":"1","Mounts":"minidb-console…","Name":"minidb-console-40ceea1e-raft-3-1","Names":"minidb-console-40ceea1e-raft-3-1","Networks":"minidb-console-40ceea1e_default","Ports":"127.0.0.1:19083-\u003e8080/tcp","Project":"minidb-console-40ceea1e","Publishers":[{"URL":"127.0.0.1","TargetPort":8080,"PublishedPort":19083,"Protocol":"tcp"}],"RunningFor":"4 minutes ago","Service":"raft-3","Size":"0B","State":"running","Status":"Up 4 minutes (healthy)"}
+{"Command":"\"docker-entrypoint.s…\"","CreatedAt":"2026-11-06 21:47:29 +0800 +08","Engine":"","ExitCode":0,"Health":"healthy","ID":"f9bb5d5afc78","Image":"minidb-console-40ceea1e:local","Labels":"com.docker.compose.project.config_files=D:\\Desktop\\code\\Distributed Database\\.scratch\\console-acceptance\\2026-11-06T13-47-00Z--40ceea1e\\compose.json,com.docker.compose.project.working_dir=D:\\Desktop\\code\\Distributed Database\\.scratch\\console-acceptance\\2026-11-06T13-47-00Z--40ceea1e,desktop.docker.io/ports.scheme=v2,desktop.docker.io/ports/8080/tcp=127.0.0.1:19084,com.docker.compose.config-hash=301fe73299a1c19a4eb4d7e61ce58c4e08a691eb62d95312d4087827839d4d29,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:58a68cd5175f73d6a94034b4649865d928a2ec4bc0d9958f4c7f4d8c54de162c,com.docker.compose.oneoff=False,com.docker.compose.project=minidb-console-40ceea1e,com.docker.compose.service=raft-4,com.docker.compose.version=5.5.0","LocalVolumes":"1","Mounts":"minidb-console…","Name":"minidb-console-40ceea1e-raft-4-1","Names":"minidb-console-40ceea1e-raft-4-1","Networks":"minidb-console-40ceea1e_default","Ports":"127.0.0.1:19084-\u003e8080/tcp","Project":"minidb-console-40ceea1e","Publishers":[{"URL":"127.0.0.1","TargetPort":8080,"PublishedPort":19084,"Protocol":"tcp"}],"RunningFor":"4 minutes ago","Service":"raft-4","Size":"0B","State":"running","Status":"Up 4 minutes (healthy)"}
+{"Command":"\"docker-entrypoint.s…\"","CreatedAt":"2026-11-06 21:47:29 +0800 +08","Engine":"","ExitCode":0,"Health":"healthy","ID":"5749ef9e5ca9","Image":"minidb-console-40ceea1e:local","Labels":"com.docker.compose.image=sha256:58a68cd5175f73d6a94034b4649865d928a2ec4bc0d9958f4c7f4d8c54de162c,com.docker.compose.oneoff=False,com.docker.compose.project=minidb-console-40ceea1e,com.docker.compose.project.working_dir=D:\\Desktop\\code\\Distributed Database\\.scratch\\console-acceptance\\2026-11-06T13-47-00Z--40ceea1e,desktop.docker.io/ports.scheme=v2,com.docker.compose.depends_on=,com.docker.compose.project.config_files=D:\\Desktop\\code\\Distributed Database\\.scratch\\console-acceptance\\2026-11-06T13-47-00Z--40ceea1e\\compose.json,com.docker.compose.service=raft-5,com.docker.compose.version=5.5.0,desktop.docker.io/ports/8080/tcp=127.0.0.1:19085,com.docker.compose.config-hash=1fb77abed6bb88fef14f4e2d6051f51c5de32a3e0acdac7b8069ec9eb9c85a57,com.docker.compose.container-number=1","LocalVolumes":"1","Mounts":"minidb-console…","Name":"minidb-console-40ceea1e-raft-5-1","Names":"minidb-console-40ceea1e-raft-5-1","Networks":"minidb-console-40ceea1e_default","Ports":"127.0.0.1:19085-\u003e8080/tcp","Project":"minidb-console-40ceea1e","Publishers":[{"URL":"127.0.0.1","TargetPort":8080,"PublishedPort":19085,"Protocol":"tcp"}],"RunningFor":"4 minutes ago","Service":"raft-5","Size":"0B","State":"running","Status":"Up 4 minutes (healthy)"}
+
+> docker inspect 3ab4b23e1deb --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-console-40ceea1e-raft-1
+
+> docker inspect bc68d0ac21f9 --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-console-40ceea1e-raft-2
+
+> docker inspect 3629c46b8f33 --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-console-40ceea1e-raft-3
+
+> docker inspect f9bb5d5afc78 --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-console-40ceea1e-raft-4
+
+> docker inspect 5749ef9e5ca9 --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-console-40ceea1e-raft-5
+
+> playwright-cli -s=raft-observer-isolated open http://127.0.0.1:5174 --browser msedge
+### Browser `raft-observer-isolated` opened with pid 22700.
+### Ran Playwright code
+```js
+await page.goto('http://127.0.0.1:5174');
+```
+### Page
+- Page URL: http://127.0.0.1:5174/
+- Page Title: Raft Cluster · Distributed Database
+### Snapshot
+- [Snapshot](.playwright-cli\page-2026-11-06T13-51-36-322Z.yml)
+
+> playwright-cli -s=raft-observer-isolated resize 1440 900
+### Ran Playwright code
+```js
+await page.setViewportSize({ width: 1440, height: 900 });
+```
+
+> playwright-cli -s=raft-observer-isolated snapshot
+### Page
+- Page URL: http://127.0.0.1:5174/
+- Page Title: Raft Cluster · Distributed Database
+### Snapshot
+```yaml
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: Distributed Database
+      - generic [ref=e14]: Raft 观测控制台
+  - main [ref=e15]:
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - paragraph [ref=e18]: 集群观测
+        - heading "Raft Cluster" [level=1] [ref=e19]
+        - paragraph [ref=e20]: 查看五节点角色、任期和日志进度。
+      - generic [ref=e21]:
+        - status [ref=e22]: 轮询中
+        - generic [ref=e24]: 每 3 秒刷新
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - term [ref=e27]: HTTP 可达
+        - definition [ref=e28]:
+          - text: "5"
+          - generic [ref=e29]: / 5
+          - generic [ref=e30]: 多数派门槛 3 / 5 · 协议多数派待观测
+      - generic [ref=e31]:
+        - term [ref=e32]: 自报 Leader
+        - definition [ref=e33]:
+          - text: raft-1
+          - generic [ref=e34]: raft-1 · 任期 1
+      - generic [ref=e35]:
+        - term [ref=e36]: 观测到的最高任期
+        - definition [ref=e37]:
+          - text: "1"
+          - generic [ref=e38]:
+            - text: 最近采样
+            - time [ref=e91]: 21:51:36
+    - generic [ref=e39]:
+      - region [ref=e40]:
+        - generic [ref=e41]:
+          - heading "节点拓扑" [level=2] [ref=e42]
+          - paragraph [ref=e43]: 选择节点查看详情。连线表示固定成员关系。
+        - list [ref=e55]:
+          - listitem [ref=e56]:
+            - button "raft-1 Leader 任期 1 · 可达" [pressed] [ref=e92] [cursor=pointer]:
+              - strong [ref=e58]: raft-1
+              - generic [ref=e59]: Leader
+              - generic [ref=e93]: 任期 1 · 可达
+          - listitem [ref=e61]:
+            - button "raft-2 Follower 任期 1 · 可达" [ref=e94] [cursor=pointer]:
+              - strong [ref=e63]: raft-2
+              - generic [ref=e64]: Follower
+              - generic [ref=e95]: 任期 1 · 可达
+          - listitem [ref=e66]:
+            - button "raft-3 Follower 任期 1 · 可达" [ref=e96] [cursor=pointer]:
+              - strong [ref=e68]: raft-3
+              - generic [ref=e69]: Follower
+              - generic [ref=e97]: 任期 1 · 可达
+          - listitem [ref=e71]:
+            - button "raft-4 Follower 任期 1 · 可达" [ref=e98] [cursor=pointer]:
+              - strong [ref=e73]: raft-4
+              - generic [ref=e74]: Follower
+              - generic [ref=e99]: 任期 1 · 可达
+          - listitem [ref=e76]:
+            - button "raft-5 Follower 任期 1 · 可达" [ref=e100] [cursor=pointer]:
+              - strong [ref=e78]: raft-5
+              - generic [ref=e79]: Follower
+              - generic [ref=e101]: 任期 1 · 可达
+      - complementary [ref=e81]:
+        - generic [ref=e82]:
+          - paragraph [ref=e83]: 节点详情
+          - generic [ref=e84]:
+            - heading "raft-1" [level=2] [ref=e85]
+            - generic [ref=e86]: Leader
+        - generic [ref=e102]:
+          - generic [ref=e103]:
+            - term [ref=e104]: 当前任期
+            - definition [ref=e105]: "1"
+          - generic [ref=e106]:
+            - term [ref=e107]: 节点报告的 Leader
+            - definition [ref=e108]: raft-1
+          - generic [ref=e109]:
+            - term [ref=e110]:
+              - text: Leader 就绪
+              - code [ref=e111]: ready
+            - definition [ref=e112]: "true"
+        - generic [ref=e113]:
+          - heading "日志进度" [level=3] [ref=e114]
+          - generic [ref=e115]:
+            - generic [ref=e116]:
+              - term [ref=e117]:
+                - text: 日志长度
+                - code [ref=e118]: logLength
+              - definition [ref=e119]: "1"
+            - generic [ref=e120]:
+              - term [ref=e121]:
+                - text: 已提交
+                - code [ref=e122]: commitIndex
+              - definition [ref=e123]: "1"
+            - generic [ref=e124]:
+              - term [ref=e125]:
+                - text: 已应用
+                - code [ref=e126]: lastApplied
+              - definition [ref=e127]: "1"
+        - group [ref=e128]:
+          - generic "已提交前缀摘要" [ref=e129] [cursor=pointer]
+        - generic [ref=e90]:
+          - text: 节点采样
+          - time [ref=e130]: 21:51:36
+```
+
+> playwright-cli -s=raft-observer-isolated click e92
+### Ran Playwright code
+```js
+await page.getByRole('button', { name: 'raft-1 Leader 任期 1 · 可达' }).click();
+```
+### Page
+- Page URL: http://127.0.0.1:5174/
+- Page Title: Raft Cluster · Distributed Database
+### Snapshot
+- [Snapshot](.playwright-cli\page-2026-11-06T13-51-38-034Z.yml)
+
+> playwright-cli -s=raft-observer-isolated run-code async page => (async page => {
+    await page.waitForFunction(() => document.querySelector('#reachable').textContent === '5');
+    const boxes = await page.locator('.nodes button').evaluateAll(nodes => nodes.map(node => [node.dataset.node, node.offsetWidth, node.offsetHeight, node.getBoundingClientRect().x, node.getBoundingClientRect().y]));
+    await page.evaluate(boxes => { window.acceptanceBoxes = boxes; }, boxes);
+    return boxes;
+  })(page,null)
+### Result
+[["raft-1",150,90,438.4375,464.6875],["raft-2",150,90,210.09375,580.6875],["raft-3",150,90,666.78125,580.6875],["raft-4",150,90,293.453125,724.6875],["raft-5",150,90,583.421875,724.6875]]
+### Ran Playwright code
+```js
+await (async page => (async page => {
+    await page.waitForFunction(() => document.querySelector('#reachable').textContent === '5');
+    const boxes = await page.locator('.nodes button').evaluateAll(nodes => nodes.map(node => [node.dataset.node, node.offsetWidth, node.offsetHeight, node.getBoundingClientRect().x, node.getBoundingClientRect().y]));
+    await page.evaluate(boxes => { window.acceptanceBoxes = boxes; }, boxes);
+    return boxes;
+  })(page,null))(page);
+```
+
+> docker compose -f D:\Desktop\code\Distributed Database\.scratch\console-acceptance\2026-11-06T13-47-00Z--40ceea1e\compose.json kill -s SIGKILL raft-1
+ Container minidb-console-40ceea1e-raft-1-1 Killing 
+ Container minidb-console-40ceea1e-raft-1-1 Killed 
+
+> playwright-cli -s=raft-observer-isolated run-code async page => (async (page, {oldLeader, term}) => {
+    await page.waitForFunction(({oldLeader,term}) => {
+      const leaders = document.querySelector('#leaders').textContent;
+      return document.querySelector('#reachable').textContent === '4'
+        && /^raft-[1-5]$/.test(leaders) && leaders !== oldLeader
+        && Number(document.querySelector('#term').textContent) > term
+        && document.querySelector('#node-details').textContent.includes('不可达');
+    }, {oldLeader,term}, {timeout:15000});
+    const state = await page.evaluate(() => {
+      const boxes = [...document.querySelectorAll('.nodes button')].map(node => [node.dataset.node, node.offsetWidth, node.offsetHeight, node.getBoundingClientRect().x, node.getBoundingClientRect().y]);
+      return { leader: document.querySelector('#leaders').textContent, term:Number(document.querySelector('#term').textContent),
+        fixedPositions:JSON.stringify(boxes) === JSON.stringify(window.acceptanceBoxes), selected:document.querySelector('#detail-heading').textContent };
+    });
+    if (!state.fixedPositions || state.selected !== oldLeader) throw new Error('Topology position or selection changed');
+    return state;
+  })(page,{"oldLeader":"raft-1","term":1})
+### Result
+{"leader":"raft-5","term":2,"fixedPositions":true,"selected":"raft-1"}
+### Ran Playwright code
+```js
+await (async page => (async (page, {oldLeader, term}) => {
+    await page.waitForFunction(({oldLeader,term}) => {
+      const leaders = document.querySelector('#leaders').textContent;
+      return document.querySelector('#reachable').textContent === '4'
+        && /^raft-[1-5]$/.test(leaders) && leaders !== oldLeader
+        && Number(document.querySelector('#term').textContent) > term
+        && document.querySelector('#node-details').textContent.includes('不可达');
+    }, {oldLeader,term}, {timeout:15000});
+    const state = await page.evaluate(() => {
+      const boxes = [...document.querySelectorAll('.nodes button')].map(node => [node.dataset.node, node.offsetWidth, node.offsetHeight, node.getBoundingClientRect().x, node.getBoundingClientRect().y]);
+      return { leader: document.querySelector('#leaders').textContent, term:Number(document.querySelector('#term').textContent),
+        fixedPositions:JSON.stringify(boxes) === JSON.stringify(window.acceptanceBoxes), selected:document.querySelector('#detail-heading').textContent };
+    });
+    if (!state.fixedPositions || state.selected !== oldLeader) throw new Error('Topology position or selection changed');
+    return state;
+  })(page,{"oldLeader":"raft-1","term":1}))(page);
+```
+
+> playwright-cli -s=raft-observer-isolated screenshot --filename=D:\Desktop\code\Distributed Database\evidence\CONSOLE\2026-11-06T13-51-30.946Z--7f1b1871\leader-failure.png
+### Result
+- [Screenshot of viewport](..\..\..\evidence\CONSOLE\2026-11-06T13-51-30.946Z--7f1b1871\leader-failure.png)
+### Ran Playwright code
+```js
+// Screenshot viewport and save it as ..\..\..\evidence\CONSOLE\2026-11-06T13-51-30.946Z--7f1b1871\leader-failure.png
+await page.screenshot({
+  path: '..\\..\\..\\evidence\\CONSOLE\\2026-11-06T13-51-30.946Z--7f1b1871\\leader-failure.png',
+  scale: 'css',
+  type: 'png'
+});
+```
+
+> docker compose -f D:\Desktop\code\Distributed Database\.scratch\console-acceptance\2026-11-06T13-47-00Z--40ceea1e\compose.json start raft-1
+ Container minidb-console-40ceea1e-raft-1-1 Starting 
+ Container minidb-console-40ceea1e-raft-1-1 Started 
+
+> playwright-cli -s=raft-observer-isolated run-code async page => (async (page, previous) => {
+    await page.waitForFunction(() => document.querySelector('#reachable').textContent === '5'
+      && document.querySelector('#node-details').textContent.includes('commitIndex'), null, {timeout:15000});
+    const data = await page.evaluate(() => ({
+      selected:document.querySelector('#detail-heading').textContent, reachable:document.querySelector('#reachable').textContent,
+      leader:document.querySelector('#leaders').textContent, term:Number(document.querySelector('#term').textContent),
+    }));
+    if (data.selected !== previous) throw new Error('Lost selected node on recovery');
+    return data;
+  })(page,"raft-1")
+### Result
+{"selected":"raft-1","reachable":"5","leader":"raft-5","term":2}
+### Ran Playwright code
+```js
+await (async page => (async (page, previous) => {
+    await page.waitForFunction(() => document.querySelector('#reachable').textContent === '5'
+      && document.querySelector('#node-details').textContent.includes('commitIndex'), null, {timeout:15000});
+    const data = await page.evaluate(() => ({
+      selected:document.querySelector('#detail-heading').textContent, reachable:document.querySelector('#reachable').textContent,
+      leader:document.querySelector('#leaders').textContent, term:Number(document.querySelector('#term').textContent),
+    }));
+    if (data.selected !== previous) throw new Error('Lost selected node on recovery');
+    return data;
+  })(page,"raft-1"))(page);
+```
+
+> playwright-cli -s=raft-observer-isolated screenshot --filename=D:\Desktop\code\Distributed Database\evidence\CONSOLE\2026-11-06T13-51-30.946Z--7f1b1871\recovered.png
+### Result
+- [Screenshot of viewport](..\..\..\evidence\CONSOLE\2026-11-06T13-51-30.946Z--7f1b1871\recovered.png)
+### Ran Playwright code
+```js
+// Screenshot viewport and save it as ..\..\..\evidence\CONSOLE\2026-11-06T13-51-30.946Z--7f1b1871\recovered.png
+await page.screenshot({
+  path: '..\\..\\..\\evidence\\CONSOLE\\2026-11-06T13-51-30.946Z--7f1b1871\\recovered.png',
+  scale: 'css',
+  type: 'png'
+});
+```
+
+> playwright-cli -s=raft-observer-attach resize 390 844
+### Ran Playwright code
+```js
+await page.setViewportSize({ width: 390, height: 844 });
+```
+
+> playwright-cli -s=raft-observer-attach run-code async page => (async page => {
+    const layout = await page.evaluate(() => ({
+      viewport:window.innerWidth, document:document.documentElement.scrollWidth,
+      nodes:document.querySelectorAll('.nodes button').length,
+    }));
+    if (layout.viewport !== layout.document || layout.nodes !== 5) throw new Error('Narrow layout overflow or missing nodes');
+    return layout;
+  })(page,null)
+### Result
+{"viewport":390,"document":390,"nodes":5}
+### Ran Playwright code
+```js
+await (async page => (async page => {
+    const layout = await page.evaluate(() => ({
+      viewport:window.innerWidth, document:document.documentElement.scrollWidth,
+      nodes:document.querySelectorAll('.nodes button').length,
+    }));
+    if (layout.viewport !== layout.document || layout.nodes !== 5) throw new Error('Narrow layout overflow or missing nodes');
+    return layout;
+  })(page,null))(page);
+```
+
+> playwright-cli -s=raft-observer-attach screenshot --filename=D:\Desktop\code\Distributed Database\evidence\CONSOLE\2026-11-06T13-51-30.946Z--7f1b1871\narrow.png --full-page
+### Result
+- [Screenshot of full page](..\..\..\evidence\CONSOLE\2026-11-06T13-51-30.946Z--7f1b1871\narrow.png)
+### Ran Playwright code
+```js
+// Screenshot full page and save it as ..\..\..\evidence\CONSOLE\2026-11-06T13-51-30.946Z--7f1b1871\narrow.png
+await page.screenshot({
+  fullPage: true,
+  path: '..\\..\\..\\evidence\\CONSOLE\\2026-11-06T13-51-30.946Z--7f1b1871\\narrow.png',
+  scale: 'css',
+  type: 'png'
+});
+```
+
+> playwright-cli -s=raft-observer-attach resize 1440 900
+### Ran Playwright code
+```js
+await page.setViewportSize({ width: 1440, height: 900 });
+```
+
+> playwright-cli -s=raft-observer-attach console error
+### Result
+Total messages: 0 (Errors: 0, Warnings: 0)
+
+
+> docker compose ps --all --quiet raft-1 raft-2 raft-3 raft-4 raft-5
+7a172178403d638ce7d586ee62280b1d49630af830bbb3a570758cf40a48a592
+442991db5421d0a9f41debc72ec47eb47726ed663f6de11cb2ad3cf04b18b8c7
+89714ac38a662ff14d70a307ab019ba14350c485211790d567ec401a002b3dc5
+b29a7fa879dfdac777bb56802a96c18a0d597f4f89a5b00a449960b1bb109670
+bb099032d7768dfad8aefd76b1d524858ea1b9f6466f982836d8ca45d460d7f7
+
