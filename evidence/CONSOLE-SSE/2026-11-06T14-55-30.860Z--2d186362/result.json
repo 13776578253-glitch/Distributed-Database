@@ -1,0 +1,79 @@
+{
+  "experimentId": "CONSOLE-SSE",
+  "runId": "2026-11-06T14-55-30.860Z--2d186362",
+  "startedAt": "2026-11-06T14:55:30.860Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "four real run types replay with original Evidence verdicts",
+      "passed": true,
+      "details": [
+        {
+          "id": "R01",
+          "status": "PASS",
+          "events": 17
+        },
+        {
+          "id": "R02",
+          "status": "PASS",
+          "events": 34
+        },
+        {
+          "id": "R03",
+          "status": "INCONCLUSIVE",
+          "events": 16
+        },
+        {
+          "id": "R04",
+          "status": "PASS",
+          "events": 7
+        }
+      ]
+    },
+    {
+      "name": "raw Evidence is readable and unlisted paths are rejected",
+      "passed": true,
+      "details": {
+        "rawLength": 19493,
+        "blocked": 404
+      }
+    },
+    {
+      "name": "SSE resumes from Last-Event-ID and receives a new real read barrier",
+      "passed": true,
+      "details": {
+        "before": "95aa847b-0c1b-43b1-bae6-66708855f9e7:29",
+        "after": "95aa847b-0c1b-43b1-bae6-66708855f9e7:33",
+        "leader": "raft-5"
+      }
+    },
+    {
+      "name": "SSE samples restarted and recreated containers and reports the identity gap",
+      "passed": true,
+      "details": {
+        "follower": "raft-1",
+        "gap": "Compose 容器集合变化，日志窗口可能有缺口",
+        "role": "raft-1 · candidate"
+      }
+    },
+    {
+      "name": "stale SSE cursor produces a clear replay-gap notice",
+      "passed": true,
+      "details": {
+        "reason": "上次事件游标已失效，已重新读取当前缓存"
+      }
+    },
+    {
+      "name": "existing Compose container IDs preserved",
+      "passed": true,
+      "details": {}
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

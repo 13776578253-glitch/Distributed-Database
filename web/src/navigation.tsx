@@ -7,11 +7,14 @@ const links = [
   { target: 'cluster-heading', icon: 'overview', title: '总览', hint: '集群采样与 Leader' },
   { target: 'topology-heading', icon: 'topology', title: '节点拓扑', hint: '成员角色与通信' },
   { target: 'detail-heading', icon: 'detail', title: '节点详情', hint: '状态、日志进度与应答' },
+  { target: '/timeline', icon: 'term', title: '实时事件', hint: 'Raft Timeline · SSE' },
+  { target: '/runs', icon: 'detail', title: '实验回放', hint: 'Verification · Evidence' },
 ] as const;
 
-export function Navigation({ connection }: { connection: keyof typeof connectionLabels }) {
+export function Navigation({ connection, view }: { connection: keyof typeof connectionLabels; view: string }) {
   const drawer = useRef<HTMLDialogElement>(null);
   const close = () => drawer.current?.close();
+  const page = links.find(item => item.target === view) ?? links[0];
 
   return <>
     <header className="topbar">
@@ -22,7 +25,7 @@ export function Navigation({ connection }: { connection: keyof typeof connection
             <path d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <div className="toolbar-label"><Icon name="overview" /><strong>总览</strong><span>Raft 集群状态</span></div>
+        <div className="toolbar-label"><Icon name={page.icon} /><strong>{page.title}</strong><span>{page.hint}</span></div>
         <span className={`connection ${connection}`} role="status">
           <span className="dot" />{connectionLabels[connection]}
         </span>
@@ -44,7 +47,7 @@ export function Navigation({ connection }: { connection: keyof typeof connection
         </div>
         <nav aria-label="控制台导航" className="drawer-links">
           {links.map(({ target, icon, title, hint }) =>
-            <a key={target} href={`#${target}`} aria-current={target === 'cluster-heading' ? 'page' : undefined} onClick={close}>
+            <a key={target} href={`#${target}`} aria-current={target === page.target ? 'page' : undefined} onClick={close}>
               <Icon name={icon} /><span><strong>{title}</strong><small>{hint}</small></span>
             </a>)}
         </nav>

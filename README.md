@@ -30,3 +30,5 @@ pnpm demo
 启动器挂接当前 Compose 项目的现有容器。项目没有 Raft 容器时，按 Compose 配置准备外部卷、构建镜像并启动五节点。已有停止的成员保留原状态，退出控制台后集群继续运行。
 
 页面每 3 秒向同源观测 API 请求五个节点的状态。点击节点可查看任期、日志长度、提交和应用索引。单独构建前端可运行 `pnpm build:web`，产物在 `dist/console/`。见[首批验收记录](docs/current-task/2026-11-06-raft-console.md)。
+
+侧栏的「实时事件」使用 SSE 读取容器日志。「实验回放」按 Run 读取 R01–R04 Evidence，支持逐步查看事件、断言与原始文件。见[第二批验收记录](docs/current-task/2026-11-06-raft-console-timeline.md)。

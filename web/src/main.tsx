@@ -1,11 +1,12 @@
 /** Renders the fixed cluster topology and details for one selected member. */
-import { StrictMode, useState } from 'react';
+import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { nodeIds } from '../../src/raft/config.ts';
 import type { NodeObservation, RpcObservation } from '../../src/contracts/observation.ts';
 import { Icon } from './icons.tsx';
 import { Navigation } from './navigation.tsx';
 import { placeMembers } from './topology.ts';
+import { Experiments, Timeline } from './timeline.tsx';
 import { pollIntervalMs, useCluster } from './use-cluster.ts';
 import './style.css';
 
@@ -86,6 +87,12 @@ function NodeDetails({ nodeId, node, lastSeen, observerOffline, rpc }: {
 function App() {
   const { snapshot, lastSeen, error } = useCluster();
   const [selected, setSelected] = useState(nodeIds[0]);
+  const [view, setView] = useState(location.hash.slice(1));
+  useEffect(() => {
+    const navigate = () => setView(location.hash.slice(1));
+    window.addEventListener('hashchange', navigate);
+    return () => window.removeEventListener('hashchange', navigate);
+  }, []);
   const observations = new Map(snapshot?.nodes.map(node => [node.nodeId, node]));
   const statuses = snapshot?.nodes.flatMap(node => node.ok ? [node.status] : []) ?? [];
   const leaders = statuses.filter(status => status.role === 'leader');
@@ -107,8 +114,14 @@ function App() {
   }
 
   return <>
-    <Navigation connection={connection} />
-    <main aria-labelledby="cluster-heading">
+    <Navigation connection={connection} view={view.startsWith('/') ? view : 'cluster-heading'} />
+    {view === '/timeline' ? <Timeline /> : view === '/runs' ? <main aria-labelledby="runs-heading">
+      <header className="overview-banner">
+        <span className="overview-icon"><Icon name="detail" /></span>
+        <div><h1 id="runs-heading">实验回放</h1><p>按 Run 查看原始 Evidence 与协议过程</p></div>
+      </header>
+      <Experiments />
+    </main> : <main aria-labelledby="cluster-heading">
       <header className="overview-banner">
         <span className="overview-icon"><Icon name="topology" /></span>
         <div>
@@ -188,7 +201,7 @@ function App() {
         <NodeDetails nodeId={selected} node={observations.get(selected)}
           lastSeen={lastSeen[selected]} observerOffline={error} rpc={rpc} />
       </div>
-    </main>
+    </main>}
   </>;
 }
 
