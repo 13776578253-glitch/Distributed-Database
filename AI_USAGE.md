@@ -6,3 +6,4 @@
 | S1 | 实现纯 Raft 状态机和确定性故障测试 | tests/raft/core.test.ts |
 | S2 | 实现 HTTP RPC、SQLite 适配器与容器实验 | docs/experiments.md 与 evidence/R01–R03/ |
 | Raft 观测控制台第一批 | 实现 Compose 挂接与初始化、只读 HTTP 聚合和 React 拓扑，补充 Observer 测试，使用隔离 Compose 项目和真实 Edge 完成功能验收 | [首批任务记录](docs/current-task/2026-11-06-raft-console.md) |
+| Raft 控制台视觉微调 | 根据用户批注调整侧栏与响应式布局，使用现有容器日志投影近期 RPC，补充顶位分配测试与隔离换届验证 | [第二轮布局与通信观测](docs/current-task/2026-11-06-raft-console.md#第二轮布局与通信观测) |

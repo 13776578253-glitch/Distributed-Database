@@ -1,0 +1,6 @@
+docker compose config --format json # derive isolated Compose project, volumes, image and loopback ports
+COMPOSE_FILE=<isolated config> CONSOLE_PORT=5174 node scripts/console.ts
+GET http://127.0.0.1:5174/api/cluster
+docker compose -f <isolated config> kill -s SIGKILL <leader>
+GET /api/cluster # observe replacement and recent real RPC replies
+docker compose -f <isolated config> start <former leader>

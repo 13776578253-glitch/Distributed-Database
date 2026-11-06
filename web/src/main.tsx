@@ -2,7 +2,9 @@
 import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { nodeIds } from '../../src/raft/config.ts';
-import type { NodeObservation } from '../../src/contracts/observation.ts';
+import type { NodeObservation, RpcObservation } from '../../src/contracts/observation.ts';
+import { Navigation } from './navigation.tsx';
+import { placeMembers } from './topology.ts';
 import { pollIntervalMs, useCluster } from './use-cluster.ts';
 import './style.css';
 
@@ -11,13 +13,16 @@ const timeFormat = new Intl.DateTimeFormat('zh-CN', {
   hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
 });
 
-function ClusterIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-    <path d="M12 5v5m-7 2h5m4 0h5m-7 2v5" />
-    <rect x="10" y="10" width="4" height="4" rx="1" />
-    <circle cx="12" cy="3" r="2" /><circle cx="3" cy="12" r="2" />
-    <circle cx="21" cy="12" r="2" /><circle cx="12" cy="21" r="2" />
-  </svg>;
+function MetricIcon({ kind }: { kind: 'reachability' | 'leader' | 'term' }) {
+  const paths = {
+    reachability: 'M2 12h4l3-7 5 14 3-7h5',
+    leader: 'm3 6 5 4 4-6 4 6 5-4-2 12H5L3 6Z',
+    term: 'M12 7v5l3 2 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+  };
+  return <span className="metric-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
+      strokeLinecap="round" strokeLinejoin="round"><path d={paths[kind]} /></svg>
+  </span>;
 }
 
 function probeLabel(node: NodeObservation | undefined, observerOffline: boolean) {
@@ -32,18 +37,19 @@ function probeLabel(node: NodeObservation | undefined, observerOffline: boolean)
   }
 }
 
-function NodeDetails({ nodeId, node, lastSeen, observerOffline }: {
+function NodeDetails({ nodeId, node, lastSeen, observerOffline, rpc }: {
   nodeId: string;
   node?: NodeObservation;
   lastSeen?: string;
   observerOffline: boolean;
+  rpc: RpcObservation[] | null | undefined;
 }) {
   const status = node?.ok ? node.status : undefined;
+  const replies = rpc?.filter(event => event.from === nodeId || event.to === nodeId).slice(0, 3) ?? [];
   return <aside className="panel detail" id="node-details" aria-labelledby="detail-heading">
-    <header className="panel-heading">
-      <p className="eyebrow">节点详情</p>
-      <div className="detail-title">
-        <h2 id="detail-heading">{nodeId}</h2>
+    <header className="panel-heading detail-title">
+      <h2 id="detail-heading" tabIndex={-1}>节点详情</h2>
+      <div className="detail-identity"><strong>{nodeId}</strong>
         <span className={`badge ${status?.role ?? 'unknown'}`}>
           {status ? roleLabels[status.role] : probeLabel(node, observerOffline)}
         </span>
@@ -71,6 +77,16 @@ function NodeDetails({ nodeId, node, lastSeen, observerOffline }: {
       <strong>{probeLabel(node, observerOffline)}</strong>
       <p>等待下一轮采样取得节点状态。</p>
     </div>}
+    <section className="recent-rpc" aria-labelledby="rpc-heading">
+      <h3 id="rpc-heading">最近 RPC 应答</h3>
+      {replies.length ? <ul>{replies.map(event =>
+        <li key={`${event.from}/${event.to}`}>
+          <span>{event.from} → {event.to}</span>
+          <small>{event.kind === 'vote' ? 'RequestVote' : 'AppendEntries'} · {event.accepted ? '接受' : '拒绝'}</small>
+          <time dateTime={event.at}>{timeFormat.format(new Date(event.at))}</time>
+        </li>)}</ul>
+        : <p>{rpc ? '近 8 秒无该节点的 RPC 日志，常规心跳省略。' : '暂无可用的 RPC 日志。'}</p>}
+    </section>
     <footer className="detail-foot">
       {status && node ? <>节点采样 <time dateTime={node.observedAt}>{timeFormat.format(new Date(node.observedAt))}</time></>
         : lastSeen ? <>最后成功采样 <time dateTime={lastSeen}>{timeFormat.format(new Date(lastSeen))}</time></> : '暂无成功采样'}
@@ -87,57 +103,80 @@ function App() {
   const sampledTerm = statuses.length > 0 ? Math.max(...statuses.map(status => status.term)) : '—';
   const leaderLabel = leaders.map(leader => leader.nodeId).join(' / ') || (snapshot ? '未观测到' : '—');
   const connection = error ? '观测服务离线' : snapshot ? '轮询中' : '连接中';
+  const { leader, points } = placeMembers(nodeIds, statuses);
+  const relations = leader ? statuses.filter(status => status.nodeId !== leader.nodeId
+    && status.term === leader.term && status.leader === leader.nodeId) : [];
+  const rpc = snapshot?.recentRpc;
+  const activeRpc = rpc?.filter(event => event.term === sampledTerm
+    && observations.get(event.from)?.ok && observations.get(event.to)?.ok) ?? [];
+  function edge(from: string, to: string) {
+    const start = points.get(from)!;
+    const end = points.get(to)!;
+    const midX = (start.x + end.x) * 5;
+    const midY = (start.y + end.y) * 2;
+    return `M ${start.x * 10} ${start.y * 4} L ${midX} ${midY} L ${end.x * 10} ${end.y * 4}`;
+  }
 
   return <>
-    <header className="topbar">
-      <div className="topbar-content">
-        <div className="brand"><span className="brand-icon"><ClusterIcon /></span> Distributed Database</div>
-        <span className="topbar-caption">Raft 观测控制台</span>
-      </div>
-    </header>
-    <main>
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">集群观测</p>
-          <h1>Raft Cluster</h1>
-          <p>查看五节点角色、任期和日志进度。</p>
-        </div>
-        <div className="poll-state">
-          <span className={`badge ${error ? 'unknown' : 'polling'}`} role="status">
-            <span className="dot" />{connection}
-          </span>
-          <span>每 {pollIntervalMs / 1000} 秒刷新</span>
-        </div>
-      </div>
+    <Navigation />
+    <main aria-labelledby="cluster-heading">
+      <header className="page-heading">
+        <h1 id="cluster-heading" tabIndex={-1}>Raft Cluster</h1>
+        <p>五节点集群总览</p>
+      </header>
       {error && <p className="warning" role="alert">观测 API 暂不可用，正在等待重连。</p>}
       {snapshot?.startupWarning && <p className="warning" role="status">Compose 初始化提示 · {snapshot.startupWarning}</p>}
       <dl className="metrics">
-        <div className="panel metric"><dt>HTTP 可达</dt>
+        <div className="panel metric"><dt><MetricIcon kind="reachability" />HTTP 可达</dt>
           <dd><span id="reachable">{snapshot ? statuses.length : '—'}</span><small> / {nodeIds.length}</small>
             <span className="metric-note">多数派门槛 3 / 5 · 协议多数派待观测</span></dd></div>
-        <div className="panel metric"><dt>自报 Leader</dt>
+        <div className="panel metric"><dt><MetricIcon kind="leader" />自报 Leader</dt>
           <dd className="leader-text"><span id="leaders">{leaderLabel}</span>
-            <span className="metric-note">{leaders.length > 0 ? leaders.map(leader => `${leader.nodeId} · 任期 ${leader.term}`).join(' / ') : '来自节点状态采样'}</span></dd></div>
-        <div className="panel metric"><dt>观测到的最高任期</dt>
+            <span className="metric-note">{leaders.length === 1 ? `任期 ${leaders[0].term}` : leaders.length > 1
+              ? leaders.map(leader => `${leader.nodeId} · 任期 ${leader.term}`).join(' / ') : '来自节点状态采样'}</span></dd></div>
+        <div className="panel metric"><dt><MetricIcon kind="term" />最高观测任期</dt>
           <dd><span id="term">{sampledTerm}</span>
-            <span className="metric-note">{snapshot ? <>最近采样 <time dateTime={snapshot.sampledAt}>{timeFormat.format(new Date(snapshot.sampledAt))}</time></> : '等待采样'}</span></dd></div>
+            <span className="metric-note sampling">
+              <span className={`poll-state ${error ? 'offline' : snapshot ? 'polling' : ''}`} role="status">
+                <span className="dot" />{connection}{snapshot && ` · ${pollIntervalMs / 1000} 秒`}
+              </span>
+              {snapshot && <span>最近采样 <time dateTime={snapshot.sampledAt}>{timeFormat.format(new Date(snapshot.sampledAt))}</time></span>}
+            </span></dd></div>
       </dl>
       <div className="workspace">
         <section className="panel topology" aria-labelledby="topology-heading">
           <header className="panel-heading">
-            <h2 id="topology-heading">节点拓扑</h2>
-            <p>选择节点查看详情。连线表示固定成员关系。</p>
+            <h2 id="topology-heading" tabIndex={-1}>节点拓扑</h2>
+            <p role="status">{leader ? `${leader.nodeId} · Leader · 任期 ${leader.term}` : '当前采样未确认唯一 Leader'}</p>
           </header>
           <div className="topology-map">
+            {!leader && <span className="leader-placeholder" aria-hidden="true">等待 Leader</span>}
             <svg className="connections" viewBox="0 0 1000 400" preserveAspectRatio="none" aria-hidden="true">
-              <path d="M500 68V200M185 184l315 16 315-16M500 200 300 328m200-128 200 128" />
+              <defs>
+                <marker id="rpc-arrow" viewBox="0 0 8 8" refX="4" refY="4"
+                  markerWidth="6" markerHeight="6" orient="auto">
+                  <path d="M1 1 7 4 1 7Z" fill="var(--accent)" />
+                </marker>
+                <marker id="rpc-reject-arrow" viewBox="0 0 8 8" refX="4" refY="4"
+                  markerWidth="6" markerHeight="6" orient="auto">
+                  <path d="M1 1 7 4 1 7Z" fill="var(--warning)" />
+                </marker>
+              </defs>
+              <g key={leader?.nodeId ?? 'no-leader'} className="links">
+                {leader && relations.map(status => <path key={status.nodeId} className="relation"
+                  vectorEffect="non-scaling-stroke" d={edge(leader.nodeId, status.nodeId)} />)}
+                {activeRpc.map(event => <path key={`${event.from}/${event.to}/${event.at}`}
+                  className={`rpc-link ${event.accepted ? '' : 'rejected'}`} vectorEffect="non-scaling-stroke"
+                  markerMid={event.accepted ? 'url(#rpc-arrow)' : 'url(#rpc-reject-arrow)'}
+                  d={edge(event.from, event.to)} />)}
+              </g>
             </svg>
-            <div className="topology-hub" aria-hidden="true"><ClusterIcon /></div>
             <ul className="nodes">
               {nodeIds.map(nodeId => {
                 const node = observations.get(nodeId);
                 const status = node?.ok ? node.status : undefined;
-                return <li key={nodeId}>
+                const point = points.get(nodeId)!;
+                return <li key={nodeId} style={{ left: `${point.x}%`, top: `${point.y}%` }}>
                   <button type="button" className={`node ${status?.role ?? 'unknown'}`}
                     data-node={nodeId} aria-pressed={selected === nodeId} aria-controls="node-details"
                     onClick={() => setSelected(nodeId)}>
@@ -150,9 +189,14 @@ function App() {
               })}
             </ul>
           </div>
+          <div className="topology-legend">
+            <span><i className="legend-relation" aria-hidden="true" />节点报告的 Leader 关系</span>
+            <span><i className="legend-rpc" aria-hidden="true" />最近 RPC 请求方向</span>
+            <span><i className="legend-rejected" aria-hidden="true" />RPC 拒绝</span>
+          </div>
         </section>
         <NodeDetails nodeId={selected} node={observations.get(selected)}
-          lastSeen={lastSeen[selected]} observerOffline={error} />
+          lastSeen={lastSeen[selected]} observerOffline={error} rpc={rpc} />
       </div>
     </main>
   </>;

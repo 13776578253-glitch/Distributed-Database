@@ -5,6 +5,7 @@ import { extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'vite';
 import { clusterReader } from '../src/observer/cluster.ts';
+import { readRpcReplies } from '../src/observer/rpc-observation.ts';
 import { prepareConsoleCluster } from './console-cluster.ts';
 
 const host = '127.0.0.1';
@@ -37,7 +38,10 @@ const server = createServer();
 server.listen(port, host);
 await once(server, 'listening');
 const cluster = prepareConsoleCluster();
-const readCluster = clusterReader(cluster.targets, { startupWarning: cluster.warning });
+const readCluster = clusterReader(cluster.targets, {
+  startupWarning: cluster.warning,
+  readRpc: () => readRpcReplies(cluster.targets.map(target => target.nodeId)),
+});
 
 server.on('request', async (request, response) => {
   if (request.method !== 'GET') {

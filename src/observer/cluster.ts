@@ -1,5 +1,5 @@
 /** Samples Raft over HTTP and shares one in-flight read across clients. */
-import type { ClusterObservation, NodeObservation, RaftStatus } from '../contracts/observation.ts';
+import type { ClusterObservation, NodeObservation, RaftStatus, RpcObservation } from '../contracts/observation.ts';
 
 export interface NodeTarget {
   nodeId: string;
@@ -20,10 +20,11 @@ function isStatus(value: unknown, nodeId: string): value is RaftStatus {
 
 export function clusterReader(
   targets: readonly NodeTarget[],
-  { timeoutMs = 1000, request = fetch, startupWarning }: {
+  { timeoutMs = 1000, request = fetch, startupWarning, readRpc }: {
     timeoutMs?: number;
     request?: typeof fetch;
     startupWarning?: string;
+    readRpc?: () => Promise<RpcObservation[] | null>;
   } = {},
 ) {
   async function observe({ nodeId, address }: NodeTarget): Promise<NodeObservation> {
@@ -57,8 +58,8 @@ export function clusterReader(
   let inFlight: Promise<ClusterObservation> | undefined;
   return () => {
     // 仅合并并发请求。下一轮始终重新采样节点。
-    inFlight ??= Promise.all(targets.map(observe))
-      .then(nodes => ({ nodes, sampledAt: new Date().toISOString(), startupWarning }))
+    inFlight ??= Promise.all([Promise.all(targets.map(observe)), readRpc?.()])
+      .then(([nodes, recentRpc]) => ({ nodes, recentRpc, sampledAt: new Date().toISOString(), startupWarning }))
       .finally(() => { inFlight = undefined; });
     return inFlight;
   };

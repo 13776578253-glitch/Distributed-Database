@@ -1,0 +1,175 @@
+> docker compose ps --all --quiet
+7a172178403d638ce7d586ee62280b1d49630af830bbb3a570758cf40a48a592
+442991db5421d0a9f41debc72ec47eb47726ed663f6de11cb2ad3cf04b18b8c7
+89714ac38a662ff14d70a307ab019ba14350c485211790d567ec401a002b3dc5
+b29a7fa879dfdac777bb56802a96c18a0d597f4f89a5b00a449960b1bb109670
+bb099032d7768dfad8aefd76b1d524858ea1b9f6466f982836d8ca45d460d7f7
+
+> docker compose config --format json
+
+> docker compose -f D:\Desktop\code\Distributed Database\.scratch\console-topology\2026-11-06T14-30-30.387Z--b0184220\compose.json --project-name minidb-topology-b0184220 kill -s SIGKILL raft-2
+ Container minidb-topology-b0184220-raft-2-1 Killing 
+ Container minidb-topology-b0184220-raft-2-1 Killed 
+
+> docker compose -f D:\Desktop\code\Distributed Database\.scratch\console-topology\2026-11-06T14-30-30.387Z--b0184220\compose.json --project-name minidb-topology-b0184220 start raft-2
+ Container minidb-topology-b0184220-raft-2-1 Starting 
+ Container minidb-topology-b0184220-raft-2-1 Started 
+
+> docker compose ps --all --quiet
+7a172178403d638ce7d586ee62280b1d49630af830bbb3a570758cf40a48a592
+442991db5421d0a9f41debc72ec47eb47726ed663f6de11cb2ad3cf04b18b8c7
+89714ac38a662ff14d70a307ab019ba14350c485211790d567ec401a002b3dc5
+b29a7fa879dfdac777bb56802a96c18a0d597f4f89a5b00a449960b1bb109670
+bb099032d7768dfad8aefd76b1d524858ea1b9f6466f982836d8ca45d460d7f7
+
+vite v7.3.7 building client environment for production...
+transforming...
+✓ 32 modules transformed.
+rendering chunks...
+✓ built in 725ms
+> docker compose ps --all --quiet raft-1 raft-2 raft-3 raft-4 raft-5
+
+> docker volume create minidb-topology-b0184220-raft-1
+minidb-topology-b0184220-raft-1
+
+> docker volume create minidb-topology-b0184220-raft-2
+minidb-topology-b0184220-raft-2
+
+> docker volume create minidb-topology-b0184220-raft-3
+minidb-topology-b0184220-raft-3
+
+> docker volume create minidb-topology-b0184220-raft-4
+minidb-topology-b0184220-raft-4
+
+> docker volume create minidb-topology-b0184220-raft-5
+minidb-topology-b0184220-raft-5
+
+> docker compose build --provenance=false raft-1
+#1 [internal] load local bake definitions
+#1 reading from stdin 564B 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 151B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:24.21.0-bookworm-slim
+#3 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 90B 0.0s done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 738B done
+#5 DONE 0.0s
+
+#6 [1/4] FROM docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
+#6 resolve docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 0.1s done
+#6 DONE 0.1s
+
+#7 [2/4] WORKDIR /app
+#7 CACHED
+
+#8 [3/4] COPY package.json ./
+#8 CACHED
+
+#9 [4/4] COPY src ./src
+#9 CACHED
+
+#10 exporting to image
+#10 exporting layers done
+#10 exporting manifest sha256:9079d3cfbe95dac95e7c453948452360c4a2e05dd366e4b6e41f93f241d99be6 0.0s done
+#10 exporting config sha256:298ea6f169a131c103af93ee0631c287957eea0756374fee25f26fdb163e287f 0.0s done
+#10 naming to docker.io/library/minidb-topology-b0184220:local done
+#10 unpacking to docker.io/library/minidb-topology-b0184220:local 0.1s done
+#10 DONE 0.2s
+
+#11 resolving provenance for metadata file
+#11 DONE 0.0s
+ Image minidb-topology-b0184220:local Building 
+ Image minidb-topology-b0184220:local Built 
+
+> docker compose up --detach --no-build --no-recreate --wait --wait-timeout 60 raft-1 raft-2 raft-3 raft-4 raft-5
+ Network minidb-topology-b0184220_default Creating 
+ Network minidb-topology-b0184220_default Creating 
+ Network minidb-topology-b0184220_default Created 
+ Network minidb-topology-b0184220_default Created 
+ Container minidb-topology-b0184220-raft-5-1 Creating 
+ Container minidb-topology-b0184220-raft-3-1 Creating 
+ Container minidb-topology-b0184220-raft-4-1 Creating 
+ Container minidb-topology-b0184220-raft-1-1 Creating 
+ Container minidb-topology-b0184220-raft-2-1 Creating 
+ Container minidb-topology-b0184220-raft-5-1 Created 
+ Container minidb-topology-b0184220-raft-3-1 Created 
+ Container minidb-topology-b0184220-raft-1-1 Created 
+ Container minidb-topology-b0184220-raft-2-1 Created 
+ Container minidb-topology-b0184220-raft-4-1 Created 
+ Container minidb-topology-b0184220-raft-5-1 Starting 
+ Container minidb-topology-b0184220-raft-2-1 Starting 
+ Container minidb-topology-b0184220-raft-4-1 Starting 
+ Container minidb-topology-b0184220-raft-3-1 Starting 
+ Container minidb-topology-b0184220-raft-1-1 Starting 
+ Container minidb-topology-b0184220-raft-2-1 Started 
+ Container minidb-topology-b0184220-raft-3-1 Started 
+ Container minidb-topology-b0184220-raft-5-1 Started 
+ Container minidb-topology-b0184220-raft-4-1 Started 
+ Container minidb-topology-b0184220-raft-1-1 Started 
+ Container minidb-topology-b0184220-raft-5-1 Waiting 
+ Container minidb-topology-b0184220-raft-1-1 Waiting 
+ Container minidb-topology-b0184220-raft-2-1 Waiting 
+ Container minidb-topology-b0184220-raft-3-1 Waiting 
+ Container minidb-topology-b0184220-raft-4-1 Waiting 
+ Container minidb-topology-b0184220-raft-2-1 Healthy 
+ Container minidb-topology-b0184220-raft-5-1 Healthy 
+ Container minidb-topology-b0184220-raft-3-1 Healthy 
+ Container minidb-topology-b0184220-raft-4-1 Healthy 
+ Container minidb-topology-b0184220-raft-1-1 Healthy 
+
+Raft Console (initialized): http://127.0.0.1:5174
+
+> docker compose -f D:\Desktop\code\Distributed Database\.scratch\console-topology\2026-11-06T14-30-30.387Z--b0184220\compose.json --project-name minidb-topology-b0184220 down
+ Container minidb-topology-b0184220-raft-1-1 Stopping 
+ Container minidb-topology-b0184220-raft-3-1 Stopping 
+ Container minidb-topology-b0184220-raft-5-1 Stopping 
+ Container minidb-topology-b0184220-raft-4-1 Stopping 
+ Container minidb-topology-b0184220-raft-2-1 Stopping 
+ Container minidb-topology-b0184220-raft-3-1 Stopped 
+ Container minidb-topology-b0184220-raft-3-1 Removing 
+ Container minidb-topology-b0184220-raft-3-1 Removed 
+ Container minidb-topology-b0184220-raft-2-1 Stopped 
+ Container minidb-topology-b0184220-raft-2-1 Removing 
+ Container minidb-topology-b0184220-raft-2-1 Removed 
+ Container minidb-topology-b0184220-raft-1-1 Stopped 
+ Container minidb-topology-b0184220-raft-1-1 Removing 
+ Container minidb-topology-b0184220-raft-1-1 Removed 
+ Container minidb-topology-b0184220-raft-4-1 Stopped 
+ Container minidb-topology-b0184220-raft-4-1 Removing 
+ Container minidb-topology-b0184220-raft-4-1 Removed 
+ Container minidb-topology-b0184220-raft-5-1 Stopped 
+ Container minidb-topology-b0184220-raft-5-1 Removing 
+ Container minidb-topology-b0184220-raft-5-1 Removed 
+ Network minidb-topology-b0184220_default Removing 
+ Network minidb-topology-b0184220_default Removed 
+
+> docker volume ls --filter name=minidb-topology-b0184220-raft- --format {{.Name}}
+minidb-topology-b0184220-raft-1
+minidb-topology-b0184220-raft-2
+minidb-topology-b0184220-raft-3
+minidb-topology-b0184220-raft-4
+minidb-topology-b0184220-raft-5
+
+> docker volume rm minidb-topology-b0184220-raft-1 minidb-topology-b0184220-raft-2 minidb-topology-b0184220-raft-3 minidb-topology-b0184220-raft-4 minidb-topology-b0184220-raft-5
+minidb-topology-b0184220-raft-1
+minidb-topology-b0184220-raft-2
+minidb-topology-b0184220-raft-3
+minidb-topology-b0184220-raft-4
+minidb-topology-b0184220-raft-5
+
+> docker image ls --quiet minidb-topology-b0184220:local
+9079d3cfbe95
+
+> docker image rm minidb-topology-b0184220:local
+Untagged: minidb-topology-b0184220:local
+Deleted: sha256:9079d3cfbe95dac95e7c453948452360c4a2e05dd366e4b6e41f93f241d99be6
+
