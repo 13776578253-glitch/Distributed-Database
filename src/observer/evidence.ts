@@ -13,7 +13,7 @@ const info = (path: string) => lstat(path).catch(() => undefined);
 
 export function evidenceReader(root = 'evidence') {
   async function file(experimentId: string, runId: string, name: string) {
-    if (!isExperiment(experimentId) || !runPattern.test(runId) || !files.includes(name)) return;
+    if ((!isExperiment(experimentId) && experimentId !== 'SERVICE') || !runPattern.test(runId) || !files.includes(name)) return;
     let directory = root;
     for (const part of ['', experimentId, runId]) {
       directory = join(directory, part);

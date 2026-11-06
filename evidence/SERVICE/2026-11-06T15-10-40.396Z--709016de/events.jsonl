@@ -1,0 +1,3 @@
+{"at":"2026-11-06T15:10:40.802Z","kind":"assertion","details":{"name":"project member exists","passed":true,"details":{"nodeId":"raft-1","before":"aa5711a40d7418e3d758b070f3bf619fb9ccc74e27d2c5736e7d53f6b981fcd6"}}}
+{"at":"2026-11-06T15:10:40.802Z","kind":"service.restart","details":{"nodeId":"raft-1"}}
+{"at":"2026-11-06T15:10:45.768Z","kind":"assertion","details":{"name":"member restarted in place and HTTP is healthy","passed":true,"details":{"nodeId":"raft-1","before":"aa5711a40d7418e3d758b070f3bf619fb9ccc74e27d2c5736e7d53f6b981fcd6","after":"aa5711a40d7418e3d758b070f3bf619fb9ccc74e27d2c5736e7d53f6b981fcd6","healthy":true}}}

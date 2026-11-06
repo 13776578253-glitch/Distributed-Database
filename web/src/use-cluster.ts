@@ -2,15 +2,13 @@
 import { useEffect, useState } from 'react';
 import type { ClusterObservation } from '../../src/contracts/observation.ts';
 
-export const pollIntervalMs = 3000;
-
 interface ClusterView {
   snapshot: ClusterObservation | null;
   lastSeen: Record<string, string>;
   error: boolean;
 }
 
-export function useCluster() {
+export function useCluster(interval: number, revision: number) {
   const [view, setView] = useState<ClusterView>({ snapshot: null, lastSeen: {}, error: false });
 
   useEffect(() => {
@@ -36,7 +34,7 @@ export function useCluster() {
         if (!stop.signal.aborted) setView(previous => ({ ...previous, snapshot: null, error: true }));
       } finally {
         // 本轮结束后再安排下一次请求，避免并发刷新覆盖较新的采样。
-        if (!stop.signal.aborted) next = setTimeout(poll, pollIntervalMs);
+        if (!stop.signal.aborted && interval > 0) next = setTimeout(poll, interval);
       }
     }
     void poll();
@@ -44,7 +42,7 @@ export function useCluster() {
       stop.abort();
       clearTimeout(next);
     };
-  }, []);
+  }, [interval, revision]);
 
   return view;
 }

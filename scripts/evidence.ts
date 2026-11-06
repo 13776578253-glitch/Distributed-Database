@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ExperimentResult } from '../src/contracts/history.ts';
 
@@ -46,8 +46,11 @@ export function openEvidence(experimentId: string, command: string, parameters: 
     const result: ExperimentResult = {
       experimentId, runId, startedAt, status, assertionResults, evidencePaths,
     };
-    writeFileSync(file('result.json'), JSON.stringify(result, null, 2) + '\n');
+    // result.json 是完成标记，读者只会看到完整的最终判定。
+    writeFileSync(file('.result.tmp'), JSON.stringify(result, null, 2) + '\n');
+    renameSync(file('.result.tmp'), file('result.json'));
     console.log(`${experimentId} ${status} ${directory}`);
+    return result;
   }
 
   return { runId, directory, event, log, assert, finish };

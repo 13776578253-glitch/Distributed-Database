@@ -1,0 +1,207 @@
+> docker compose ps --all --quiet
+7a172178403d638ce7d586ee62280b1d49630af830bbb3a570758cf40a48a592
+442991db5421d0a9f41debc72ec47eb47726ed663f6de11cb2ad3cf04b18b8c7
+89714ac38a662ff14d70a307ab019ba14350c485211790d567ec401a002b3dc5
+b29a7fa879dfdac777bb56802a96c18a0d597f4f89a5b00a449960b1bb109670
+bb099032d7768dfad8aefd76b1d524858ea1b9f6466f982836d8ca45d460d7f7
+
+> docker compose config --format json
+
+> docker compose -f D:\Desktop\code\Distributed Database\.scratch\console-batches\2026-11-06T15-10-19.090Z--b06e3522\compose.json --project-name minidb-accept-b06e3522 ps --all --quiet raft-1 raft-2 raft-3 raft-4 raft-5
+aa5711a40d7418e3d758b070f3bf619fb9ccc74e27d2c5736e7d53f6b981fcd6
+3e0223eb884a788e2fdeb5025b2c6165e035da3bb989dc009ba63f7a5cb78260
+7b0656d39ce01bbcd82c6db08d147724cf65fe5f4dd3a90a186c2c32a22c9718
+4d581a6aeafd06ea320ffd024f8f612219bf6984faefae6c44acf6271bb1e9d5
+7b1a4f6578555c4267ab4581421678195af55eacac300a50a091dff1ead05f51
+
+> node scripts/experiment.ts R01 (while R02 holds lease)
+Compose 项目 minidb-accept-b06e3522 已有操作执行或等待恢复
+
+> docker compose -f D:\Desktop\code\Distributed Database\.scratch\console-batches\2026-11-06T15-10-19.090Z--b06e3522\compose.json --project-name minidb-accept-b06e3522 ps --all --quiet raft-1 raft-2 raft-3 raft-4 raft-5
+aa5711a40d7418e3d758b070f3bf619fb9ccc74e27d2c5736e7d53f6b981fcd6
+3e0223eb884a788e2fdeb5025b2c6165e035da3bb989dc009ba63f7a5cb78260
+7b0656d39ce01bbcd82c6db08d147724cf65fe5f4dd3a90a186c2c32a22c9718
+4d581a6aeafd06ea320ffd024f8f612219bf6984faefae6c44acf6271bb1e9d5
+7b1a4f6578555c4267ab4581421678195af55eacac300a50a091dff1ead05f51
+
+> docker compose -f D:\Desktop\code\Distributed Database\.scratch\console-batches\2026-11-06T15-10-19.090Z--b06e3522\compose.json --project-name minidb-accept-b06e3522 ps --all --quiet raft-1 raft-2 raft-3 raft-4 raft-5
+aa5711a40d7418e3d758b070f3bf619fb9ccc74e27d2c5736e7d53f6b981fcd6
+3e0223eb884a788e2fdeb5025b2c6165e035da3bb989dc009ba63f7a5cb78260
+7b0656d39ce01bbcd82c6db08d147724cf65fe5f4dd3a90a186c2c32a22c9718
+4d581a6aeafd06ea320ffd024f8f612219bf6984faefae6c44acf6271bb1e9d5
+7b1a4f6578555c4267ab4581421678195af55eacac300a50a091dff1ead05f51
+
+> docker compose ps --all --quiet
+7a172178403d638ce7d586ee62280b1d49630af830bbb3a570758cf40a48a592
+442991db5421d0a9f41debc72ec47eb47726ed663f6de11cb2ad3cf04b18b8c7
+89714ac38a662ff14d70a307ab019ba14350c485211790d567ec401a002b3dc5
+b29a7fa879dfdac777bb56802a96c18a0d597f4f89a5b00a449960b1bb109670
+bb099032d7768dfad8aefd76b1d524858ea1b9f6466f982836d8ca45d460d7f7
+
+vite v7.3.7 building client environment for production...
+transforming...
+✓ 38 modules transformed.
+rendering chunks...
+✓ built in 703ms
+> docker compose ps --all --quiet raft-1 raft-2 raft-3 raft-4 raft-5
+
+> docker compose ps --all --quiet raft-1 raft-2 raft-3 raft-4 raft-5
+
+> docker volume create minidb-accept-b06e3522-raft-1
+minidb-accept-b06e3522-raft-1
+
+> docker volume create minidb-accept-b06e3522-raft-2
+minidb-accept-b06e3522-raft-2
+
+> docker volume create minidb-accept-b06e3522-raft-3
+minidb-accept-b06e3522-raft-3
+
+> docker volume create minidb-accept-b06e3522-raft-4
+minidb-accept-b06e3522-raft-4
+
+> docker volume create minidb-accept-b06e3522-raft-5
+minidb-accept-b06e3522-raft-5
+
+> docker compose build --provenance=false raft-1
+#1 [internal] load local bake definitions
+#1 reading from stdin 560B 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 151B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:24.21.0-bookworm-slim
+#3 DONE 0.1s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 90B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 7.17kB done
+#5 DONE 0.0s
+
+#6 [1/4] FROM docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
+#6 resolve docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 0.0s done
+#6 DONE 0.1s
+
+#7 [2/4] WORKDIR /app
+#7 CACHED
+
+#8 [3/4] COPY package.json ./
+#8 CACHED
+
+#9 [4/4] COPY src ./src
+#9 DONE 0.1s
+
+#10 exporting to image
+#10 exporting layers
+#10 exporting layers 0.2s done
+#10 exporting manifest sha256:942e7a862a3ce9c7db2705190835115ed985689d4a6ab6be5d88120b41800170 0.0s done
+#10 exporting config sha256:a64016f07eaed4d292084c16f741a21caeff8b5f405260f704e0c50a1d1140ac 0.0s done
+#10 naming to docker.io/library/minidb-accept-b06e3522:local done
+#10 unpacking to docker.io/library/minidb-accept-b06e3522:local 0.1s done
+#10 DONE 0.3s
+
+#11 resolving provenance for metadata file
+#11 DONE 0.0s
+ Image minidb-accept-b06e3522:local Building 
+ Image minidb-accept-b06e3522:local Built 
+
+> docker compose up --detach --no-build --no-recreate --wait --wait-timeout 60 raft-1 raft-2 raft-3 raft-4 raft-5
+ Network minidb-accept-b06e3522_default Creating 
+ Network minidb-accept-b06e3522_default Creating 
+ Network minidb-accept-b06e3522_default Created 
+ Network minidb-accept-b06e3522_default Created 
+ Container minidb-accept-b06e3522-raft-5-1 Creating 
+ Container minidb-accept-b06e3522-raft-3-1 Creating 
+ Container minidb-accept-b06e3522-raft-2-1 Creating 
+ Container minidb-accept-b06e3522-raft-1-1 Creating 
+ Container minidb-accept-b06e3522-raft-4-1 Creating 
+ Container minidb-accept-b06e3522-raft-2-1 Created 
+ Container minidb-accept-b06e3522-raft-5-1 Created 
+ Container minidb-accept-b06e3522-raft-1-1 Created 
+ Container minidb-accept-b06e3522-raft-3-1 Created 
+ Container minidb-accept-b06e3522-raft-4-1 Created 
+ Container minidb-accept-b06e3522-raft-2-1 Starting 
+ Container minidb-accept-b06e3522-raft-4-1 Starting 
+ Container minidb-accept-b06e3522-raft-1-1 Starting 
+ Container minidb-accept-b06e3522-raft-5-1 Starting 
+ Container minidb-accept-b06e3522-raft-3-1 Starting 
+ Container minidb-accept-b06e3522-raft-2-1 Started 
+ Container minidb-accept-b06e3522-raft-4-1 Started 
+ Container minidb-accept-b06e3522-raft-5-1 Started 
+ Container minidb-accept-b06e3522-raft-1-1 Started 
+ Container minidb-accept-b06e3522-raft-3-1 Started 
+ Container minidb-accept-b06e3522-raft-4-1 Waiting 
+ Container minidb-accept-b06e3522-raft-5-1 Waiting 
+ Container minidb-accept-b06e3522-raft-1-1 Waiting 
+ Container minidb-accept-b06e3522-raft-2-1 Waiting 
+ Container minidb-accept-b06e3522-raft-3-1 Waiting 
+ Container minidb-accept-b06e3522-raft-2-1 Healthy 
+ Container minidb-accept-b06e3522-raft-4-1 Healthy 
+ Container minidb-accept-b06e3522-raft-5-1 Healthy 
+ Container minidb-accept-b06e3522-raft-1-1 Healthy 
+ Container minidb-accept-b06e3522-raft-3-1 Healthy 
+
+Raft Console (initialized): http://127.0.0.1:5174
+vite v7.3.7 building client environment for production...
+transforming...
+✓ 38 modules transformed.
+rendering chunks...
+✓ built in 783ms
+> docker compose ps --all --quiet raft-1 raft-2 raft-3 raft-4 raft-5
+aa5711a40d7418e3d758b070f3bf619fb9ccc74e27d2c5736e7d53f6b981fcd6
+3e0223eb884a788e2fdeb5025b2c6165e035da3bb989dc009ba63f7a5cb78260
+7b0656d39ce01bbcd82c6db08d147724cf65fe5f4dd3a90a186c2c32a22c9718
+4d581a6aeafd06ea320ffd024f8f612219bf6984faefae6c44acf6271bb1e9d5
+7b1a4f6578555c4267ab4581421678195af55eacac300a50a091dff1ead05f51
+
+Raft Console (attached): http://127.0.0.1:5174
+
+> docker compose -f D:\Desktop\code\Distributed Database\.scratch\console-batches\2026-11-06T15-10-19.090Z--b06e3522\compose.json --project-name minidb-accept-b06e3522 down
+ Container minidb-accept-b06e3522-raft-1-1 Stopping 
+ Container minidb-accept-b06e3522-raft-4-1 Stopping 
+ Container minidb-accept-b06e3522-raft-5-1 Stopping 
+ Container minidb-accept-b06e3522-raft-3-1 Stopping 
+ Container minidb-accept-b06e3522-raft-2-1 Stopping 
+ Container minidb-accept-b06e3522-raft-1-1 Stopped 
+ Container minidb-accept-b06e3522-raft-1-1 Removing 
+ Container minidb-accept-b06e3522-raft-1-1 Removed 
+ Container minidb-accept-b06e3522-raft-4-1 Stopped 
+ Container minidb-accept-b06e3522-raft-4-1 Removing 
+ Container minidb-accept-b06e3522-raft-4-1 Removed 
+ Container minidb-accept-b06e3522-raft-2-1 Stopped 
+ Container minidb-accept-b06e3522-raft-2-1 Removing 
+ Container minidb-accept-b06e3522-raft-2-1 Removed 
+ Container minidb-accept-b06e3522-raft-5-1 Stopped 
+ Container minidb-accept-b06e3522-raft-5-1 Removing 
+ Container minidb-accept-b06e3522-raft-5-1 Removed 
+ Container minidb-accept-b06e3522-raft-3-1 Stopped 
+ Container minidb-accept-b06e3522-raft-3-1 Removing 
+ Container minidb-accept-b06e3522-raft-3-1 Removed 
+ Network minidb-accept-b06e3522_default Removing 
+ Network minidb-accept-b06e3522_default Removed 
+
+> docker volume ls --filter name=minidb-accept-b06e3522-raft- --format {{.Name}}
+minidb-accept-b06e3522-raft-1
+minidb-accept-b06e3522-raft-2
+minidb-accept-b06e3522-raft-3
+minidb-accept-b06e3522-raft-4
+minidb-accept-b06e3522-raft-5
+
+> docker volume rm minidb-accept-b06e3522-raft-1 minidb-accept-b06e3522-raft-2 minidb-accept-b06e3522-raft-3 minidb-accept-b06e3522-raft-4 minidb-accept-b06e3522-raft-5
+minidb-accept-b06e3522-raft-1
+minidb-accept-b06e3522-raft-2
+minidb-accept-b06e3522-raft-3
+minidb-accept-b06e3522-raft-4
+minidb-accept-b06e3522-raft-5
+
+> docker image ls --quiet minidb-accept-b06e3522:local
+942e7a862a3c
+
+> docker image rm minidb-accept-b06e3522:local
+Untagged: minidb-accept-b06e3522:local
+Deleted: sha256:942e7a862a3ce9c7db2705190835115ed985689d4a6ab6be5d88120b41800170
+

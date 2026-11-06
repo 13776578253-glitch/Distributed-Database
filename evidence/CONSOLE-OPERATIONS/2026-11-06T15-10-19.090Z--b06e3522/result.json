@@ -1,0 +1,147 @@
+{
+  "experimentId": "CONSOLE-OPERATIONS",
+  "runId": "2026-11-06T15-10-19.090Z--b06e3522",
+  "startedAt": "2026-11-06T15:10:19.090Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "services shows the effective listener and the isolated Compose project",
+      "passed": true,
+      "details": {
+        "listener": "http://127.0.0.1:5174",
+        "pid": 33836,
+        "project": "minidb-accept-b06e3522",
+        "nodes": [
+          {
+            "nodeId": "raft-1",
+            "state": "running",
+            "health": "healthy",
+            "containerId": "aa5711a40d74"
+          },
+          {
+            "nodeId": "raft-2",
+            "state": "running",
+            "health": "healthy",
+            "containerId": "3e0223eb884a"
+          },
+          {
+            "nodeId": "raft-3",
+            "state": "running",
+            "health": "healthy",
+            "containerId": "7b0656d39ce0"
+          },
+          {
+            "nodeId": "raft-4",
+            "state": "running",
+            "health": "healthy",
+            "containerId": "4d581a6aeafd"
+          },
+          {
+            "nodeId": "raft-5",
+            "state": "running",
+            "health": "healthy",
+            "containerId": "7b1a4f657855"
+          }
+        ],
+        "logs": {
+          "available": true,
+          "subscribers": 0
+        },
+        "lock": null
+      }
+    },
+    {
+      "name": "mutations reject cross-origin calls and replay-only experiments",
+      "passed": true,
+      "details": {
+        "denied": 403,
+        "unsupported": 400
+      }
+    },
+    {
+      "name": "an active job excludes another web job, node and observer restarts, and direct CLI",
+      "passed": true,
+      "details": {
+        "web": 409,
+        "node": 409,
+        "observer": 409,
+        "cliCode": 1
+      }
+    },
+    {
+      "name": "scheduled R02 finishes PASS and restores five RPC link sets",
+      "passed": true,
+      "details": {
+        "job": {
+          "id": "45bcbc45-7702-47dd-8399-292b66139d03",
+          "action": {
+            "kind": "experiment",
+            "experimentId": "R02"
+          },
+          "runId": "2026-11-06T15-10-31.537Z--ed1a419e",
+          "startedAt": "2026-11-06T15:10:31.623Z",
+          "status": "succeeded",
+          "verdict": "PASS"
+        },
+        "evidence": "2026-11-06T15-10-31.537Z--ed1a419e"
+      }
+    },
+    {
+      "name": "scheduled R01 finishes PASS and records Leader termination and recovery",
+      "passed": true,
+      "details": {
+        "job": {
+          "id": "38e22779-3d7e-4e41-8f90-db89e7262775",
+          "action": {
+            "kind": "experiment",
+            "experimentId": "R01"
+          },
+          "runId": "2026-11-06T15-10-34.566Z--d3e57aec",
+          "startedAt": "2026-11-06T15:10:34.681Z",
+          "status": "succeeded",
+          "verdict": "PASS"
+        },
+        "evidence": "2026-11-06T15-10-34.566Z--d3e57aec"
+      }
+    },
+    {
+      "name": "node restart restores HTTP on the same project member and preserves volumes",
+      "passed": true,
+      "details": {
+        "job": {
+          "id": "8c923c5a-d37c-4ddf-bb94-76e8d6c84dd8",
+          "action": {
+            "kind": "restart-node",
+            "nodeId": "raft-1"
+          },
+          "runId": "2026-11-06T15-10-40.396Z--709016de",
+          "startedAt": "2026-11-06T15:10:40.483Z",
+          "status": "succeeded",
+          "verdict": "PASS"
+        },
+        "evidence": "2026-11-06T15-10-40.396Z--709016de"
+      }
+    },
+    {
+      "name": "Observer restart changes only its process and retains the Compose project",
+      "passed": true,
+      "details": {
+        "beforePid": 33836,
+        "afterPid": 54892,
+        "project": "minidb-accept-b06e3522"
+      }
+    },
+    {
+      "name": "existing Compose container IDs preserved",
+      "passed": true,
+      "details": {}
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

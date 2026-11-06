@@ -1,0 +1,21 @@
+{
+  "startedAt": "2026-11-06T15:14:04.368Z",
+  "endedAt": "2026-11-06T15:14:39.887Z",
+  "gitSha": "026748051e37b7bd6dc1e7bcad377025f8430c8a",
+  "gitDirty": true,
+  "parameters": {
+    "project": "isolated",
+    "observerPort": 5174,
+    "nodePorts": [
+      19081,
+      19082,
+      19083,
+      19084,
+      19085
+    ]
+  },
+  "environment": {
+    "node": "v24.21.0",
+    "project": "minidb-accept-5705c5ca"
+  }
+}

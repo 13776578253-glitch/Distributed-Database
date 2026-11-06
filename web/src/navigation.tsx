@@ -8,7 +8,8 @@ const links = [
   { target: 'topology-heading', icon: 'topology', title: '节点拓扑', hint: '成员角色与通信' },
   { target: 'detail-heading', icon: 'detail', title: '节点详情', hint: '状态、日志进度与应答' },
   { target: '/timeline', icon: 'term', title: '实时事件', hint: 'Raft Timeline · SSE' },
-  { target: '/runs', icon: 'detail', title: '实验回放', hint: 'Verification · Evidence' },
+  { target: '/runs', icon: 'detail', title: '实验与回放', hint: 'Verification · Evidence' },
+  { target: '/settings', icon: 'overview', title: '设置', hint: '服务、日志与外观' },
 ] as const;
 
 export function Navigation({ connection, view }: { connection: keyof typeof connectionLabels; view: string }) {

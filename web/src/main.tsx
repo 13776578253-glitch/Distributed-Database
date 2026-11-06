@@ -5,15 +5,14 @@ import { nodeIds } from '../../src/raft/config.ts';
 import type { NodeObservation, RpcObservation } from '../../src/contracts/observation.ts';
 import { Icon } from './icons.tsx';
 import { Navigation } from './navigation.tsx';
+import { ExperimentPage, Services } from './operations.tsx';
+import { Clock, PreferencesContext, usePreferences } from './preferences.tsx';
 import { placeMembers } from './topology.ts';
-import { Experiments, Timeline } from './timeline.tsx';
-import { pollIntervalMs, useCluster } from './use-cluster.ts';
+import { Timeline } from './timeline.tsx';
+import { useCluster } from './use-cluster.ts';
 import './style.css';
 
 const roleLabels = { leader: 'Leader', candidate: 'Candidate', follower: 'Follower' };
-const timeFormat = new Intl.DateTimeFormat('zh-CN', {
-  hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-});
 
 function probeLabel(node: NodeObservation | undefined, observerOffline: boolean) {
   if (node?.ok) return '可达';
@@ -73,19 +72,21 @@ function NodeDetails({ nodeId, node, lastSeen, observerOffline, rpc }: {
         <li key={`${event.from}/${event.to}`}>
           <span>{event.from} → {event.to}</span>
           <small>{event.kind === 'vote' ? 'RequestVote' : 'AppendEntries'} · {event.accepted ? '接受' : '拒绝'}</small>
-          <time dateTime={event.at}>{timeFormat.format(new Date(event.at))}</time>
+          <Clock at={event.at} />
         </li>)}</ul>
         : <p>{rpc ? '近 8 秒无该节点的 RPC 日志，常规心跳省略。' : '暂无可用的 RPC 日志。'}</p>}
     </section>
     <footer className="detail-foot">
-      {status && node ? <>节点采样 <time dateTime={node.observedAt}>{timeFormat.format(new Date(node.observedAt))}</time></>
-        : lastSeen ? <>最后成功采样 <time dateTime={lastSeen}>{timeFormat.format(new Date(lastSeen))}</time></> : '暂无成功采样'}
+      {status && node ? <>节点采样 <Clock at={node.observedAt} /></>
+        : lastSeen ? <>最后成功采样 <Clock at={lastSeen} /></> : '暂无成功采样'}
     </footer>
   </aside>;
 }
 
 function App() {
-  const { snapshot, lastSeen, error } = useCluster();
+  const [preferences, changePreferences] = usePreferences();
+  const [revision, refresh] = useState(0);
+  const { snapshot, lastSeen, error } = useCluster(preferences.interval, revision);
   const [selected, setSelected] = useState(nodeIds[0]);
   const [view, setView] = useState(location.hash.slice(1));
   useEffect(() => {
@@ -93,6 +94,10 @@ function App() {
     window.addEventListener('hashchange', navigate);
     return () => window.removeEventListener('hashchange', navigate);
   }, []);
+  useEffect(() => {
+    if (view.startsWith('/')) window.scrollTo(0, 0);
+    else if (view) document.getElementById(view)?.scrollIntoView();
+  }, [view]);
   const observations = new Map(snapshot?.nodes.map(node => [node.nodeId, node]));
   const statuses = snapshot?.nodes.flatMap(node => node.ok ? [node.status] : []) ?? [];
   const leaders = statuses.filter(status => status.role === 'leader');
@@ -113,22 +118,18 @@ function App() {
     return `M ${start.x * 10} ${start.y * 4} L ${midX} ${midY} L ${end.x * 10} ${end.y * 4}`;
   }
 
-  return <>
+  return <PreferencesContext.Provider value={preferences}>
     <Navigation connection={connection} view={view.startsWith('/') ? view : 'cluster-heading'} />
-    {view === '/timeline' ? <Timeline /> : view === '/runs' ? <main aria-labelledby="runs-heading">
-      <header className="overview-banner">
-        <span className="overview-icon"><Icon name="detail" /></span>
-        <div><h1 id="runs-heading">实验回放</h1><p>按 Run 查看原始 Evidence 与协议过程</p></div>
-      </header>
-      <Experiments />
-    </main> : <main aria-labelledby="cluster-heading">
+    {view === '/timeline' ? <Timeline /> : view === '/runs' ? <ExperimentPage />
+      : view === '/settings' ? <Services change={changePreferences} /> : <main aria-labelledby="cluster-heading">
       <header className="overview-banner">
         <span className="overview-icon"><Icon name="topology" /></span>
         <div>
           <h1 id="cluster-heading" tabIndex={-1}>Raft Cluster</h1>
-          <p>五节点集群 · 每 {pollIntervalMs / 1000} 秒采样</p>
+          <p>五节点集群 · {preferences.interval ? `每 ${preferences.interval / 1000} 秒采样` : '自动采样已暂停'}</p>
         </div>
-        <small>协议多数派待观测</small>
+        {preferences.interval ? <small>协议多数派待观测</small>
+          : <button type="button" className="action" onClick={() => refresh(revision + 1)}>刷新状态</button>}
       </header>
       {error && <p className="warning" role="alert">观测 API 暂不可用，正在等待重连。</p>}
       {snapshot?.startupWarning && <p className="warning" role="status">Compose 初始化提示 · {snapshot.startupWarning}</p>}
@@ -143,7 +144,7 @@ function App() {
         <div className="panel metric"><dt><span className="metric-icon"><Icon name="term" /></span>最高观测任期</dt>
           <dd><span id="term">{sampledTerm}</span>
             <span className="metric-note">
-              {snapshot ? <>最近采样 <time dateTime={snapshot.sampledAt}>{timeFormat.format(new Date(snapshot.sampledAt))}</time></> : '等待采样'}
+              {snapshot ? <>最近采样 <Clock at={snapshot.sampledAt} /></> : '等待采样'}
             </span></dd></div>
       </dl>
       <div className="workspace">
@@ -202,7 +203,7 @@ function App() {
           lastSeen={lastSeen[selected]} observerOffline={error} rpc={rpc} />
       </div>
     </main>}
-  </>;
+  </PreferencesContext.Provider>;
 }
 
 createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>);

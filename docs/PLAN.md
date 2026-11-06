@@ -17,7 +17,7 @@
 
 ## Raft 观测控制台（拟议）
 
-第一批已交付一键启动、五节点状态聚合、拓扑和节点详情。见[首批任务记录](current-task/2026-11-06-raft-console.md)。第二批已接入[实时事件与实验回放](current-task/2026-11-06-raft-console-timeline.md)，第三批接入实验调度和服务管理。Raft 观测接口的扩展单独讨论，Transaction 与验证器的接入分别跟随 S3 与 S4。
+第一批已交付一键启动、五节点状态聚合、拓扑和节点详情。见[首批任务记录](current-task/2026-11-06-raft-console.md)。第二批已接入[实时事件与实验回放](current-task/2026-11-06-raft-console-timeline.md)，第三批已接入[实验调度和服务管理](current-task/2026-11-06-raft-console-operations.md)。Raft 观测接口的扩展单独讨论，Transaction 与验证器的接入分别跟随 S3 与 S4。
 
 ### 进程和数据流
 
@@ -33,7 +33,9 @@
 | `GET /api/cluster` | 并行读取五个 `/internal/raft/status`，每节点独立超时并校验身份，返回采样时间、状态或失败原因。每次保持五个固定成员。同一采样合并在途请求，客户端默认 3 秒轮询，可改为 1、5、10 秒或暂停。暂停或采样失败时标明数据时效。 |
 | `GET /api/events/stream` | 第二批启用。共享 Docker 日志监听，以带时间戳的真实输出解析角色、投票、追加和阻断事件。SSE 提供心跳、事件 ID、有界补发和缺口提示。监听在容器更换后重新挂接，历史排序保留来源与各自时钟信息。 |
 | `GET /api/runs`、`GET /api/runs/:experimentId/:runId` | 第二批启用。读取已记录的结果、元数据和 JSONL，按 Run ID 和文件白名单打开原始证据。按 `events.jsonl` 的时间戳回放，旧 `raw.log` 作为独立原文查看。 |
-| `GET /api/services` | 返回观测服务有效监听地址、端口及本项目 Compose 容器状态。容器运行状态、HTTP 探测结果与日志监听状态各自显示。 |
+| `GET /api/services` | 返回实际监听地址、Observer PID、Compose 容器状态、日志采集状态和项目操作锁。节点 HTTP 探测仍由集群状态接口提供。 |
+| `GET /api/operations`、`POST /api/operations` | 查询任务与项目锁，或提交 R01–R03、指定项目成员重启。 |
+| `POST /api/services/restart-observer` | 获取项目锁后，由启动器重启 Observer。 |
 
 首页分别展示 `HTTP 可达数 / 5`、`多数派门槛 3 / 5`、节点自报 Leader 和 `ready`。节点的 `ready` 表示本任期 no-op 已提交的 Leader。R02 的 RPC 分区可以发生在五个节点 HTTP 均可达时，实时协议多数派先显示待观测。实验回放可显示 Evidence 中实际记录的分组和结果。采样出现多个自报 Leader 时保留各自节点与任期。
 

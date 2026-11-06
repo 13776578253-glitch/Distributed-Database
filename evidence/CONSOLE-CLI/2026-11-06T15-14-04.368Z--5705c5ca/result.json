@@ -1,0 +1,47 @@
+{
+  "experimentId": "CONSOLE-CLI",
+  "runId": "2026-11-06T15-14-04.368Z--5705c5ca",
+  "startedAt": "2026-11-06T15:14:04.368Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "CLI demo verifies the isolated project, configured loopback ports and dedicated volumes",
+      "passed": true,
+      "details": {
+        "smoke": "2026-11-06T15-14-15.913Z--75f1d86a"
+      }
+    },
+    {
+      "name": "only the isolated project volumes are selected for reset",
+      "passed": true,
+      "details": {
+        "names": [
+          "minidb-accept-5705c5ca-raft-1",
+          "minidb-accept-5705c5ca-raft-2",
+          "minidb-accept-5705c5ca-raft-3",
+          "minidb-accept-5705c5ca-raft-4",
+          "minidb-accept-5705c5ca-raft-5"
+        ]
+      }
+    },
+    {
+      "name": "explicit isolated CLI reset removes the configured containers and volumes",
+      "passed": true,
+      "details": {
+        "project": "minidb-accept-5705c5ca"
+      }
+    },
+    {
+      "name": "existing Compose container IDs preserved",
+      "passed": true,
+      "details": {}
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

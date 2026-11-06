@@ -1,35 +1,46 @@
-import { docker, nodeIds, nodeUrl, volumeName } from './docker.ts';
+import { acquireProjectLock } from './cluster-lock.ts';
+import { configuredTargets, configuredVolumes, readComposeConfig } from './console-cluster.ts';
+import { docker, nodeIds } from './docker.ts';
 import { openEvidence } from './evidence.ts';
 import { raftClient } from './raft-client.ts';
 
 const mode = 'raft-smoke';
-const image = 'minidb-lab:local';
-const evidence = openEvidence('SMOKE', 'pnpm demo', { mode, nodeIds, image });
+const config = readComposeConfig();
+const image = config.services[nodeIds[0]]?.image;
+if (!image) throw new Error('Compose 缺少 Raft 镜像配置');
+const targets = configuredTargets(config);
+const volumes = configuredVolumes(config);
+const lease = acquireProjectLock(config.name, 'demo');
+const evidence = (() => {
+  try { return openEvidence('SMOKE', 'pnpm demo', { mode, nodeIds, image, project: config.name }); }
+  catch (error) { lease.release(); throw error; }
+})();
 const runDocker = (args: string[]) => docker(args, evidence.log);
 let imageId: string | undefined;
 
 try {
   runDocker(['compose', 'config', '--quiet']);
-  for (const nodeId of nodeIds) runDocker(['volume', 'create', volumeName(nodeId)]);
+  lease.setRun(evidence.runId);
+  for (const volume of volumes) runDocker(['volume', 'create', volume]);
   runDocker(['compose', 'build', '--provenance=false', 'raft-1']);
   runDocker(['compose', 'up', '-d', '--no-build', '--force-recreate', '--wait', '--wait-timeout', '60']);
   imageId = runDocker(['image', 'inspect', image, '--format', '{{.Id}}']);
 
-  for (const [index, nodeId] of nodeIds.entries()) {
-    const response = await fetch(`${nodeUrl(index)}/health`, { signal: AbortSignal.timeout(3000) });
+  for (const [index, { nodeId, address }] of targets.entries()) {
+    const response = await fetch(`${address}/health`, { signal: AbortSignal.timeout(3000) });
     const health = await response.json();
     evidence.assert(`${nodeId} health`, response.ok && health.nodeId === nodeId
-      && health.mode === 'raft', { port: 18081 + index, status: response.status, health });
+      && health.mode === 'raft', { port: Number(new URL(address).port), status: response.status, health });
 
     const container = runDocker(['compose', 'ps', '-q', nodeId]);
     const containerImage = runDocker(['inspect', container, '--format', '{{.Image}}']);
     evidence.assert(`${nodeId} image`, containerImage === imageId, { imageId: containerImage });
     const mount = runDocker(['inspect', container, '--format',
       '{{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}']);
-    evidence.assert(`${nodeId} dedicated volume`, mount === volumeName(nodeId), { mount });
+    evidence.assert(`${nodeId} dedicated volume`, mount === volumes[index], { mount });
   }
 
-  const client = raftClient(evidence);
+  const client = raftClient(evidence, id => targets.find(target => target.nodeId === id)!.address);
   const leader = await client.leader();
   const key = `smoke/${evidence.runId}`;
   const write = await client.call(leader.nodeId, 'demo', { type: 'put', key, value: null });
@@ -50,4 +61,4 @@ try {
     evidence.finish('FAIL', { node: process.version, imageId });
     process.exitCode = 1;
   }
-}
+} finally { lease.release(); }

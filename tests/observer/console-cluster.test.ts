@@ -4,6 +4,7 @@ import { prepareConsoleCluster } from '../../scripts/console-cluster.ts';
 import { nodeIds } from '../../src/raft/config.ts';
 
 const config = JSON.stringify({
+  name: 'console-test',
   services: Object.fromEntries(nodeIds.map((nodeId, index) => [nodeId, {
     ports: [{ target: 8080, published: String(19081 + index), host_ip: '127.0.0.1', protocol: 'tcp' }],
     volumes: [{ type: 'volume', source: nodeId, target: '/data' }],
@@ -26,8 +27,13 @@ describe('console cluster startup', () => {
 
   it('creates the configured external volumes and starts only the Raft services on an empty project', () => {
     const docker = vi.fn().mockReturnValueOnce(config).mockReturnValue('');
-    expect(prepareConsoleCluster(docker).mode).toBe('initialized');
+    const release = vi.fn();
+    const lock = vi.fn().mockReturnValue({ release });
+    expect(prepareConsoleCluster(docker, { lock }).mode).toBe('initialized');
+    expect(lock).toHaveBeenCalledWith('console-test', 'initialize');
+    expect(release).toHaveBeenCalledOnce();
     expect(docker.mock.calls.slice(2).map(([args]) => args)).toEqual([
+      ['compose', 'ps', '--all', '--quiet', ...nodeIds],
       ...nodeIds.map(nodeId => ['volume', 'create', `test-${nodeId}`]),
       ['compose', 'build', '--provenance=false', 'raft-1'],
       ['compose', 'up', '--detach', '--no-build', '--no-recreate', '--wait', '--wait-timeout', '60', ...nodeIds],
@@ -41,5 +47,15 @@ describe('console cluster startup', () => {
         { address: 'http://127.0.0.1:19082' }, { address: 'http://127.0.0.1:19083' },
         { address: 'http://127.0.0.1:19084' }, { address: 'http://127.0.0.1:19085' }],
     });
+  });
+
+  it('does not initialize missing containers when restarting only the Observer', () => {
+    const docker = vi.fn().mockReturnValueOnce(config).mockReturnValue('');
+    const lock = vi.fn();
+    expect(prepareConsoleCluster(docker, { lock, initialize: false })).toMatchObject({
+      mode: 'degraded', warning: '当前 Compose 项目没有 Raft 容器',
+    });
+    expect(docker).toHaveBeenCalledTimes(2);
+    expect(lock).not.toHaveBeenCalled();
   });
 });

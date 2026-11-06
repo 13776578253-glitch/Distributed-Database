@@ -31,4 +31,6 @@ pnpm demo
 
 页面每 3 秒向同源观测 API 请求五个节点的状态。点击节点可查看任期、日志长度、提交和应用索引。单独构建前端可运行 `pnpm build:web`，产物在 `dist/console/`。见[首批验收记录](docs/current-task/2026-11-06-raft-console.md)。
 
-侧栏的「实时事件」使用 SSE 读取容器日志。「实验回放」按 Run 读取 R01–R04 Evidence，支持逐步查看事件、断言与原始文件。见[第二批验收记录](docs/current-task/2026-11-06-raft-console-timeline.md)。
+侧栏的「实时事件」使用 SSE 读取容器日志。「实验与回放」可执行 R01–R03，并按 Run 查看 R01–R04 的事件、断言与原始 Evidence。「设置」展示实际监听地址和 Compose 容器状态，支持重启单节点或 Observer，以及配置本地轮询、时间格式、实时日志显示上限和主题。
+
+网页操作与 `pnpm experiment` 共用项目锁。R01、R02 会对控制台当前挂接的 Compose 项目执行故障实验。R04 作为历史探针回放。见[实时事件验收](docs/current-task/2026-11-06-raft-console-timeline.md)和[调度验收与恢复说明](docs/current-task/2026-11-06-raft-console-operations.md)。

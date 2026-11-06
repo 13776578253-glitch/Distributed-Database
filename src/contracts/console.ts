@@ -35,3 +35,43 @@ export interface RunDetail {
   invalidLines: number;
   files: string[];
 }
+
+export type RunnableExperiment = Exclude<ExperimentId, 'R04'>;
+export type ConsoleOperation =
+  | { kind: 'experiment'; experimentId: RunnableExperiment }
+  | { kind: 'restart-node'; nodeId: string };
+
+export interface OperationJob {
+  id: string;
+  action: ConsoleOperation;
+  status: 'running' | 'succeeded' | 'failed';
+  phase?: 'recovering';
+  startedAt: string;
+  runId?: string;
+  verdict?: ExperimentResult['status'];
+  error?: string;
+}
+
+export interface ProjectLock {
+  kind: ConsoleOperation['kind'] | 'initialize' | 'observer-restart' | 'demo' | 'reset' | 'unknown';
+  pid?: number;
+  startedAt?: string;
+  runId?: string;
+  recoveryRequired?: boolean;
+}
+
+export interface OperationsStatus {
+  project?: string;
+  jobs: OperationJob[];
+  lock: ProjectLock | null;
+}
+
+export interface ServiceStatus {
+  listener: string;
+  pid: number;
+  project?: string;
+  dockerError?: string;
+  nodes: { nodeId: string; state: string; health: string; containerId?: string }[];
+  logs: { available: boolean | null; subscribers: number };
+  lock: ProjectLock | null;
+}

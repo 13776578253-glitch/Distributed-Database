@@ -1,0 +1,75 @@
+{
+  "experimentId": "CONSOLE-CLI",
+  "runId": "2026-11-06T15-17-00.620Z--82a02ffb",
+  "startedAt": "2026-11-06T15:17:00.620Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "only the isolated project volumes are selected for reset",
+      "passed": true,
+      "details": {
+        "names": [
+          "minidb-accept-82a02ffb-raft-1",
+          "minidb-accept-82a02ffb-raft-2",
+          "minidb-accept-82a02ffb-raft-3",
+          "minidb-accept-82a02ffb-raft-4",
+          "minidb-accept-82a02ffb-raft-5"
+        ]
+      }
+    },
+    {
+      "name": "explicit isolated CLI reset removes the configured containers and volumes",
+      "passed": true,
+      "details": {
+        "project": "minidb-accept-82a02ffb"
+      }
+    },
+    {
+      "name": "restarting an Observer attached to an empty project does not recreate containers or volumes",
+      "passed": true,
+      "details": {
+        "previousPid": 56872,
+        "replacementPid": 42080,
+        "nodes": [
+          {
+            "nodeId": "raft-1",
+            "state": "absent",
+            "health": "—"
+          },
+          {
+            "nodeId": "raft-2",
+            "state": "absent",
+            "health": "—"
+          },
+          {
+            "nodeId": "raft-3",
+            "state": "absent",
+            "health": "—"
+          },
+          {
+            "nodeId": "raft-4",
+            "state": "absent",
+            "health": "—"
+          },
+          {
+            "nodeId": "raft-5",
+            "state": "absent",
+            "health": "—"
+          }
+        ]
+      }
+    },
+    {
+      "name": "existing Compose container IDs preserved",
+      "passed": true,
+      "details": {}
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

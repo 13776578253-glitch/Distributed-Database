@@ -1,0 +1,47 @@
+{
+  "startedAt": "2026-11-06T15:18:57.978Z",
+  "endedAt": "2026-11-06T15:18:58.555Z",
+  "gitSha": "026748051e37b7bd6dc1e7bcad377025f8430c8a",
+  "gitDirty": true,
+  "parameters": {
+    "project": "minidb-accept-c2081031",
+    "action": {
+      "kind": "experiment",
+      "experimentId": "R03"
+    },
+    "nodeIds": [
+      "raft-1",
+      "raft-2",
+      "raft-3",
+      "raft-4",
+      "raft-5"
+    ],
+    "electionLimitMs": 8000,
+    "targets": [
+      {
+        "nodeId": "raft-1",
+        "address": "http://127.0.0.1:19081"
+      },
+      {
+        "nodeId": "raft-2",
+        "address": "http://127.0.0.1:19082"
+      },
+      {
+        "nodeId": "raft-3",
+        "address": "http://127.0.0.1:19083"
+      },
+      {
+        "nodeId": "raft-4",
+        "address": "http://127.0.0.1:19084"
+      },
+      {
+        "nodeId": "raft-5",
+        "address": "http://127.0.0.1:19085"
+      }
+    ]
+  },
+  "environment": {
+    "imageId": "sha256:56f31d9bc24ee0ac0b5f7614edc5cc66ae74da7ec7732c381df1f113099243cb",
+    "node": "v24.21.0"
+  }
+}

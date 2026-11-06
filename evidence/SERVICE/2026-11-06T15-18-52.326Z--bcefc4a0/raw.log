@@ -1,0 +1,10 @@
+> docker compose ps --all --quiet raft-1
+881fa98e7ff0df66702b16dbb10912d23577f759e188ba701bfd1cdfc870c5fd
+
+> docker compose restart raft-1
+ Container minidb-accept-c2081031-raft-1-1 Restarting 
+ Container minidb-accept-c2081031-raft-1-1 Started 
+
+> docker compose ps --quiet raft-1
+881fa98e7ff0df66702b16dbb10912d23577f759e188ba701bfd1cdfc870c5fd
+

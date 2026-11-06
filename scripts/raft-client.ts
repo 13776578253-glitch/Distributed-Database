@@ -2,26 +2,26 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import type { ClientHistory, Operation } from '../src/contracts/history.ts';
 import type { ClientReply } from '../src/raft/core/types.ts';
 import type { RaftNode } from '../src/raft/core/node.ts';
-import { nodeIds, nodeUrl } from './docker.ts';
+import { nodeIds } from './docker.ts';
 import type { openEvidence } from './evidence.ts';
 
 type Status = ReturnType<RaftNode['status']> & { committedDigest: string };
 type Evidence = ReturnType<typeof openEvidence>;
 
-const address = (nodeId: string) => nodeUrl(nodeIds.indexOf(nodeId));
-
 function networkFailure(error: unknown): boolean {
   return error instanceof TypeError || (error instanceof DOMException && error.name === 'TimeoutError');
 }
 
-async function statuses(): Promise<Status[]> {
+async function statuses(address: (nodeId: string) => string): Promise<Status[]> {
   const responses = await Promise.all(nodeIds.map(async nodeId => {
     try {
       const response = await fetch(`${address(nodeId)}/internal/raft/status`, {
         signal: AbortSignal.timeout(450),
       });
       if (!response.ok) throw new Error(`${nodeId} status HTTP ${response.status}`);
-      return await response.json() as Status;
+      const status = await response.json() as Status;
+      if (status.nodeId !== nodeId) throw new Error(`Expected ${nodeId}, received ${status.nodeId}`);
+      return status;
     } catch (error) {
       if (networkFailure(error)) return undefined;
       throw error;
@@ -30,14 +30,14 @@ async function statuses(): Promise<Status[]> {
   return responses.filter(response => response !== undefined);
 }
 
-export function raftClient(evidence: Evidence) {
+export function raftClient(evidence: Evidence, resolveAddress: (nodeId: string) => string) {
   let sequence = 0;
 
   async function waitFor(label: string, condition: (nodes: Status[]) => boolean, timeout = 8000) {
     const deadline = performance.now() + timeout;
     let last: Status[] = [];
     while (performance.now() < deadline) {
-      last = await statuses();
+      last = await statuses(resolveAddress);
       if (condition(last)) {
         evidence.event('raft.status', { label, nodes: last });
         return last;
@@ -67,7 +67,7 @@ export function raftClient(evidence: Evidence) {
       clientId, operation, invocationNs: process.hrtime.bigint().toString(),
     };
     evidence.event('client.invoke', { ...invocation, nodeId });
-    const url = new URL(`${address(nodeId)}/kv`);
+    const url = new URL(`${resolveAddress(nodeId)}/kv`);
     const init: RequestInit = { signal: AbortSignal.timeout(3000) };
     if (operation.type === 'get') url.searchParams.set('key', operation.key);
     else {
@@ -98,13 +98,13 @@ export function raftClient(evidence: Evidence) {
   }
 
   async function block(nodeId: string, blockedPeers: string[]) {
-    evidence.event('fault.links', { nodeId, blockedPeers });
-    const response = await fetch(`${address(nodeId)}/internal/fault/links`, {
+    const response = await fetch(`${resolveAddress(nodeId)}/internal/fault/links`, {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ blockedPeers }), signal: AbortSignal.timeout(3000),
     });
     if (!response.ok) throw new Error(`${nodeId} fault HTTP ${response.status}`);
     await response.json();
+    evidence.event('fault.links', { nodeId, blockedPeers });
   }
 
   return { leader, converged, call, block };

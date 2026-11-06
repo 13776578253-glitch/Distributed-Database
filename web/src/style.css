@@ -15,6 +15,10 @@
   --warning-bg: #faeed8;
   --danger: #9c3e4b;
   --danger-bg: #fae9e9;
+  --nav-active: #e5dfe0;
+  --banner: #edf0eb;
+  --field: #f8f3ec;
+  --accent-ink: #fff;
   --page-width: 96rem;
   --page-gutter: clamp(16px, 2.5vw, 32px);
   --panel-inset: clamp(12px, 1.5vw, 20px);
@@ -23,6 +27,28 @@
   font: 16px/1.5 system-ui, "Microsoft YaHei", sans-serif;
   color: var(--ink);
   background: var(--canvas);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #2e3440;
+  --panel: #3b4252;
+  --ink: #eceff4;
+  --muted: #c4ccda;
+  --line: #536075;
+  --soft: #343b4a;
+  --accent: #8fdaee;
+  --accent-bg: #314f60;
+  --accent-line: #52798d;
+  --selection: #bdafd7;
+  --warning: #ffda9b;
+  --warning-bg: #514634;
+  --danger: #ffc4c9;
+  --danger-bg: #57414a;
+  --nav-active: #424d61;
+  --banner: #334756;
+  --field: #343b4a;
+  --accent-ink: #203444;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -85,7 +111,7 @@ body:has(.drawer[open]) { overflow: hidden; }
   position: relative; display: flex; align-items: center; gap: 14px; min-height: 52px; padding: 8px 14px;
   color: var(--ink); border-radius: 11px; text-decoration: none;
 }
-.drawer-links a[aria-current] { background: #e5dfe0; }
+.drawer-links a[aria-current] { background: var(--nav-active); }
 .drawer-links a[aria-current] .icon { color: var(--accent); }
 .drawer-links a[aria-current]::before {
   content: ''; position: absolute; inset-inline-start: 0; top: 50%; transform: translateY(-50%);
@@ -102,7 +128,7 @@ main {
 .overview-banner {
   display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 12px;
   margin-bottom: clamp(20px, 2.2vw, 28px); padding: 10px 14px;
-  border: 1px solid var(--accent-line); border-radius: 16px; background: #edf0eb;
+  border: 1px solid var(--accent-line); border-radius: 16px; background: var(--banner);
 }
 .overview-icon { width: 36px; height: 36px; border-radius: 50%; }
 .overview-banner p, .overview-banner small { color: var(--muted); font-size: .8125rem; }
@@ -128,7 +154,7 @@ h3 { font-size: .875rem; }
   border-radius: 14px;
 }
 .metric-icon .icon { width: 18px; height: 18px; }
-.metric:first-child .metric-icon { color: #fff; background: var(--accent); }
+.metric:first-child .metric-icon { color: var(--accent-ink); background: var(--accent); }
 .metric dt { color: var(--muted); font-size: .8125rem; font-weight: 500; }
 .metric dd { font-size: 1.25rem; font-weight: 650; line-height: 1.25; margin-top: 3px; overflow-wrap: anywhere; }
 .metric dd small { color: var(--muted); font-size: .8125rem; }
@@ -189,7 +215,7 @@ h3 { font-size: .875rem; }
 .detail-identity strong { font-size: .875rem; }
 .node-fields { display: grid; gap: 4px; margin: 0 var(--panel-inset) 12px; }
 .node-fields div, .log-progress dl div { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding-block: 5px; }
-.node-fields div { padding-inline: 10px; border-radius: 8px; background: #f8f3ec; }
+.node-fields div { padding-inline: 10px; border-radius: 8px; background: var(--field); }
 .node-fields dt, .log-progress dt { color: var(--muted); font-size: .8125rem; }
 .node-fields dd, .log-progress dd { font-size: .875rem; font-weight: 600; }
 .node-fields code, .log-progress code { margin-inline-start: 2px; font-size: .75rem; }
@@ -250,6 +276,23 @@ h3 { font-size: .875rem; }
 .verdict-pass { color: var(--accent); background: var(--accent-bg); }
 .verdict-fail { color: var(--danger); background: var(--danger-bg); }
 .verdict-inconclusive { color: var(--warning); background: var(--warning-bg); }
+.job-list { margin-top: 10px; }
+.job {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 5px 10px; padding-block: 8px;
+  border-top: 1px solid var(--line); font-size: .8125rem;
+}
+.job > div { flex: 1; min-width: min(15rem, 100%); overflow-wrap: anywhere; }
+.job small { display: block; color: var(--muted); }
+.job .job-error { color: var(--danger); }
+.file-link { color: var(--accent); padding-block: 6px; }
+.service-facts {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 8px 16px;
+  padding-block: 8px; font-size: .875rem;
+}
+.service-facts dt { color: var(--muted); font-size: .8125rem; }
+.service-facts dd { overflow-wrap: anywhere; }
+.service-table td { vertical-align: middle; }
+.preferences { padding-inline: 0; }
 
 @media (max-width: 900px) {
   .workspace { grid-template-columns: minmax(0, 1fr); }

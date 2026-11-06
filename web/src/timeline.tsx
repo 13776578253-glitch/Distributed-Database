@@ -1,10 +1,11 @@
 /** Renders live protocol events and stepwise playback of immutable Evidence. */
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { nodeIds } from '../../src/raft/config.ts';
 import { experimentIds, experimentNames } from '../../src/contracts/console.ts';
 import type { RunDetail, RunSummary, TimelineEvent } from '../../src/contracts/console.ts';
-import { clock, getJson } from './console-api.ts';
+import { getJson } from './console-api.ts';
 import { Icon } from './icons.tsx';
+import { Clock, PreferencesContext } from './preferences.tsx';
 
 const kindLabels: Record<string, string> = {
   'raft.role': '角色变化', 'raft.status': '状态采样', 'observer.gap': '采集缺口',
@@ -33,11 +34,11 @@ function EventTable({ events, reverse = false }: { events: TimelineEvent[]; reve
 
   return <section className="panel activity">
     <div className="filters">
-      <label>节点<select value={node} onChange={event => setNode(event.target.value)}>
+      <label>节点<select aria-label="节点" value={node} onChange={event => setNode(event.target.value)}>
         <option value="">全部</option>{nodes.map(id => <option key={id}>{id}</option>)}</select></label>
       <label>任期<input type="number" min="0" step="1" value={term} placeholder="全部" onChange={event => setTerm(event.target.value)} /></label>
       <label>索引<input type="number" min="0" step="1" value={index} placeholder="全部" onChange={event => setIndex(event.target.value)} /></label>
-      <label>类型<select value={kind} onChange={event => setKind(event.target.value)}>
+      <label>类型<select aria-label="类型" value={kind} onChange={event => setKind(event.target.value)}>
         <option value="">全部</option>{kinds.map(id => <option key={id} value={id}>{kindLabels[id] ?? id}</option>)}</select></label>
       <span className="muted">{filtered.length} / {events.length} 条</span>
     </div>
@@ -45,7 +46,7 @@ function EventTable({ events, reverse = false }: { events: TimelineEvent[]; reve
       <table className="data-table">
         <thead><tr><th>时间</th><th>事件</th><th>节点</th><th>任期</th><th>索引</th></tr></thead>
         <tbody>{rows.map(event => <tr key={event.id} className={selected?.id === event.id ? 'selected-row' : ''}>
-          <td><time dateTime={event.at}>{clock.format(new Date(event.at))}</time></td>
+          <td><Clock at={event.at} /></td>
           <td><button type="button" className="row-action" aria-pressed={selected?.id === event.id} onClick={() => select(event.id)}>
             {kindLabels[event.kind] ?? event.kind}
             {event.label !== event.kind && <small>{event.label}</small>}
@@ -65,6 +66,7 @@ function EventTable({ events, reverse = false }: { events: TimelineEvent[]; reve
 }
 
 export function Timeline() {
+  const { logLimit } = useContext(PreferencesContext);
   const [entries, setEntries] = useState<TimelineEvent[]>([]);
   const [frozen, freeze] = useState<TimelineEvent[]>();
   const [state, setState] = useState('连接中');
@@ -76,14 +78,14 @@ export function Timeline() {
     stream.onerror = () => setState('等待重连');
     stream.onmessage = message => {
       const entry: TimelineEvent = JSON.parse(message.data);
-      setEntries(previous => previous.some(event => event.id === entry.id) ? previous : [...previous, entry].slice(-400));
+      setEntries(previous => previous.some(event => event.id === entry.id) ? previous : [...previous, entry].slice(-logLimit));
     };
     stream.addEventListener('gap', message => {
       setEntries([]);
       setGap(JSON.parse(message.data).reason);
     });
     return () => stream.close();
-  }, []);
+  }, [logLimit]);
 
   return <main aria-labelledby="timeline-heading">
     <header className="overview-banner">
@@ -139,7 +141,7 @@ function Playback({ run }: { run: RunDetail }) {
   </>;
 }
 
-export function Experiments({ refresh = 0, activeRun }: { refresh?: number; activeRun?: string }) {
+export function Experiments({ activeRun }: { activeRun?: string }) {
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [category, setCategory] = useState('');
   const [selection, select] = useState('');
@@ -148,11 +150,13 @@ export function Experiments({ refresh = 0, activeRun }: { refresh?: number; acti
 
   useEffect(() => {
     const cancel = new AbortController();
-    getJson<RunSummary[]>('/api/runs', cancel.signal).then(setRuns).catch((failure: Error) => {
+    getJson<RunSummary[]>('/api/runs', cancel.signal).then(items => {
+      if (!cancel.signal.aborted) { setRuns(items); setError(''); }
+    }).catch((failure: Error) => {
       if (!cancel.signal.aborted) setError(failure.message);
     });
     return () => cancel.abort();
-  }, [refresh]);
+  }, [activeRun]);
 
   const visible = runs.filter(item => !category || item.experimentId === category);
   const chosen = visible.find(item => item.runId === (selection || activeRun)) ?? visible[0];
@@ -162,6 +166,7 @@ export function Experiments({ refresh = 0, activeRun }: { refresh?: number; acti
     if (!experimentId || !runId) return;
     const cancel = new AbortController();
     getJson<RunDetail>(`/api/runs/${experimentId}/${runId}`, cancel.signal).then(detail => {
+      if (cancel.signal.aborted) return;
       setRun(detail);
       setError('');
     }).catch((failure: Error) => {
@@ -173,9 +178,9 @@ export function Experiments({ refresh = 0, activeRun }: { refresh?: number; acti
   return <>
     <section className="panel activity">
       <div className="filters">
-        <label>实验<select value={category} onChange={event => { setCategory(event.target.value); select(''); }}>
+        <label>实验<select aria-label="实验" value={category} onChange={event => { setCategory(event.target.value); select(''); }}>
           <option value="">全部</option>{experimentIds.map(id => <option key={id} value={id}>{id} · {experimentNames[id]}</option>)}</select></label>
-        <label>运行<select value={runId ?? ''} onChange={event => select(event.target.value)}>
+        <label>运行<select aria-label="运行" value={runId ?? ''} onChange={event => select(event.target.value)}>
           {!visible.length && <option value="">暂无记录</option>}
           {visible.map(item => <option key={item.runId} value={item.runId}>{item.experimentId} · {item.runId} · {item.status}</option>)}</select></label>
       </div>
