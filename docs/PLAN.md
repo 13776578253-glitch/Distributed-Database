@@ -1,43 +1,16 @@
 # 开发顺序
 
-阶段记录按编号在本页追加。每阶段记录目标、验收命令、结果与证据路径。
+当前阶段是 **S3 · MVCC/WAL**，待开工。各阶段的目标、验收命令、结果和证据按编号留在 `current-task/`。
 
-| 阶段 | 工作与验收出口 |
-| --- | --- |
-| S0 | 公共契约、测试和类型检查、五节点 Compose 健康检查、SMOKE 证据 |
-| S1 | 确定性 Raft 选举、复制、提交、读屏障和 Leader 更替测试 |
-| S2 | HTTP RPC、持久化、R01/R02 实验和 R03 历史采集 |
-| S3 | RC/SI、自写 WAL、AS OF、恢复与 T01/T02/T03 |
-| S4 | 检查器、V01/V02/V03、R03 和 T02 历史回放 |
-| S5 | 演示、选型对比、时序图和报告 |
+| 阶段 | 状态 | 任务记录 |
+| --- | --- | --- |
+| S0 · 脚手架 | 已验收 | [脚手架](current-task/S0-scaffold.md) |
+| S1 · Raft 纯核心 | 已验收 | [Raft 纯核心](current-task/S1-raft-core.md) |
+| S2 · 容器 Raft | 已验收 | [容器 Raft](current-task/S2-raft-compose.md)，R03 判定在 S4 |
+| S3 · MVCC/WAL | 待开工 | [单节点事务与恢复](current-task/S3-mvcc-wal.md) |
+| S4 · 一致性验证 | 待开始 | V01/V02/V03、R03 和 T02 历史回放 |
+| S5 · 课程交付 | 待开始 | 演示、选型对比、时序图和报告 |
 
-组长负责 Raft 和合并，组员 A 负责单节点事务，组员 B 负责外部验证。实验运行器通过公开 API 或故障接口操作。Raft term 和 log index、事务 LSN、实验 operation ID 各自独立。选型对比、图和报告随对应阶段补齐。
+组长负责 Raft 和合并，组员 A 负责单节点事务，组员 B 负责外部验证。实验运行器通过公开 API 或故障接口操作。Raft term 和 log index、事务 LSN、实验 operation ID 各自独立。
 
-## S0 · 脚手架
-
-`pnpm test`、`pnpm typecheck`、`docker compose config --quiet` 和 `pnpm demo` 通过。五个 Raft 占位容器使用同一镜像和独立数据卷。标准入口的 [SMOKE 证据](../evidence/SMOKE/2026-11-06T10-43-09.162Z--1e992354/result.json) 共 15 项检查。先前镜像标签与运行容器不一致的失败也保留在同一实验目录。
-
-## S1 · Raft 纯核心
-
-事件从时钟、客户端或传输进入 Raft 核心。核心独占任期、投票、日志、提交索引和 KV 状态，通过存储接口先持久化投票和日志，再返回 RPC 应答。测试用可控时钟、内存持久化和可筛选的消息队列验证选举、复制与读写。
-
-写入成功点在当前任期提交规则成立且日志已顺序应用之后。读在当前任期 no-op 提交后发出带标识的心跳，等多数派确认本次读，再从已应用状态取值。失去多数派的已提议写返回 `UNKNOWN_OUTCOME`，无读 quorum 返回 `NO_QUORUM`。
-
-验收通过。核心 7 项测试覆盖持久化投票、日志新旧比较、提交和应用、旧任期多数副本、读屏障、分区恢复和全节点重启。另有 2 项公共契约测试，类型检查通过。
-
-## S2 · 容器 Raft
-
-HTTP 将 RPC 和客户端命令交给纯核心。每个节点用独立卷上的 SQLite 保存 Raft 任期、投票和日志。重启时从日志重新应用已提交状态。故障接口只更改 HTTP 传输层的对端阻断表，实验脚本记录命令、客户端历史和容器日志。
-
-GET 采用 `/kv?key=...`，以 URL 查询参数承载任意非空键，包括点号和斜杠。测试和类型检查通过后，用 R01 和 R02 验收真实容器故障与恢复，R03 保存并发历史交给 S4。
-
-`pnpm test` 9 项通过，`pnpm typecheck` 与 `docker compose config --quiet` 通过。以下复跑均使用提交 `90d642a` 和同一个镜像。
-
-| 实验 | 结果 |
-| --- | --- |
-| [SMOKE](../evidence/SMOKE/2026-11-06T10-56-45.707Z--a7f97de8/result.json) | 18 项通过，五节点健康、独立卷和 put/get/delete |
-| [R01](../evidence/R01/2026-11-06T10-57-02.353Z--76c65d01/result.json) | 通过，从发出 SIGKILL 命令到发现新 Leader 约 844 ms，最新确认值保留，旧节点重启后收敛 |
-| [R02](../evidence/R02/2026-11-06T10-57-06.906Z--77080c4c/result.json) | 通过，多数派确认写入，少数派返回 `UNKNOWN_OUTCOME` / `NO_QUORUM`，五个提交前缀在恢复后匹配 |
-| [R03](../evidence/R03/2026-11-06T10-57-09.811Z--f77dfa23/result.json) | 已采集 6 条包含重叠调用的操作历史，S4 给出判定 |
-
-下一阶段为 S3。选型对比、时序图和报告分别放在 `docs/comparison.md`、`docs/diagrams/` 和 `docs/report.pdf`，成稿后逐项查看。
+三个方向的复现入口见[实验清单](experiments.md)。选型对比、时序图和报告分别放在 `docs/comparison.md`、`docs/diagrams/` 和 `docs/report.pdf`，成稿后逐项查看。
