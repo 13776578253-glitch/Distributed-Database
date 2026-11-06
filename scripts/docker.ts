@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 
-export const nodeIds = ['raft-1', 'raft-2', 'raft-3', 'raft-4', 'raft-5'];
+export { nodeIds } from '../src/raft/config.ts';
 export const volumeName = (nodeId: string) => `minidb-lab-${nodeId}`;
 export const nodeUrl = (index: number) => `http://127.0.0.1:${18081 + index}`;
 

@@ -4,3 +4,4 @@
 | --- | --- | --- |
 | S0 | 整理项目目录、公共类型、Compose 脚手架和冒烟脚本 | docs/PLAN.md 与 evidence/SMOKE/ |
 | S1 | 实现纯 Raft 状态机和确定性故障测试 | tests/raft/core.test.ts |
+| S2 | 实现 HTTP RPC、SQLite 适配器与容器实验 | docs/experiments.md 与 evidence/R01–R03/ |

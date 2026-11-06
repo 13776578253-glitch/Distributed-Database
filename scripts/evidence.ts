@@ -12,6 +12,8 @@ export function openEvidence(experimentId: string, command: string, parameters: 
   const file = (name: string) => join(directory, name);
   const git = spawnSync('git', ['rev-parse', '--verify', 'HEAD'], { encoding: 'utf8' });
   const gitSha = git.status === 0 ? git.stdout.trim() : null;
+  const gitStatus = spawnSync('git', ['status', '--porcelain', '--', '.', ':(exclude)evidence'], { encoding: 'utf8' });
+  const gitDirty = gitStatus.status === 0 ? gitStatus.stdout.trim() !== '' : null;
   const assertionResults: ExperimentResult['assertionResults'] = [];
 
   mkdirSync(directory, { recursive: true });
@@ -39,7 +41,7 @@ export function openEvidence(experimentId: string, command: string, parameters: 
 
   function finish(status: ExperimentResult['status'], environment: unknown) {
     writeFileSync(file('metadata.json'), JSON.stringify({
-      startedAt, endedAt: new Date().toISOString(), gitSha, parameters, environment,
+      startedAt, endedAt: new Date().toISOString(), gitSha, gitDirty, parameters, environment,
     }, null, 2) + '\n');
     const result: ExperimentResult = {
       experimentId, runId, startedAt, status, assertionResults, evidencePaths,

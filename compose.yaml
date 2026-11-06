@@ -9,30 +9,33 @@ x-raft: &raft
     timeout: 2s
     retries: 10
 
+x-raft-env: &raft-env
+  FAULTS_ENABLED: "1"
+
 services:
   raft-1:
     <<: *raft
-    environment: { NODE_ID: raft-1 }
+    environment: { <<: *raft-env, NODE_ID: raft-1 }
     ports: ["127.0.0.1:18081:8080"]
     volumes: ["raft-1:/data"]
   raft-2:
     <<: *raft
-    environment: { NODE_ID: raft-2 }
+    environment: { <<: *raft-env, NODE_ID: raft-2 }
     ports: ["127.0.0.1:18082:8080"]
     volumes: ["raft-2:/data"]
   raft-3:
     <<: *raft
-    environment: { NODE_ID: raft-3 }
+    environment: { <<: *raft-env, NODE_ID: raft-3 }
     ports: ["127.0.0.1:18083:8080"]
     volumes: ["raft-3:/data"]
   raft-4:
     <<: *raft
-    environment: { NODE_ID: raft-4 }
+    environment: { <<: *raft-env, NODE_ID: raft-4 }
     ports: ["127.0.0.1:18084:8080"]
     volumes: ["raft-4:/data"]
   raft-5:
     <<: *raft
-    environment: { NODE_ID: raft-5 }
+    environment: { <<: *raft-env, NODE_ID: raft-5 }
     ports: ["127.0.0.1:18085:8080"]
     volumes: ["raft-5:/data"]
 

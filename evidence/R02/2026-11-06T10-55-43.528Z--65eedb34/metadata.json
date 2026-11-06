@@ -1,0 +1,20 @@
+{
+  "startedAt": "2026-11-06T10:55:43.528Z",
+  "endedAt": "2026-11-06T10:55:45.930Z",
+  "gitSha": "f49fe53c2f6e067483715945d62d80030f390a08",
+  "gitDirty": true,
+  "parameters": {
+    "electionLimitMs": 8000,
+    "nodeIds": [
+      "raft-1",
+      "raft-2",
+      "raft-3",
+      "raft-4",
+      "raft-5"
+    ]
+  },
+  "environment": {
+    "imageId": "sha256:83d0ea5c40147c59b104c0099972a4d443ae1d1fbcb03c7cc7dc5a555e2d16a4",
+    "node": "v24.21.0"
+  }
+}

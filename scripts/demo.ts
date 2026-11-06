@@ -1,7 +1,8 @@
 import { docker, nodeIds, nodeUrl, volumeName } from './docker.ts';
 import { openEvidence } from './evidence.ts';
+import { raftClient } from './raft-client.ts';
 
-const mode = 'scaffold-smoke';
+const mode = 'raft-smoke';
 const image = 'minidb-lab:local';
 const evidence = openEvidence('SMOKE', 'pnpm demo', { mode, nodeIds, image });
 const runDocker = (args: string[]) => docker(args, evidence.log);
@@ -18,7 +19,7 @@ try {
     const response = await fetch(`${nodeUrl(index)}/health`, { signal: AbortSignal.timeout(3000) });
     const health = await response.json();
     evidence.assert(`${nodeId} health`, response.ok && health.nodeId === nodeId
-      && health.mode === mode, { port: 18081 + index, status: response.status, health });
+      && health.mode === 'raft', { port: 18081 + index, status: response.status, health });
 
     const container = runDocker(['compose', 'ps', '-q', nodeId]);
     const containerImage = runDocker(['inspect', container, '--format', '{{.Image}}']);
@@ -28,6 +29,17 @@ try {
     evidence.assert(`${nodeId} dedicated volume`, mount === volumeName(nodeId), { mount });
   }
 
+  const client = raftClient(evidence);
+  const leader = await client.leader();
+  const key = `smoke/${evidence.runId}`;
+  const write = await client.call(leader.nodeId, 'demo', { type: 'put', key, value: null });
+  evidence.assert('confirmed put', write.outcome === 'ok', write);
+  const read = await client.call(leader.nodeId, 'demo', { type: 'get', key });
+  evidence.assert('quorum read of stored null', read.outcome === 'ok'
+    && read.result !== undefined && 'found' in read.result && read.result.found && read.result.value === null, read);
+  const remove = await client.call(leader.nodeId, 'demo', { type: 'delete', key });
+  evidence.assert('confirmed delete', remove.outcome === 'ok'
+    && remove.result !== undefined && 'deleted' in remove.result && remove.result.deleted, remove);
   runDocker(['compose', 'logs', '--no-color']);
   evidence.finish('PASS', { node: process.version, imageId });
 } catch (error) {

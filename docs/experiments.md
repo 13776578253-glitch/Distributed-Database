@@ -4,6 +4,8 @@
 
 ## 方向一 · Raft KV
 
+先运行 `pnpm demo`。然后顺序运行 `pnpm experiment R01`、`pnpm experiment R02`、`pnpm experiment R03`。其中 R02 通过应用 RPC 层模拟分区，恢复后比对五个节点的提交索引、日志长度和提交前缀哈希。R03 的调用与返回保存在 `events.jsonl`，供 S4 回放。
+
 | ID | 动作 | 判定 |
 | --- | --- | --- |
 | R01 | 强制杀死 Leader，再启动该节点 | 在限定时间内重新选举，确认过的写入仍可线性一致地读到 |
