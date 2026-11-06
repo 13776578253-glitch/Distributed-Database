@@ -3,6 +3,7 @@ import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { nodeIds } from '../../src/raft/config.ts';
 import type { NodeObservation, RpcObservation } from '../../src/contracts/observation.ts';
+import { Icon } from './icons.tsx';
 import { Navigation } from './navigation.tsx';
 import { placeMembers } from './topology.ts';
 import { pollIntervalMs, useCluster } from './use-cluster.ts';
@@ -12,18 +13,6 @@ const roleLabels = { leader: 'Leader', candidate: 'Candidate', follower: 'Follow
 const timeFormat = new Intl.DateTimeFormat('zh-CN', {
   hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
 });
-
-function MetricIcon({ kind }: { kind: 'reachability' | 'leader' | 'term' }) {
-  const paths = {
-    reachability: 'M2 12h4l3-7 5 14 3-7h5',
-    leader: 'm3 6 5 4 4-6 4 6 5-4-2 12H5L3 6Z',
-    term: 'M12 7v5l3 2 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
-  };
-  return <span className="metric-icon" aria-hidden="true">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
-      strokeLinecap="round" strokeLinejoin="round"><path d={paths[kind]} /></svg>
-  </span>;
-}
 
 function probeLabel(node: NodeObservation | undefined, observerOffline: boolean) {
   if (node?.ok) return '可达';
@@ -48,7 +37,7 @@ function NodeDetails({ nodeId, node, lastSeen, observerOffline, rpc }: {
   const replies = rpc?.filter(event => event.from === nodeId || event.to === nodeId).slice(0, 3) ?? [];
   return <aside className="panel detail" id="node-details" aria-labelledby="detail-heading">
     <header className="panel-heading detail-title">
-      <h2 id="detail-heading" tabIndex={-1}>节点详情</h2>
+      <h2 id="detail-heading" tabIndex={-1}><Icon name="detail" />节点详情</h2>
       <div className="detail-identity"><strong>{nodeId}</strong>
         <span className={`badge ${status?.role ?? 'unknown'}`}>
           {status ? roleLabels[status.role] : probeLabel(node, observerOffline)}
@@ -102,7 +91,7 @@ function App() {
   const leaders = statuses.filter(status => status.role === 'leader');
   const sampledTerm = statuses.length > 0 ? Math.max(...statuses.map(status => status.term)) : '—';
   const leaderLabel = leaders.map(leader => leader.nodeId).join(' / ') || (snapshot ? '未观测到' : '—');
-  const connection = error ? '观测服务离线' : snapshot ? '轮询中' : '连接中';
+  const connection = error ? 'offline' : snapshot ? 'online' : 'connecting';
   const { leader, points } = placeMembers(nodeIds, statuses);
   const relations = leader ? statuses.filter(status => status.nodeId !== leader.nodeId
     && status.term === leader.term && status.leader === leader.nodeId) : [];
@@ -118,35 +107,36 @@ function App() {
   }
 
   return <>
-    <Navigation />
+    <Navigation connection={connection} />
     <main aria-labelledby="cluster-heading">
-      <header className="page-heading">
-        <h1 id="cluster-heading" tabIndex={-1}>Raft Cluster</h1>
-        <p>五节点集群总览</p>
+      <header className="overview-banner">
+        <span className="overview-icon"><Icon name="topology" /></span>
+        <div>
+          <h1 id="cluster-heading" tabIndex={-1}>Raft Cluster</h1>
+          <p>五节点集群 · 每 {pollIntervalMs / 1000} 秒采样</p>
+        </div>
+        <small>协议多数派待观测</small>
       </header>
       {error && <p className="warning" role="alert">观测 API 暂不可用，正在等待重连。</p>}
       {snapshot?.startupWarning && <p className="warning" role="status">Compose 初始化提示 · {snapshot.startupWarning}</p>}
       <dl className="metrics">
-        <div className="panel metric"><dt><MetricIcon kind="reachability" />HTTP 可达</dt>
+        <div className="panel metric"><dt><span className="metric-icon"><Icon name="reachability" /></span>HTTP 可达</dt>
           <dd><span id="reachable">{snapshot ? statuses.length : '—'}</span><small> / {nodeIds.length}</small>
-            <span className="metric-note">多数派门槛 3 / 5 · 协议多数派待观测</span></dd></div>
-        <div className="panel metric"><dt><MetricIcon kind="leader" />自报 Leader</dt>
+            <span className="metric-note">多数派门槛 3 / 5</span></dd></div>
+        <div className="panel metric"><dt><span className="metric-icon"><Icon name="leader" /></span>自报 Leader</dt>
           <dd className="leader-text"><span id="leaders">{leaderLabel}</span>
             <span className="metric-note">{leaders.length === 1 ? `任期 ${leaders[0].term}` : leaders.length > 1
               ? leaders.map(leader => `${leader.nodeId} · 任期 ${leader.term}`).join(' / ') : '来自节点状态采样'}</span></dd></div>
-        <div className="panel metric"><dt><MetricIcon kind="term" />最高观测任期</dt>
+        <div className="panel metric"><dt><span className="metric-icon"><Icon name="term" /></span>最高观测任期</dt>
           <dd><span id="term">{sampledTerm}</span>
-            <span className="metric-note sampling">
-              <span className={`poll-state ${error ? 'offline' : snapshot ? 'polling' : ''}`} role="status">
-                <span className="dot" />{connection}{snapshot && ` · ${pollIntervalMs / 1000} 秒`}
-              </span>
-              {snapshot && <span>最近采样 <time dateTime={snapshot.sampledAt}>{timeFormat.format(new Date(snapshot.sampledAt))}</time></span>}
+            <span className="metric-note">
+              {snapshot ? <>最近采样 <time dateTime={snapshot.sampledAt}>{timeFormat.format(new Date(snapshot.sampledAt))}</time></> : '等待采样'}
             </span></dd></div>
       </dl>
       <div className="workspace">
         <section className="panel topology" aria-labelledby="topology-heading">
           <header className="panel-heading">
-            <h2 id="topology-heading" tabIndex={-1}>节点拓扑</h2>
+            <h2 id="topology-heading" tabIndex={-1}><Icon name="topology" />节点拓扑</h2>
             <p role="status">{leader ? `${leader.nodeId} · Leader · 任期 ${leader.term}` : '当前采样未确认唯一 Leader'}</p>
           </header>
           <div className="topology-map">
