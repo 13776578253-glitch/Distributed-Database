@@ -1,13 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { RaftNode } from '../../src/raft/core/node.ts';
-import type { Entry, HardState, RpcRequest, Storage } from '../../src/raft/core/types.ts';
+import type { Entry, HardState, RpcRequest, Snapshot, Storage } from '../../src/raft/core/types.ts';
 
 class MemoryStorage implements Storage {
   hard: HardState = { term: 0, votedFor: null };
   entries: Entry[] = [];
+  snapshot?: Snapshot;
 
   load() {
-    return structuredClone({ ...this.hard, entries: this.entries });
+    return structuredClone({ ...this.hard, entries: this.entries, snapshot: this.snapshot });
   }
 
   saveHardState(state: HardState) {
@@ -15,7 +16,14 @@ class MemoryStorage implements Storage {
   }
 
   replaceSuffix(fromIndex: number, entries: Entry[]) {
-    this.entries.splice(fromIndex - 1, this.entries.length, ...structuredClone(entries));
+    const base = this.snapshot?.lastIncludedIndex ?? 0;
+    this.entries.splice(fromIndex - base - 1, this.entries.length, ...structuredClone(entries));
+  }
+
+  saveSnapshot(snapshot: Snapshot, retainSuffix: boolean) {
+    const base = this.snapshot?.lastIncludedIndex ?? 0;
+    this.entries = retainSuffix ? this.entries.slice(snapshot.lastIncludedIndex - base) : [];
+    this.snapshot = structuredClone(snapshot);
   }
 }
 
@@ -168,7 +176,7 @@ describe('Raft core', () => {
     store.entries = Array.from({ length: 65 }, () => ({ term: 1, command: { type: 'noop' } }));
     for (const id of ids) cluster.start(id);
 
-    cluster.step(100, ({ request }) => request.kind === 'vote' || request.prevLogIndex === 65
+    cluster.step(100, ({ request }) => request.kind !== 'append' || request.prevLogIndex === 65
       || request.entries.every(entry => entry.term === 1));
     for (const id of ids.slice(1)) expect(cluster.stores.get(id)!.entries).toHaveLength(64);
     expect(cluster.node('a').status()).toMatchObject({ term: 2, commitIndex: 0, ready: false });
@@ -248,5 +256,101 @@ describe('Raft core', () => {
     const read = cluster.node('a').execute({ type: 'get', key: 'saved' }, cluster.now);
     cluster.pump();
     expect(await read).toEqual({ ok: true, result: { found: true, value: true } });
+  });
+
+  it('restores the applied snapshot while holding an unconfirmed suffix for later application', async () => {
+    const cluster = startCluster();
+    cluster.step(100);
+    const leader = cluster.node('a');
+    const committed = leader.execute({ type: 'put', key: 'base', value: null }, cluster.now);
+    cluster.pump();
+    await committed;
+    void leader.execute({ type: 'put', key: 'tail', value: 'later' }, cluster.now);
+    expect(leader.compact()).toBe(true);
+    expect(leader.compact()).toBe(false);
+    expect(leader.status()).toMatchObject({ snapshotIndex: 2, logLength: 3, retainedEntries: 1 });
+
+    const restarted = cluster.start('a');
+    expect(restarted.status()).toMatchObject({ commitIndex: 2, lastApplied: 2, logLength: 3 });
+    expect(restarted.readLocal('base').result).toEqual({ found: true, value: null });
+    expect(restarted.readLocal('tail').result).toEqual({ found: false });
+    restarted.receiveRequest('b', {
+      kind: 'append', term: 2, prevLogIndex: 3, prevLogTerm: 1, entries: [], leaderCommit: 3,
+    }, cluster.now);
+    expect(restarted.readLocal('tail')).toEqual({ appliedIndex: 3, result: { found: true, value: 'later' } });
+  });
+
+  it.each([true, false])('installs a snapshot with retainSuffix=%s and ignores an older snapshot', retainSuffix => {
+    const cluster = new Cluster();
+    const store = cluster.stores.get('b')!;
+    store.hard = { term: 2, votedFor: null };
+    store.entries = [
+      { term: 1, command: { type: 'noop' } },
+      { term: retainSuffix ? 2 : 1, command: { type: 'noop' } },
+      { term: 2, command: { type: 'put', key: 'tail', value: 3 } },
+    ];
+    const follower = cluster.start('b');
+    const snapshot: Snapshot = { lastIncludedIndex: 2, lastIncludedTerm: 2, state: [['base', 'fresh']] };
+    expect(follower.receiveRequest('a', { kind: 'snapshot', term: 3, snapshot }, 0))
+      .toEqual({ kind: 'snapshot', term: 3, success: true });
+    expect(store.snapshot).toEqual(snapshot);
+    expect(store.entries).toHaveLength(retainSuffix ? 1 : 0);
+    expect(follower.status()).toMatchObject({ snapshotIndex: 2, commitIndex: 2, lastApplied: 2 });
+    expect(follower.readLocal('tail').result).toEqual({ found: false });
+
+    const stale = { ...snapshot, lastIncludedIndex: 1, state: [] };
+    expect(follower.receiveRequest('a', { kind: 'snapshot', term: 2, snapshot: stale }, 0))
+      .toEqual({ kind: 'snapshot', term: 3, success: false });
+    follower.receiveRequest('a', { kind: 'snapshot', term: 3, snapshot: stale }, 0);
+    expect(store.snapshot).toEqual(snapshot);
+    expect(follower.readLocal('base').result).toEqual({ found: true, value: 'fresh' });
+  });
+
+  it('sends the installed snapshot before the retained log to a lagging follower', async () => {
+    const cluster = startCluster();
+    const hold = ({ to }: Packet) => to !== 'e';
+    cluster.step(100, hold);
+    const leader = cluster.node('a');
+    const before = leader.execute({ type: 'put', key: 'base', value: true }, cluster.now);
+    cluster.pump(hold);
+    await before;
+    leader.compact();
+    const tail = leader.execute({ type: 'put', key: 'tail', value: true }, cluster.now);
+    cluster.pump(hold);
+    await tail;
+
+    const sent: RpcRequest[] = [];
+    cluster.step(20, ({ to, request }) => {
+      if (to === 'e') sent.push(request);
+      return true;
+    });
+    expect(sent[0]).toMatchObject({ kind: 'snapshot', snapshot: { lastIncludedIndex: 2 } });
+    expect(sent.some(request => request.kind === 'append' && request.prevLogIndex === 2)).toBe(true);
+    expect(cluster.node('e').status()).toMatchObject({ snapshotIndex: 2, logLength: 3, lastApplied: 3 });
+    expect(cluster.node('e').appliedState()).toEqual(leader.appliedState());
+  });
+
+  it('uses a compacted follower hint to probe forward from an unconfirmed index', async () => {
+    const cluster = startCluster();
+    const hold = ({ to }: Packet) => to !== 'e';
+    cluster.step(100, hold);
+    const leader = cluster.node('a');
+    const committed = leader.execute({ type: 'put', key: 'base', value: true }, cluster.now);
+    cluster.pump(hold);
+    await committed;
+    const follower = cluster.node('e');
+    follower.receiveRequest('a', {
+      kind: 'append', term: 1, prevLogIndex: 0, prevLogTerm: 0,
+      entries: cluster.stores.get('a')!.entries, leaderCommit: 2,
+    }, cluster.now);
+    // e 的 ACK 未送达，Leader 仍从索引 1 开始试探。
+    follower.compact();
+    const attempted: number[] = [];
+    cluster.step(20, ({ to, request }) => {
+      if (to === 'e' && request.kind === 'append') attempted.push(request.prevLogIndex);
+      return true;
+    });
+    expect(attempted).toEqual([0, 2]);
+    expect(follower.appliedState()).toEqual(leader.appliedState());
   });
 });

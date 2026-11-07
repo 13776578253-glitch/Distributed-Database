@@ -2,10 +2,15 @@ import { docker, image, labName, nodeIds, nodePort } from './docker.ts';
 import { openEvidence } from './evidence.ts';
 import { raftClient } from './raft-client.ts';
 import { batchExperiment, followerReadExperiment } from './raft-extension-experiments.ts';
+import { snapshotExperiment } from './raft-snapshot-experiment.ts';
 
 const id = process.argv[2];
-if (id !== 'R01' && id !== 'R02' && id !== 'R03' && id !== 'E1' && id !== 'E2') {
-  console.error('Usage: pnpm experiment R01|R02|R03|E1|E2');
+if (id !== 'R01' && id !== 'R02' && id !== 'R03' && id !== 'E1' && id !== 'E2' && id !== 'E3B') {
+  console.error('Usage: pnpm experiment R01|R02|R03|E1|E2|E3B');
+  process.exit(1);
+}
+if (id === 'E3B' && labName === 'minidb-lab') {
+  console.error('E3B compacts the selected volumes. Set RAFT_LAB_NAME and RAFT_PORT_PREFIX for an isolated cluster.');
   process.exit(1);
 }
 
@@ -121,6 +126,7 @@ try {
   if (id === 'R03') await captureHistory();
   if (id === 'E1') await batchExperiment(evidence, client, runDocker);
   if (id === 'E2') await followerReadExperiment(evidence, client);
+  if (id === 'E3B') await snapshotExperiment(evidence, client, runDocker);
   runDocker(['compose', 'logs', '--no-color', '--since', evidence.startedAt]);
   evidence.finish(id === 'R03' ? 'INCONCLUSIVE' : 'PASS', { imageId, node: process.version });
 } catch (error) {

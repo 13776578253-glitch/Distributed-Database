@@ -31,10 +31,13 @@ $env:RAFT_PORT_PREFIX = '1818'
 pnpm demo
 pnpm experiment E1
 pnpm experiment E2
+pnpm experiment E3B
 docker compose down
 ```
 
-E1 记录批次和 Leader 崩溃前后的写结果，E2 对比分区中的三种读。结果与恢复步骤见[实验清单](docs/experiments.md)。
+E1 记录批次和 Leader 崩溃前后的写结果，E2 对比分区中的三种读，E3B 在隔离卷上实际压缩日志、让落后节点安装快照，并杀死和重启持有快照的 Leader。结果与恢复步骤见[实验清单](docs/experiments.md)。
+
+快照由实验环境的 `POST /internal/raft/snapshot` 显式触发。状态接口保留 `logLength` 表示末尾绝对索引，新增 `snapshotIndex`、`snapshotTerm` 和 `retainedEntries`。压缩后 `committedDigest` 覆盖保留的已提交后缀，不同快照边界的节点用 `appliedDigest` 对比已应用 KV。已压缩的卷应使用支持快照的版本打开，回退 E3A 时使用压缩前的卷。
 
 使用 `docker compose down` 停止集群。数据卷由实验脚本创建并由 Compose 以外部卷引用，可跨容器重建保留。`pnpm reset:destructive --confirm` 会移除本项目容器和数据卷，适用于明确要清空实验数据时。
 

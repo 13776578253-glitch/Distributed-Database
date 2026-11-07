@@ -1,0 +1,241 @@
+{
+  "experimentId": "E2",
+  "runId": "2026-11-07T10-47-59.720Z--d194d3e9",
+  "startedAt": "2026-11-07T10:47:59.720Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "initial value confirmed",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-59.720Z--d194d3e9",
+        "operationId": "1",
+        "engine": "raft",
+        "clientId": "before",
+        "operation": {
+          "type": "put",
+          "key": "E2/2026-11-07T10-47-59.720Z--d194d3e9",
+          "value": "before"
+        },
+        "invocationNs": "1278543623972400",
+        "responseNs": "1278543652976600",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "stored": true
+        }
+      }
+    },
+    {
+      "name": "default read still requires the leader",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-59.720Z--d194d3e9",
+        "operationId": "2",
+        "engine": "raft",
+        "clientId": "default-follower",
+        "operation": {
+          "type": "get",
+          "key": "E2/2026-11-07T10-47-59.720Z--d194d3e9"
+        },
+        "invocationNs": "1278543659434900",
+        "responseNs": "1278543661052900",
+        "httpStatus": 409,
+        "outcome": "rejected",
+        "errorCode": "NOT_LEADER"
+      }
+    },
+    {
+      "name": "healthy follower serves a safe read",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-59.720Z--d194d3e9",
+        "operationId": "3",
+        "engine": "raft",
+        "clientId": "safe-before",
+        "operation": {
+          "type": "get",
+          "key": "E2/2026-11-07T10-47-59.720Z--d194d3e9"
+        },
+        "invocationNs": "1278543661378400",
+        "responseNs": "1278543668866100",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": "before"
+        },
+        "consistency": "safe-follower",
+        "readIndex": 598,
+        "appliedIndex": 598,
+        "term": 57
+      }
+    },
+    {
+      "name": "majority confirms the newer value",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-59.720Z--d194d3e9",
+        "operationId": "4",
+        "engine": "raft",
+        "clientId": "after",
+        "operation": {
+          "type": "put",
+          "key": "E2/2026-11-07T10-47-59.720Z--d194d3e9",
+          "value": "after"
+        },
+        "invocationNs": "1278544184169500",
+        "responseNs": "1278544206936800",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "stored": true
+        }
+      }
+    },
+    {
+      "name": "majority leader reads the newer value",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-59.720Z--d194d3e9",
+        "operationId": "5",
+        "engine": "raft",
+        "clientId": "majority-leader",
+        "operation": {
+          "type": "get",
+          "key": "E2/2026-11-07T10-47-59.720Z--d194d3e9"
+        },
+        "invocationNs": "1278544207314900",
+        "responseNs": "1278544211416600",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": "after"
+        }
+      }
+    },
+    {
+      "name": "majority follower safely reads the newer value",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-59.720Z--d194d3e9",
+        "operationId": "6",
+        "engine": "raft",
+        "clientId": "majority-follower",
+        "operation": {
+          "type": "get",
+          "key": "E2/2026-11-07T10-47-59.720Z--d194d3e9"
+        },
+        "invocationNs": "1278544214593300",
+        "responseNs": "1278544222258000",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": "after"
+        },
+        "consistency": "safe-follower",
+        "readIndex": 600,
+        "appliedIndex": 600,
+        "term": 58
+      }
+    },
+    {
+      "name": "isolated stale read exposes the previous value and applied index",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-59.720Z--d194d3e9",
+        "operationId": "7",
+        "engine": "raft",
+        "clientId": "minority-stale",
+        "operation": {
+          "type": "get",
+          "key": "E2/2026-11-07T10-47-59.720Z--d194d3e9"
+        },
+        "invocationNs": "1278544222896700",
+        "responseNs": "1278544225235100",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": "before"
+        },
+        "consistency": "stale",
+        "appliedIndex": 598
+      }
+    },
+    {
+      "name": "isolated safe read returns NO_QUORUM",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-59.720Z--d194d3e9",
+        "operationId": "8",
+        "engine": "raft",
+        "clientId": "minority-safe",
+        "operation": {
+          "type": "get",
+          "key": "E2/2026-11-07T10-47-59.720Z--d194d3e9"
+        },
+        "invocationNs": "1278544223271100",
+        "responseNs": "1278546034319800",
+        "httpStatus": 503,
+        "consistency": "safe-follower",
+        "outcome": "rejected",
+        "errorCode": "NO_QUORUM"
+      }
+    },
+    {
+      "name": "old leader refuses the fresh read",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-59.720Z--d194d3e9",
+        "operationId": "9",
+        "engine": "raft",
+        "clientId": "minority-old-leader",
+        "operation": {
+          "type": "get",
+          "key": "E2/2026-11-07T10-47-59.720Z--d194d3e9"
+        },
+        "invocationNs": "1278544223632700",
+        "responseNs": "1278546033734700",
+        "httpStatus": 503,
+        "outcome": "rejected",
+        "errorCode": "NO_QUORUM"
+      }
+    },
+    {
+      "name": "healed follower safely reads the newer value",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-59.720Z--d194d3e9",
+        "operationId": "10",
+        "engine": "raft",
+        "clientId": "healed-safe",
+        "operation": {
+          "type": "get",
+          "key": "E2/2026-11-07T10-47-59.720Z--d194d3e9"
+        },
+        "invocationNs": "1278546097369000",
+        "responseNs": "1278546102702300",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": "after"
+        },
+        "consistency": "safe-follower",
+        "readIndex": 600,
+        "appliedIndex": 600,
+        "term": 58
+      }
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

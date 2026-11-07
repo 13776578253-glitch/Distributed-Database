@@ -28,7 +28,7 @@
 
 Leader 与 Safe Follower Read 共用 Core 的多数派屏障。屏障必须位于当前任期 no-op 提交之后，确认来自同一任期且带本次或更晚的读标识。Follower 请求经过已有阻断和超时机制。应用索引已包含指定前缀时，可读取到本次调用期间更晚的已提交值。 [Raft 论文 §8](https://raft.github.io/raft.pdf#page=13) · [etcd Raft 的 Follower ReadIndex](https://go.etcd.io/etcd/raft/v3#ReadState)
 
-## 验收后继续 E3/E4
+## E3/E4 代码落点
 
-- E3A 先迁移 `termAt`、`sendAppend`、`appendEntries` 和应用循环中的索引换算。E3B 再用已应用索引生成快照。过期快照跳过，安装成功在快照与日志变更落盘后回复。 [现有索引与复制入口](../src/raft/core/node.ts#L303) · [Raft 论文 §7](https://raft.github.io/raft.pdf)
-- E4A 按论文的联合共识，从本地最新配置日志计算有效投票集，配置还未提交时也按该日志状态计算。联合条目提交后才追加最终配置。把 `startElection`、`advanceCommit` 和 `completeReads` 接到同一双多数判定，去掉固定门槛。E4B 再执行实际加入、删除和 Leader 崩溃复验。 [现有选举](../src/raft/core/node.ts#L249) · [现有提交](../src/raft/core/node.ts#L378) · [现有读屏障](../src/raft/core/node.ts#L415) · [Raft 论文 §6](https://raft.github.io/raft.pdf)
+- E3A 将索引换算迁入 `RaftLog`。E3B 用已应用索引生成快照。过期快照跳过，安装成功在快照与日志变更落盘后回复。 [绝对索引](../src/raft/core/log.ts#L4) · [复制入口](../src/raft/core/node.ts#L359) · [Raft 论文 §7](https://raft.github.io/raft.pdf)
+- E4A 按论文的联合共识，从本地最新配置日志计算有效投票集，配置还未提交时也按该日志状态计算。联合条目提交后才追加最终配置。把 `startElection`、`advanceCommit` 和 `completeReads` 接到同一双多数判定，去掉固定门槛。E4B 再执行实际加入、删除和 Leader 崩溃复验。 [现有选举](../src/raft/core/node.ts#L290) · [现有提交](../src/raft/core/node.ts#L449) · [现有读屏障](../src/raft/core/node.ts#L486) · [Raft 论文 §6](https://raft.github.io/raft.pdf)

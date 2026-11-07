@@ -1,0 +1,236 @@
+{
+  "experimentId": "R02",
+  "runId": "2026-11-07T10-47-50.048Z--a1c742b8",
+  "startedAt": "2026-11-07T10:47:50.048Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "majority elected a higher-term leader",
+      "passed": true,
+      "details": {
+        "previousTerm": 51,
+        "term": 53,
+        "leader": "raft-4"
+      }
+    },
+    {
+      "name": "majority confirms a write",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-50.048Z--a1c742b8",
+        "operationId": "3",
+        "engine": "raft",
+        "clientId": "majority-writer",
+        "operation": {
+          "type": "put",
+          "key": "R02/2026-11-07T10-47-50.048Z--a1c742b8",
+          "value": "majority"
+        },
+        "invocationNs": "1278535748696500",
+        "responseNs": "1278535769522200",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "stored": true
+        }
+      }
+    },
+    {
+      "name": "majority serves a quorum read",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-50.048Z--a1c742b8",
+        "operationId": "4",
+        "engine": "raft",
+        "clientId": "reader",
+        "operation": {
+          "type": "get",
+          "key": "R02/2026-11-07T10-47-50.048Z--a1c742b8"
+        },
+        "invocationNs": "1278535770054500",
+        "responseNs": "1278535774926100",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": "majority"
+        }
+      }
+    },
+    {
+      "name": "minority cannot confirm the proposed write",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-50.048Z--a1c742b8",
+        "operationId": "1",
+        "engine": "raft",
+        "clientId": "minority-writer",
+        "operation": {
+          "type": "put",
+          "key": "R02/2026-11-07T10-47-50.048Z--a1c742b8/minority",
+          "value": "isolated"
+        },
+        "invocationNs": "1278533929143200",
+        "responseNs": "1278535744830000",
+        "httpStatus": 504,
+        "outcome": "unknown",
+        "errorCode": "UNKNOWN_OUTCOME"
+      }
+    },
+    {
+      "name": "minority refuses the read without quorum",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-50.048Z--a1c742b8",
+        "operationId": "2",
+        "engine": "raft",
+        "clientId": "minority-reader",
+        "operation": {
+          "type": "get",
+          "key": "R02/2026-11-07T10-47-50.048Z--a1c742b8/minority"
+        },
+        "invocationNs": "1278533929697300",
+        "responseNs": "1278535745458500",
+        "httpStatus": 503,
+        "outcome": "rejected",
+        "errorCode": "NO_QUORUM"
+      }
+    },
+    {
+      "name": "all five committed prefixes match",
+      "passed": true,
+      "details": [
+        {
+          "nodeId": "raft-1",
+          "role": "follower",
+          "term": 53,
+          "leader": "raft-4",
+          "commitIndex": 463,
+          "lastApplied": 463,
+          "logLength": 463,
+          "snapshotIndex": 457,
+          "snapshotTerm": 48,
+          "retainedEntries": 6,
+          "committedTerm": 53,
+          "ready": false,
+          "committedDigest": "b923c40744927d28afec8d5e33c0ec9bdbde3bcdfc3907c143f62ed8f58e57e3",
+          "appliedDigest": "3ccc78b32b01dfb6373dcd1fb0748caccd7f5da51f4f73088fb36bd08744d5da"
+        },
+        {
+          "nodeId": "raft-2",
+          "role": "follower",
+          "term": 53,
+          "leader": "raft-4",
+          "commitIndex": 463,
+          "lastApplied": 463,
+          "logLength": 463,
+          "snapshotIndex": 453,
+          "snapshotTerm": 43,
+          "retainedEntries": 10,
+          "committedTerm": 53,
+          "ready": false,
+          "committedDigest": "4f63a2c3fd4f27283c9a7cde98c20600311250eff83d0da04be878fbe07b92a1",
+          "appliedDigest": "3ccc78b32b01dfb6373dcd1fb0748caccd7f5da51f4f73088fb36bd08744d5da"
+        },
+        {
+          "nodeId": "raft-3",
+          "role": "follower",
+          "term": 53,
+          "leader": "raft-4",
+          "commitIndex": 463,
+          "lastApplied": 463,
+          "logLength": 463,
+          "snapshotIndex": 453,
+          "snapshotTerm": 43,
+          "retainedEntries": 10,
+          "committedTerm": 53,
+          "ready": false,
+          "committedDigest": "4f63a2c3fd4f27283c9a7cde98c20600311250eff83d0da04be878fbe07b92a1",
+          "appliedDigest": "3ccc78b32b01dfb6373dcd1fb0748caccd7f5da51f4f73088fb36bd08744d5da"
+        },
+        {
+          "nodeId": "raft-4",
+          "role": "leader",
+          "term": 53,
+          "leader": "raft-4",
+          "commitIndex": 463,
+          "lastApplied": 463,
+          "logLength": 463,
+          "snapshotIndex": 453,
+          "snapshotTerm": 43,
+          "retainedEntries": 10,
+          "committedTerm": 53,
+          "ready": true,
+          "committedDigest": "4f63a2c3fd4f27283c9a7cde98c20600311250eff83d0da04be878fbe07b92a1",
+          "appliedDigest": "3ccc78b32b01dfb6373dcd1fb0748caccd7f5da51f4f73088fb36bd08744d5da"
+        },
+        {
+          "nodeId": "raft-5",
+          "role": "follower",
+          "term": 53,
+          "leader": "raft-4",
+          "commitIndex": 463,
+          "lastApplied": 463,
+          "logLength": 463,
+          "snapshotIndex": 453,
+          "snapshotTerm": 43,
+          "retainedEntries": 10,
+          "committedTerm": 53,
+          "ready": false,
+          "committedDigest": "4f63a2c3fd4f27283c9a7cde98c20600311250eff83d0da04be878fbe07b92a1",
+          "appliedDigest": "3ccc78b32b01dfb6373dcd1fb0748caccd7f5da51f4f73088fb36bd08744d5da"
+        }
+      ]
+    },
+    {
+      "name": "majority write survives healing",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-50.048Z--a1c742b8",
+        "operationId": "5",
+        "engine": "raft",
+        "clientId": "reader",
+        "operation": {
+          "type": "get",
+          "key": "R02/2026-11-07T10-47-50.048Z--a1c742b8"
+        },
+        "invocationNs": "1278535914324400",
+        "responseNs": "1278535917681100",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": "majority"
+        }
+      }
+    },
+    {
+      "name": "conflicting minority proposal is absent",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-50.048Z--a1c742b8",
+        "operationId": "6",
+        "engine": "raft",
+        "clientId": "reader",
+        "operation": {
+          "type": "get",
+          "key": "R02/2026-11-07T10-47-50.048Z--a1c742b8/minority"
+        },
+        "invocationNs": "1278535918088300",
+        "responseNs": "1278535921545900",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": false
+        }
+      }
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

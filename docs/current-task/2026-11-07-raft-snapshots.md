@@ -18,3 +18,11 @@
 ## E3B · 快照与压缩
 
 E3A 验收后接入已应用边界快照、原子落盘、恢复和 InstallSnapshot。用隔离容器验收日志行数、快照加日志后缀的 SIGKILL 恢复，以及落后 Follower 实际接收快照后继续追加。停点为 E3B。
+
+快照保存已应用 KV 与 `lastIncludedIndex/Term`。SQLite 在同一事务写入快照和裁剪前缀。重启先恢复快照；保留后缀等 Leader 确认提交或新 Leader 提交当前任期条目后才应用。InstallSnapshot 使用单个 HTTP/JSON 请求，走原有链路故障与任期检查，成功应答在落盘之后。匹配边界时保留后缀，过期快照不倒退状态。 [Raft 论文 §7](https://raft.github.io/raft.pdf)
+
+快照由实验端点显式触发。状态接口的 `logLength` 仍是末尾绝对索引，物理日志条数用 `retainedEntries`。不同快照边界以提交和应用索引、提交任期及已应用 KV 摘要对比。同边界额外对比保留日志摘要。
+
+首轮隔离实验从 SQLite 实读到 Leader 的日志行数从 453 降至 0。落后 Follower 从索引 450 恢复后，通过 HTTP 安装索引 453 的快照并应用到 455。持有快照与后缀的 Leader 被 SIGKILL（退出码 137），重启仍从索引 454 开始保留后缀，快照值和后缀值可读，删除的键仍缺失。混合快照边界最终应用到同一索引和状态。 [E3B 首轮结果](../../evidence/E3B/2026-11-07T10-47-33.265Z--d794f364/result.json)
+
+24 项测试、类型和 Compose 配置检查通过。在已压缩卷上继续回归 [R01](../../evidence/R01/2026-11-07T10-47-45.264Z--19c3ff60/result.json)、[R02](../../evidence/R02/2026-11-07T10-47-50.048Z--a1c742b8/result.json)、[E1](../../evidence/E1/2026-11-07T10-47-54.056Z--39229eb5/result.json) 和 [E2](../../evidence/E2/2026-11-07T10-47-59.720Z--d194d3e9/result.json)，均通过。[R03](../../evidence/R03/2026-11-07T10-47-52.999Z--03cde040/result.json) 采集完成，待 S4 判定。[R04](../../evidence/R04/2026-11-07T10-48-02.761Z--dd252a44/result.json) 在相同镜像的隔离卷中通过。

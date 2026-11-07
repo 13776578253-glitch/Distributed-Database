@@ -15,6 +15,8 @@ import type { RaftNode } from '../core/node.ts';
 import type { RpcRequest } from '../core/types.ts';
 import { batchWrites } from './write-batch.ts';
 
+const rpcKinds = ['vote', 'append', 'snapshot'] as const;
+
 /** 以 JSON 结束响应；状态码和错误体由调用方决定。 */
 function send(response: ServerResponse, status: number, body: unknown) {
   response.writeHead(status, { 'content-type': 'application/json' });
@@ -27,7 +29,7 @@ function record(value: unknown): value is Record<string, unknown> {
 }
 
 /** Raft 任期和日志索引的合法值：非负安全整数。 */
-function index(value: unknown): boolean {
+function index(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 }
 
@@ -35,6 +37,14 @@ function index(value: unknown): boolean {
 function isRpc(value: unknown, kind: RpcRequest['kind']): value is RpcRequest {
   if (!record(value) || value.kind !== kind || !index(value.term)) return false;
   if (kind === 'vote') return index(value.lastLogIndex) && index(value.lastLogTerm);
+  if (kind === 'snapshot') {
+    const snapshot = value.snapshot;
+    return record(snapshot) && index(snapshot.lastIncludedIndex) && snapshot.lastIncludedIndex > 0
+      && index(snapshot.lastIncludedTerm) && snapshot.lastIncludedTerm > 0
+      && snapshot.lastIncludedTerm <= value.term
+      && Array.isArray(snapshot.state) && snapshot.state.every(pair => Array.isArray(pair) && pair.length === 2
+        && isOperation({ type: 'put', key: pair[0], value: pair[1] }));
+  }
   return index(value.prevLogIndex) && index(value.prevLogTerm) && index(value.leaderCommit)
     && (value.readId === undefined || index(value.readId))
     && Array.isArray(value.entries) && value.entries.every(entry =>
@@ -94,9 +104,17 @@ export function raftHttp(
       return send(response, 200, { nodeId: node.status().nodeId, mode: 'raft' });
     }
     if (request.method === 'GET' && path === '/internal/raft/status') {
-      // 摘要覆盖已提交前缀，实验用于比较各节点日志是否一致。
+      // 压缩后只对保留日志算日志摘要，应用摘要可跨不同快照边界比较。
       const committedDigest = createHash('sha256').update(JSON.stringify(node.committedEntries())).digest('hex');
-      return send(response, 200, { ...node.status(), committedDigest });
+      const appliedDigest = createHash('sha256').update(JSON.stringify(node.appliedState())).digest('hex');
+      return send(response, 200, { ...node.status(), committedDigest, appliedDigest });
+    }
+    if (request.method === 'POST' && path === '/internal/raft/snapshot' && faultEnabled) {
+      const compacted = node.compact();
+      const { nodeId, snapshotIndex, snapshotTerm, retainedEntries } = node.status();
+      const details = { nodeId, compacted, snapshotIndex, snapshotTerm, retainedEntries };
+      if (compacted) console.log(JSON.stringify({ kind: 'raft.snapshot.compacted', ...details }));
+      return send(response, 200, details);
     }
 
     /** 读直接启动屏障，写进入短批次队列，HTTP 等待该请求自己的结果。 */
@@ -120,7 +138,7 @@ export function raftHttp(
       if (consistency !== null) return send(response, 400, { error: 'INVALID_CONSISTENCY' });
       return execute({ type: 'get', key });
     }
-    const kind = path === rpcPath.vote ? 'vote' : path === rpcPath.append ? 'append' : undefined;
+    const kind = rpcKinds.find(candidate => path === rpcPath[candidate]);
     const readIndex = path === rpcPath.readIndex;
     const fault = path === '/internal/fault/links' && faultEnabled;
     // 只接受 POST 的内部 RPC、故障端点和 KV 写路径；其余路径 404。

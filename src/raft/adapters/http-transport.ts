@@ -9,6 +9,7 @@ import type { ReadBarrier, RpcReply, RpcRequest } from '../core/types.ts';
 export const rpcPath = {
   vote: '/internal/raft/request-vote',
   append: '/internal/raft/append-entries',
+  snapshot: '/internal/raft/install-snapshot',
   readIndex: '/internal/raft/read-index',
 };
 
@@ -21,6 +22,7 @@ function validReply(value: unknown, kind: RpcRequest['kind']): value is RpcReply
   const reply = value as Record<string, unknown>;
   if (reply.kind !== kind || !index(reply.term)) return false;
   if (kind === 'vote') return typeof reply.granted === 'boolean';
+  if (kind === 'snapshot') return typeof reply.success === 'boolean';
   return reply.success === true || (reply.success === false && index(reply.nextIndex, 1));
 }
 
@@ -46,7 +48,7 @@ export class HttpTransport {
 
   /** 发送一次 RPC；链路阻断、连接失败、超时或 503 均视为丢包，返回 undefined。 */
   async send(peer: string, request: RpcRequest): Promise<RpcReply | undefined> {
-    const body = await this.exchange(peer, request.kind, { request }, 220);
+    const body = await this.exchange(peer, request.kind, { request }, request.kind === 'snapshot' ? 2000 : 220);
     if (body === undefined) return;
     if (!validReply(body, request.kind)) {
       this.reportError(peer, request.kind, 'invalid reply');
@@ -54,7 +56,13 @@ export class HttpTransport {
     }
 
     // 心跳不记录，避免刷屏；投票、携带条目的追加和读屏障请求记录完整载荷。
-    if (request.kind === 'vote' || request.entries.length > 0 || request.readId !== undefined) {
+    if (request.kind === 'snapshot') {
+      const { lastIncludedIndex, lastIncludedTerm } = request.snapshot;
+      console.log(JSON.stringify({
+        kind: 'raft.rpc', from: this.nodeId, to: peer,
+        request: { kind: request.kind, term: request.term, lastIncludedIndex, lastIncludedTerm }, reply: body,
+      }));
+    } else if (request.kind === 'vote' || request.entries.length > 0 || request.readId !== undefined) {
       console.log(JSON.stringify({ kind: 'raft.rpc', from: this.nodeId, to: peer, request, reply: body }));
     }
     return body;

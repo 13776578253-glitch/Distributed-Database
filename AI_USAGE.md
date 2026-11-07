@@ -7,3 +7,4 @@
 | S2 | 实现 HTTP RPC、SQLite 适配器与容器实验 | docs/experiments.md 与 evidence/R01–R03/ |
 | E0–E1 | 核对 Raft 基线、修复 HTTP 异常、实现批量提交和容器故障实验 | [扩展任务记录](docs/current-task/2026-11-07-raft-extensions-e0-e2.md) |
 | E2 | 实现显式 Follower 读模式、共享多数派读屏障和分区读对照实验 | [扩展任务记录](docs/current-task/2026-11-07-raft-extensions-e0-e2.md) |
+| E3A–E3B | 迁移绝对日志索引，实现快照落盘、安装与重启恢复，复跑隔离容器实验 | [快照任务记录](docs/current-task/2026-11-07-raft-snapshots.md) |

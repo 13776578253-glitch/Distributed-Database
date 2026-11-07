@@ -5,7 +5,7 @@ import type { RaftNode } from '../src/raft/core/node.ts';
 import { nodeIds, nodeUrl } from './docker.ts';
 import type { openEvidence } from './evidence.ts';
 
-type Status = ReturnType<RaftNode['status']> & { committedDigest: string };
+type Status = ReturnType<RaftNode['status']> & { committedDigest: string; appliedDigest: string };
 type Evidence = ReturnType<typeof openEvidence>;
 type ReadMode = 'stale' | 'safe-follower';
 type ReadObservation = { consistency?: ReadMode; readIndex?: number; appliedIndex?: number; term?: number };
@@ -61,7 +61,9 @@ export function raftClient(evidence: Evidence) {
       nodes.length === nodeIds.length && nodes.filter(node => node.ready).length === 1
       && nodes.every(node => node.commitIndex === nodes[0].commitIndex
         && node.lastApplied === node.commitIndex && node.logLength === node.commitIndex
-        && node.committedDigest === nodes[0].committedDigest));
+        && node.committedTerm === nodes[0].committedTerm && node.appliedDigest === nodes[0].appliedDigest
+        // 相同快照边界仍能逐段比较保留的已提交日志。
+        && nodes.every(peer => peer.snapshotIndex !== node.snapshotIndex || peer.committedDigest === node.committedDigest)));
   }
 
   async function call(nodeId: string, clientId: string, operation: Operation, consistency?: ReadMode): Promise<CallHistory> {
@@ -115,5 +117,17 @@ export function raftClient(evidence: Evidence) {
     await response.json();
   }
 
-  return { leader, converged, call, block, waitFor };
+  async function compact(nodeId: string) {
+    const response = await fetch(`${address(nodeId)}/internal/raft/snapshot`, {
+      method: 'POST', signal: AbortSignal.timeout(3000),
+    });
+    if (!response.ok) throw new Error(`${nodeId} snapshot HTTP ${response.status}`);
+    const result = await response.json() as {
+      nodeId: string; compacted: boolean; snapshotIndex: number; snapshotTerm: number; retainedEntries: number;
+    };
+    evidence.event('raft.snapshot', result);
+    return result;
+  }
+
+  return { leader, converged, call, block, waitFor, compact };
 }
