@@ -2,7 +2,7 @@
 
 Raft 扩展 E0–E4 已完成，补齐[协议边界回归](current-task/2026-11-07-raft-protocol-freeze.md)后冻结。验收记录见 [E0–E2](current-task/2026-11-07-raft-extensions-e0-e2.md)、[E3](current-task/2026-11-07-raft-snapshots.md)和 [E4 联合配置](current-task/2026-11-07-raft-membership.md)。
 
-开发主线依次进入方向三 S3（MVCC/WAL）和方向四 S4（一致性验证）。后续任务在 `current-task/` 记录。
+Raft、MVCC/WAL 和一致性验证的后端核心已验收并冻结。后续范围为注释、文档、可视化探针和前端所需数据结构。
 
 | 阶段 | 状态 | 范围 |
 | --- | --- | --- |
@@ -12,9 +12,9 @@ Raft 扩展 E0–E4 已完成，补齐[协议边界回归](current-task/2026-11-
 | S3A · MVCC | 已实现 | [内存事务、版本链与历史契约](current-task/2026-11-07-s3a-mvcc.md)，确定性隔离与写偏差通过 |
 | S3B · WAL | 已验证 | 独立 WAL、SQLite 版本落盘与提交边界 |
 | S3C · Recovery | 已验证 | Checkpoint、Analysis/Redo/Undo、CLR 与恢复中断 |
-| S3D · 系统实验 | 已验证，待统一审查 | [独立事务服务及 T01/T02/T03 证据](current-task/2026-11-07-s3b-s3d-wal-recovery.md)，真实 SIGKILL 和原卷恢复 |
-| S4 · 一致性验证 | 待开始 | V01/V02/V03、R03 和 T02 历史回放 |
-| S5 · 课程交付 | 待开始 | 演示、选型对比、时序图和报告 |
+| S3D · 系统实验 | 已验证 | [独立事务服务及 T01/T02/T03 证据](current-task/2026-11-07-s3b-s3d-wal-recovery.md)，真实 SIGKILL 和原卷恢复 |
+| S4A–S4D · 一致性验证 | 已验收 | [V01/V02/V03、R03 与 T02 回放](current-task/2026-11-07-s4-verification.md)，以及[六维选型对比](comparison.md) |
+| S5 · 课程交付 | 待开始 | 注释、文档、时序图、报告、可视化探针和前端数据结构 |
 
 实验运行器通过公开 API 或故障接口操作。Raft term 和 log index、事务 LSN、实验 operation ID 各自独立。
 
@@ -49,7 +49,7 @@ Raft 扩展 E0–E4 已完成，补齐[协议边界回归](current-task/2026-11-
 | Raft Cluster | 顶部展示采样时效、可达数和 Leader，固定五节点拓扑突出自报角色。点击节点打开详情，查看任期、Leader、日志长度、提交、应用和就绪。窄屏用同一数据渲染节点列表。 | 按条目查看节点副本、提交与应用状态。 |
 | Raft Timeline | 实时和实验回放两种模式，按节点、任期、事件类别筛选，追加批次支持按索引范围匹配。选中一条后查看来源和原始 JSON。实时可暂停自动跟随。 | 补齐 RPC 失败、精确提交与应用事件。 |
 | Transaction | 事务、版本链、WAL 与恢复四个区域显示接入阶段。 | S3 提供事务记录、LSN、Checkpoint 和 Analysis/Redo/Undo/CLR 轨迹后再接入。 |
-| Verification | 以 Run ID 浏览 R01、R02、R04 的原始证据和断言。R03 展示操作调用及返回，判定为 `INCONCLUSIVE`。R04 标记为隔离探针历史。 | S4 接入线性一致性判定、依赖图和反例。调度能力上线后可创建实验。 |
+| Verification | 以 Run ID 浏览原始证据和断言。R03 原采集记录保留 `INCONCLUSIVE`，另从 V01 查看该历史的线性化判定。R04 标记为隔离探针历史。 | 从 V01–V03 消费线性化顺序、依赖图及不变量反例。 |
 | Settings | 服务监听和 Docker 状态只读。数据刷新、12/24 小时制及浅色/深色/跟随系统为本地偏好。日志策略先提供显示过滤、暂停跟随和有界缓存。 | 观测服务重启由启动器管理。项目节点重启走调度器，展示执行、恢复与失败状态。 |
 
 视觉采用固定侧栏、紧凑指标卡、细边框和低阴影。浅色为暖白与紫灰，深色为蓝灰，青蓝突出交互焦点，角色和故障状态同时使用文字。任期、索引和原始日志使用等宽数字。两套主题分别验证正文对比度，节点与详情支持键盘导航。刷新保持节点位置，连接状态变更提供可访问提示。

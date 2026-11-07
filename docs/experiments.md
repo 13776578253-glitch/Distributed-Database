@@ -29,6 +29,8 @@
 
 ## 方向四 · 一致性验证
 
+`pnpm verify` 离线生成 V01–V03 的新 Evidence。单项命令为 `pnpm verify V01`、`pnpm verify V02` 或 `pnpm verify V03`，可在其后依次传入 R03、T02 的 Run ID。默认输入和判定见 [S4 回放记录](current-task/2026-11-07-s4-verification.md)。
+
 | ID | 输入 | 判定 |
 | --- | --- | --- |
 | V01 | 线性一致性正例和迷惑性负例 | 返回预期判定，给出反例依据 |

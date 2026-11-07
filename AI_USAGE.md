@@ -12,3 +12,4 @@
 | Raft 冻结 | 补齐跨配置选举、快照截断恢复和延迟读确认的确定性回归，运行全量测试和类型检查 | [协议边界回归](docs/current-task/2026-11-07-raft-protocol-freeze.md) |
 | S3A | 设计事务历史契约，实现内存 MVCC 与具名事务锁，编写确定性隔离测试 | [MVCC 任务记录](docs/current-task/2026-11-07-s3a-mvcc.md) |
 | S3B–S3D | 实现事务 WAL、SQLite 版本物化、检查点与可重入恢复，运行独立事务服务与真实故障实验 | [事务持久化与故障实验记录](docs/current-task/2026-11-07-s3b-s3d-wal-recovery.md) |
+| S4A–S4D | 实现寄存器线性化检查、事务依赖图和值班不变量，回放 R03/T02 并核对两篇系统论文的量化指标 | [一致性验证与冻结记录](docs/current-task/2026-11-07-s4-verification.md) |

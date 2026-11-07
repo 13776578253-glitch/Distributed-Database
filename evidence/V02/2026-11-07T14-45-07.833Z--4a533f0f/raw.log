@@ -1,0 +1,1 @@
+T02 2026-11-07T13-41-40.891Z--561ddfc6 serialization cycle: [{"kind":"RW","from":"txn-3","to":"txn-4","key":"bob","observedVersionId":"txn-2:2","nextVersionId":"txn-4:1","accessIndex":0},{"kind":"RW","from":"txn-4","to":"txn-3","key":"alice","observedVersionId":"txn-2:1","nextVersionId":"txn-3:1","accessIndex":0}]

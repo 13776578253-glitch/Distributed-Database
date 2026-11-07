@@ -6,6 +6,10 @@
  */
 export type Scalar = string | number | boolean | null;
 
+export function isScalar(value: unknown): value is Scalar {
+  return value === null || typeof value === 'string' || typeof value === 'boolean' || Number.isFinite(value);
+}
+
 /** 可记录的客户端操作；key 必须非空，由边界校验保证。 */
 export type Operation =
   | { type: 'get'; key: string }
@@ -57,6 +61,5 @@ export function isOperation(value: unknown): value is Operation {
   if (value.type === 'get' || value.type === 'delete') return true;
   if (value.type !== 'put' || !('value' in value)) return false;
   // JSON 无法表示 NaN 和 Infinity，非有限数值一律拒绝。
-  return value.value === null || typeof value.value === 'string'
-    || typeof value.value === 'boolean' || Number.isFinite(value.value);
+  return isScalar(value.value);
 }

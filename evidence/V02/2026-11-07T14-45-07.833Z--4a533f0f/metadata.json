@@ -1,0 +1,14 @@
+{
+  "startedAt": "2026-11-07T14:45:07.833Z",
+  "endedAt": "2026-11-07T14:45:07.911Z",
+  "gitSha": "5c3a44983f6639fbdf45a767211e50a9a450269b",
+  "gitDirty": true,
+  "parameters": {
+    "r03": "2026-11-07T12-03-08.334Z--8c1d3503",
+    "t02": "2026-11-07T13-41-40.891Z--561ddfc6"
+  },
+  "environment": {
+    "node": "v24.21.0",
+    "replay": "offline"
+  }
+}
