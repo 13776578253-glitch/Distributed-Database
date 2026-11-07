@@ -6,9 +6,10 @@
  */
 import type { Operation, OperationResult, Scalar } from '../../contracts/history.ts';
 import { RaftLog } from './log.ts';
+import { hasQuorum, isVoter } from './membership.ts';
 import type {
-  AppendRequest, ClientFailure, ClientReply, Command, Entry, HardState, ReadBarrierReply, Role, RpcReply, RpcRequest,
-  Snapshot, SnapshotRequest, Storage, VoteRequest, WriteOperation,
+  AppendRequest, ClientFailure, ClientReply, Command, Entry, HardState, Membership, MembershipReply,
+  ReadBarrierReply, Role, RpcReply, RpcRequest, Snapshot, SnapshotRequest, Storage, VoteRequest, WriteOperation,
 } from './types.ts';
 
 /** 等待应答的客户端请求；deadline 基于调用方注入的单调毫秒时钟。 */
@@ -19,6 +20,7 @@ type Progress = { nextIndex: number; matchIndex: number; readAck: number };
 type Options = {
   id: string;
   peers: string[];
+  initialVoters?: readonly string[];
   storage: Storage;
   now: number;
   electionTimeout: () => number;
@@ -34,8 +36,10 @@ const APPEND_BATCH = 64;
  */
 export class RaftNode {
   private readonly options: Options;
-  /** 多数派规模，包含自身。 */
-  private readonly quorum: number;
+  /** 初始投票集和两条日志投影。有效配置可未提交，已应用配置用于快照。 */
+  private readonly initialMembership: Membership;
+  private membership: Membership;
+  private appliedMembership: Membership;
   /** 已持久化日志，Core 只使用绝对索引。 */
   private log: RaftLog;
   /** 最近一次已持久化快照，供落后 Follower 安装。 */
@@ -76,9 +80,14 @@ export class RaftNode {
     this.hard = { term, votedFor };
     this.snapshot = snapshot;
     this.log = new RaftLog(entries, snapshot?.lastIncludedIndex, snapshot?.lastIncludedTerm);
+    this.initialMembership = {
+      index: 0, configuration: { voters: [...(options.initialVoters ?? [options.id, ...options.peers])].sort() },
+    };
+    this.appliedMembership = this.initialMembership;
+    this.membership = this.initialMembership;
     // 快照已提交；保留后缀等 Leader 确认提交边界后才重放。
     if (snapshot) this.restoreSnapshotState(snapshot);
-    this.quorum = Math.floor((options.peers.length + 1) / 2) + 1;
+    this.refreshMembership();
     this.electionAt = options.now + options.electionTimeout();
   }
 
@@ -96,8 +105,11 @@ export class RaftNode {
       snapshotTerm: this.log.baseTerm,
       retainedEntries: this.log.lastIndex - this.log.baseIndex,
       committedTerm: this.log.termAt(this.commitIndex)!,
+      membership: this.membership,
+      appliedMembership: this.appliedMembership,
+      voter: this.localVoter(),
       // ready 要求本任期 noop 已提交；此前的旧任期前缀不能对外视为可读。
-      ready: this.role === 'leader' && this.commitIndex >= this.leaderStartIndex,
+      ready: this.role === 'leader' && this.localVoter() && this.commitIndex >= this.leaderStartIndex,
     };
   }
 
@@ -121,8 +133,53 @@ export class RaftNode {
       lastIncludedIndex: this.lastApplied,
       lastIncludedTerm: this.log.termAt(this.lastApplied)!,
       state: this.appliedState(),
+      ...(this.appliedMembership.index > 0 ? { membership: this.appliedMembership } : {}),
     }, true);
     return true;
+  }
+
+  /** 同一时刻仅接受一次变更。加入者已有已提交前缀才可进入联合配置。 */
+  changeMembership(voters: readonly string[], now: number): MembershipReply {
+    if (this.role !== 'leader' || !this.localVoter() || this.commitIndex < this.leaderStartIndex) {
+      return { ok: false, error: 'NOT_LEADER' };
+    }
+    const current = this.membership.configuration;
+    if (current.next || this.membership.index > this.commitIndex) {
+      return { ok: false, error: 'CONFIG_IN_PROGRESS' };
+    }
+    const target = [...voters].sort();
+    if (target.length === 0 || new Set(target).size !== target.length
+        || target.some(id => id !== this.options.id && !this.options.peers.includes(id))
+        || (target.length === current.voters.length && target.every(id => current.voters.includes(id)))) {
+      return { ok: false, error: 'INVALID_VOTERS' };
+    }
+    if (target.some(id => !current.voters.includes(id) && (this.progress.get(id)?.matchIndex ?? 0) < this.commitIndex)) {
+      return { ok: false, error: 'MEMBER_NOT_CAUGHT_UP' };
+    }
+    const jointIndex = this.append([{ type: 'configure', configuration: { voters: current.voters, next: target } }]);
+    this.advanceCommit(now);
+    if (this.role === 'leader') this.replicate(now);
+    return { ok: true, jointIndex };
+  }
+
+  private localVoter(): boolean {
+    return isVoter(this.membership.configuration, this.options.id);
+  }
+
+  /** 重建有效配置。清理旧配置的待确认读，防止跨配置复用确认。 */
+  private refreshMembership() {
+    let latest = this.snapshot?.membership ?? this.initialMembership;
+    for (let index = this.log.lastIndex; index > this.log.baseIndex; index--) {
+      const command = this.log.entryAt(index)!.command;
+      if (command.type === 'configure') {
+        latest = { index, configuration: command.configuration };
+        break;
+      }
+    }
+    if (latest.index === this.membership.index && latest.configuration === this.membership.configuration) return;
+    this.membership = latest;
+    for (const pending of this.reads.values()) pending.resolve(this.error('NO_QUORUM'));
+    this.reads.clear();
   }
 
   /** 只读取本地已应用状态；调用方决定是否需要新鲜的多数派读屏障。 */
@@ -145,7 +202,7 @@ export class RaftNode {
   tick(now: number) {
     if (this.role !== 'leader') {
       // 只有收到有效 Leader 消息或授予投票才会重置选举超时。
-      if (now >= this.electionAt) this.startElection(now);
+      if (this.localVoter() && now >= this.electionAt) this.startElection(now);
       return;
     }
 
@@ -173,7 +230,7 @@ export class RaftNode {
 
   /** Leader 读和 Follower ReadIndex 共用屏障。每次请求登记一个新的读编号。 */
   readBarrier(now: number): Promise<ReadBarrierReply> {
-    if (this.role !== 'leader') return Promise.resolve(this.error('NOT_LEADER'));
+    if (this.role !== 'leader' || !this.localVoter()) return Promise.resolve(this.error('NOT_LEADER'));
 
     return new Promise(resolve => {
       const pending = { deadline: now + this.options.requestMs, resolve };
@@ -186,20 +243,23 @@ export class RaftNode {
 
   /** 持久化一组非空写入，并按各自的日志索引完成应答。任期变化时拒绝尚未入日志的整批。 */
   executeWrites(commands: readonly WriteOperation[], now: number, term = this.hard.term): Promise<ClientReply>[] {
-    if (this.role !== 'leader' || this.hard.term !== term) {
+    if (this.role !== 'leader' || !this.localVoter() || this.hard.term !== term) {
       return commands.map(() => Promise.resolve(this.error('NOT_LEADER')));
     }
     const first = this.append(commands);
     const replies = commands.map((_, offset) => new Promise<ClientReply>(resolve => {
       this.writes.set(first + offset, { deadline: now + this.options.requestMs, resolve });
     }));
-    this.advanceCommit();
-    this.replicate(now);
+    this.advanceCommit(now);
+    if (this.role === 'leader') this.replicate(now);
     return replies;
   }
 
   /** 处理入站 RPC；更高任期先降级并持久化，再按 kind 分派。 */
   receiveRequest(from: string, request: RpcRequest, now: number): RpcReply {
+    if (request.kind === 'vote' && !isVoter(this.membership.configuration, from)) {
+      return { kind: 'vote', term: this.hard.term, granted: false };
+    }
     // 先收敛任期，保证后续投票/追加判断都基于最新本地任期。
     if (request.term > this.hard.term) this.follow(request.term, null, now);
     if (request.kind === 'vote') return this.requestVote(from, request, now);
@@ -217,7 +277,7 @@ export class RaftNode {
       if (this.role !== 'candidate' || !reply.granted) return;
       // 只统计当前任期且明确授予的票；本节点的一票已在竞选时计入。
       this.votes.add(from);
-      if (this.votes.size >= this.quorum) this.startLeader(now);
+      if (hasQuorum(this.membership.configuration, id => this.votes.has(id))) this.startLeader(now);
       return;
     }
     if (this.role !== 'leader') return;
@@ -250,7 +310,8 @@ export class RaftNode {
     const peer = this.progress.get(from)!;
     peer.matchIndex = Math.max(peer.matchIndex, index);
     peer.nextIndex = peer.matchIndex + 1;
-    const advanced = this.advanceCommit();
+    const advanced = this.advanceCommit(now);
+    if (this.role !== 'leader') return;
     this.completeReads();
     // 提交推进后继续复制剩余日志；否则补发同一 peer 的下一批。
     if (advanced) this.replicate(now);
@@ -297,15 +358,18 @@ export class RaftNode {
     this.votes.add(this.options.id);
     this.outbox.clear();
     // 单节点集群在计入自己的一票后立即满足多数派。
-    if (this.votes.size >= this.quorum) {
+    if (hasQuorum(this.membership.configuration, id => this.votes.has(id))) {
       this.startLeader(now);
       return;
     }
     const request: VoteRequest = {
       kind: 'vote', term: this.hard.term,
       lastLogIndex: this.log.lastIndex, lastLogTerm: this.log.termAt(this.log.lastIndex)!,
+      ...(this.membership.index > 0 ? { configurationIndex: this.membership.index } : {}),
     };
-    for (const peer of this.options.peers) this.outbox.set(peer, request);
+    for (const peer of this.options.peers) {
+      if (isVoter(this.membership.configuration, peer)) this.outbox.set(peer, request);
+    }
   }
 
   /** 处理拉票：同一任期只支持一个候选者，且候选日志不得旧于本地日志。 */
@@ -315,7 +379,9 @@ export class RaftNode {
     const upToDate = request.lastLogTerm > lastTerm
       || (request.lastLogTerm === lastTerm && request.lastLogIndex >= this.log.lastIndex);
     const canVote = this.hard.votedFor === null || this.hard.votedFor === from;
-    const granted = request.term === this.hard.term && canVote && upToDate;
+    // 后继配置已包含本节点时，候选者会向尚未收到该配置的加入者拉票。
+    const eligible = this.localVoter() || (request.configurationIndex ?? 0) > this.membership.index;
+    const granted = eligible && request.term === this.hard.term && canVote && upToDate;
     if (granted) {
       // 授予时先持久化 votedFor 再返回；响应携带处理后的本地任期。
       if (this.hard.votedFor !== from) this.setHardState(request.term, from);
@@ -336,8 +402,8 @@ export class RaftNode {
     }
     // 旧任期条目即使已复制到多数派也不能单独提交；noop 提交后它们随之提交。
     this.leaderStartIndex = this.append([{ type: 'noop' }]);
-    this.advanceCommit();
-    this.replicate(now);
+    this.advanceCommit(now);
+    if (this.role === 'leader') this.replicate(now);
   }
 
   /** 在一个存储事务中追加连续日志并返回首索引，内存日志只在持久化后推进。 */
@@ -346,6 +412,7 @@ export class RaftNode {
     const entries = commands.map(command => ({ term: this.hard.term, command }));
     this.options.storage.replaceSuffix(first, entries);
     this.log.replaceSuffix(first, entries);
+    if (commands.some(command => command.type === 'configure')) this.refreshMembership();
     return first;
   }
 
@@ -407,6 +474,9 @@ export class RaftNode {
       // 先原子替换持久化后缀，再同步内存日志，保持两者一致。
       this.options.storage.replaceSuffix(first, suffix);
       this.log.replaceSuffix(first, suffix);
+      if (first <= this.membership.index || suffix.some(entry => entry.command.type === 'configure')) {
+        this.refreshMembership();
+      }
     }
     // 只能提交 Leader 已告知、且本地实际拥有的前缀；随后按序应用。
     const commit = Math.min(request.leaderCommit, prevLogIndex + entries.length);
@@ -427,6 +497,7 @@ export class RaftNode {
       const retain = this.log.termAt(snapshot.lastIncludedIndex) === snapshot.lastIncludedTerm;
       this.persistSnapshot(snapshot, retain);
       this.restoreSnapshotState(snapshot);
+      this.refreshMembership();
     }
     return { ...reply, success: true };
   }
@@ -443,21 +514,32 @@ export class RaftNode {
     for (const [key, value] of snapshot.state) this.kv.set(key, value);
     this.commitIndex = snapshot.lastIncludedIndex;
     this.lastApplied = snapshot.lastIncludedIndex;
+    this.appliedMembership = snapshot.membership ?? this.initialMembership;
   }
 
   /** 推进提交索引：只统计当前任期条目，且需多数派 matchIndex 覆盖目标索引。 */
-  private advanceCommit(): boolean {
-    for (let index = this.log.lastIndex; index > this.commitIndex; index--) {
-      // 旧任期条目不能仅凭多数派复制提交（Raft 图 8）；它们随本任期条目间接提交。
-      if (this.log.termAt(index) !== this.hard.term) continue;
-      // 自身算一份，其余按 matchIndex 统计。
-      const copies = 1 + [...this.progress.values()].filter(peer => peer.matchIndex >= index).length;
-      if (copies < this.quorum) continue;
-      this.commitIndex = index;
-      this.apply();
-      return true;
+  private advanceCommit(now: number): boolean {
+    let advanced = false;
+    for (;;) {
+      const { index: configurationIndex, configuration } = this.membership;
+      for (let index = this.log.lastIndex; index > this.commitIndex; index--) {
+        // 旧任期条目随当前任期前缀提交。自身也只在配置中才计入。
+        if (this.log.termAt(index) !== this.hard.term || !hasQuorum(configuration, id =>
+          id === this.options.id || (this.progress.get(id)?.matchIndex ?? 0) >= index)) continue;
+        this.commitIndex = index;
+        this.apply();
+        advanced = true;
+        break;
+      }
+      if (configurationIndex > this.commitIndex) return advanced;
+      if (configuration.next) {
+        this.append([{ type: 'configure', configuration: { voters: configuration.next } }]);
+        advanced = true;
+        continue;
+      }
+      if (!this.localVoter()) this.follow(this.hard.term, null, now);
+      return advanced;
     }
-    return false;
   }
 
   /** 按日志顺序把已提交命令应用到 kv；客户端写在此处才收到成功应答。 */
@@ -466,6 +548,10 @@ export class RaftNode {
       const command = this.log.entryAt(this.lastApplied + 1)!.command;
       // 先推进 lastApplied 再执行命令，保证 kv 与日志索引严格对齐。
       this.lastApplied++;
+      if (command.type === 'configure') {
+        this.appliedMembership = { index: this.lastApplied, configuration: command.configuration };
+        continue;
+      }
       // noop 只推进提交前缀和读屏障，不改变 kv。
       if (command.type === 'noop') continue;
 
@@ -487,9 +573,9 @@ export class RaftNode {
     // 本任期 noop 尚未应用时，Leader 的提交前缀仍不完整，不能提供读。
     if (this.lastApplied < this.leaderStartIndex) return;
     for (const [id, pending] of this.reads) {
-      const acknowledgements = 1 + [...this.progress.values()].filter(peer => peer.readAck >= id).length;
       // 三个条件缺一不可：noop 已应用；多数派确认本次 readId；状态已应用到发起时的 readIndex。
-      if (acknowledgements < this.quorum || this.lastApplied < pending.readIndex) continue;
+      if (this.lastApplied < pending.readIndex || !hasQuorum(this.membership.configuration, voter =>
+        voter === this.options.id || (this.progress.get(voter)?.readAck ?? 0) >= id)) continue;
       pending.resolve({
         ok: true, term: this.hard.term, readIndex: Math.max(pending.readIndex, this.leaderStartIndex),
       });

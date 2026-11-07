@@ -35,10 +35,15 @@ class Cluster {
   now = 0;
   readonly stores = new Map(ids.map(id => [id, new MemoryStorage()]));
   readonly nodes = new Map<string, RaftNode>();
+  readonly initialVoters?: readonly string[];
+
+  constructor(initialVoters?: readonly string[]) {
+    this.initialVoters = initialVoters;
+  }
 
   start(id: string) {
     const node = new RaftNode({
-      id, peers: ids.filter(peer => peer !== id), storage: this.stores.get(id)!,
+      id, peers: ids.filter(peer => peer !== id), storage: this.stores.get(id)!, initialVoters: this.initialVoters,
       now: this.now, electionTimeout: () => 100 + ids.indexOf(id) * 50,
       heartbeatMs: 20, requestMs: 300,
     });
@@ -80,8 +85,8 @@ class Cluster {
   }
 }
 
-function startCluster() {
-  const cluster = new Cluster();
+function startCluster(initialVoters?: readonly string[]) {
+  const cluster = new Cluster(initialVoters);
   for (const id of ids) cluster.start(id);
   return cluster;
 }
@@ -352,5 +357,97 @@ describe('Raft core', () => {
     });
     expect(attempted).toEqual([0, 2]);
     expect(follower.appliedState()).toEqual(leader.appliedState());
+  });
+});
+
+describe('joint membership', () => {
+  const old = ['a', 'b', 'c'];
+  const target = ['a', 'd', 'e'];
+
+  it.each(['b', 'd'])('does not commit or certify a read with only %s on one side', async peer => {
+    const cluster = startCluster(old);
+    cluster.step(100);
+    const leader = cluster.node('a');
+    const change = leader.changeMembership(target, cluster.now);
+    expect(change).toEqual({ ok: true, jointIndex: 2 });
+    const allow = ({ to }: Packet) => to === peer;
+    cluster.pump(allow);
+    expect(leader.status()).toMatchObject({ commitIndex: 1, logLength: 2 });
+    expect(leader.changeMembership(['a', 'b'], cluster.now)).toEqual({ ok: false, error: 'CONFIG_IN_PROGRESS' });
+    const read = leader.readBarrier(cluster.now);
+    cluster.pump(allow);
+    leader.tick(cluster.now + 300);
+    expect(await read).toMatchObject({ ok: false, error: 'NO_QUORUM' });
+  });
+
+  it.each(['b', 'd'])('does not elect a joint candidate with only the %s-side majority', peer => {
+    const cluster = new Cluster(old);
+    const joint = { voters: old, next: target };
+    for (const id of ['a', peer]) {
+      cluster.stores.get(id)!.entries = [{ term: 0, command: { type: 'configure', configuration: joint } }];
+    }
+    for (const id of ids) cluster.start(id);
+    cluster.step(100, ({ to }) => to === peer);
+    expect(cluster.node('a').status().role).toBe('candidate');
+  });
+
+  it('requires a new voter to have caught up and keeps a standby out of elections', () => {
+    const cluster = startCluster(old);
+    cluster.step(100, ({ to }) => to !== 'd');
+    const leader = cluster.node('a');
+    expect(leader.changeMembership([...old, 'd'], cluster.now)).toEqual({ ok: false, error: 'MEMBER_NOT_CAUGHT_UP' });
+    cluster.node('d').tick(2000);
+    expect(cluster.node('d').status()).toMatchObject({ role: 'follower', term: 0, voter: false });
+  });
+
+  it('recovers a replicated, uncommitted joint entry after leader loss', () => {
+    const cluster = startCluster(old);
+    cluster.step(100);
+    const leader = cluster.node('a');
+    const joined = ['a', 'b', 'c', 'd', 'e'];
+    expect(leader.changeMembership(joined, cluster.now)).toEqual({ ok: true, jointIndex: 2 });
+    cluster.pump(({ to }) => to === 'b');
+    expect(leader.status().commitIndex).toBe(1);
+    expect(cluster.node('b').status().membership.index).toBe(2);
+    cluster.nodes.delete('a');
+
+    cluster.step(150);
+    const next = cluster.node('b');
+    expect(next.status()).toMatchObject({
+      role: 'leader', term: 2, commitIndex: 4,
+      appliedMembership: { index: 4, configuration: { voters: joined } },
+    });
+    expect(next.committedEntries().filter(entry => entry.command.type === 'configure')).toHaveLength(2);
+  });
+
+  it('restores membership after conflict rollback, final removal, and compaction', async () => {
+    const cluster = startCluster(old);
+    cluster.step(100);
+    const follower = cluster.node('b');
+    follower.receiveRequest('a', {
+      kind: 'append', term: 1, prevLogIndex: 1, prevLogTerm: 1, leaderCommit: 1,
+      entries: [{ term: 1, command: { type: 'configure', configuration: { voters: old, next: target } } }],
+    }, 100);
+    expect(follower.status().membership.configuration.next).toEqual(target);
+    follower.receiveRequest('c', {
+      kind: 'append', term: 2, prevLogIndex: 1, prevLogTerm: 1, leaderCommit: 1,
+      entries: [{ term: 2, command: { type: 'noop' } }],
+    }, 100);
+    expect(cluster.start('b').status().membership).toEqual({ index: 0, configuration: { voters: old } });
+
+    const fresh = startCluster(old);
+    fresh.step(100);
+    const leader = fresh.node('a');
+    expect(leader.changeMembership(['b', 'c'], fresh.now)).toEqual({ ok: true, jointIndex: 2 });
+    fresh.pump();
+    expect(leader.status()).toMatchObject({ role: 'follower', voter: false, commitIndex: 3 });
+    expect(await leader.readBarrier(fresh.now)).toMatchObject({ ok: false, error: 'NOT_LEADER' });
+    leader.compact();
+    const restarted = fresh.start('a');
+    restarted.tick(2000);
+    expect(restarted.status()).toMatchObject({
+      role: 'follower', voter: false, term: 1, snapshotIndex: 3,
+      appliedMembership: { index: 3, configuration: { voters: ['b', 'c'] } },
+    });
   });
 });

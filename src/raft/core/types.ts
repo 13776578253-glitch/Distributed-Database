@@ -7,7 +7,10 @@ import type { Operation, OperationResult, Scalar } from '../../contracts/history
 export type Role = 'follower' | 'candidate' | 'leader';
 /** 可写入日志的命令：get 不写日志而走读屏障，noop 由新 Leader 追加用于提交本任期前缀。 */
 export type WriteOperation = Exclude<Operation, { type: 'get' }>;
-export type Command = WriteOperation | { type: 'noop' };
+/** next 存在时为联合配置，两个集合独立计算多数。 */
+export type Configuration = { voters: readonly string[]; next?: readonly string[] };
+export type Membership = { index: number; configuration: Configuration };
+export type Command = WriteOperation | { type: 'noop' } | { type: 'configure'; configuration: Configuration };
 /** 日志项；term 同时用于选举新旧比较和冲突后缀截断。 */
 export type Entry = { term: number; command: Command };
 /** 必须同步持久化的选举状态；term 单调不减，votedFor 仅表示当前任期投出的票（null 为未投）。 */
@@ -18,6 +21,7 @@ export type Snapshot = {
   lastIncludedIndex: number;
   lastIncludedTerm: number;
   state: [string, Scalar][];
+  membership?: Membership;
 };
 
 /**
@@ -41,6 +45,7 @@ export type VoteRequest = {
   term: number;
   lastLogIndex: number;
   lastLogTerm: number;
+  configurationIndex?: number;
 };
 
 /** 追加/心跳请求；readId 仅在 Leader 完成本任期 noop 提交且存在等待读时携带。 */
@@ -75,3 +80,7 @@ export type ClientReply = { ok: true; result: OperationResult } | ClientFailure;
 /** 一次新鲜多数派读屏障的任期与最低应用索引。 */
 export type ReadBarrier = { ok: true; term: number; readIndex: number };
 export type ReadBarrierReply = ReadBarrier | ClientFailure;
+
+export type MembershipReply =
+  | { ok: true; jointIndex: number }
+  | { ok: false; error: 'NOT_LEADER' | 'CONFIG_IN_PROGRESS' | 'INVALID_VOTERS' | 'MEMBER_NOT_CAUGHT_UP' };

@@ -1,6 +1,6 @@
 # 开发顺序
 
-Raft 扩展按 [E0–E4 设计](raft-extensions.md)执行。[E0–E2](current-task/2026-11-07-raft-extensions-e0-e2.md)已验收，[E3A 与 E3B](current-task/2026-11-07-raft-snapshots.md)已通过本地验证，停在 E3B 待审查。
+Raft 扩展按 [E0–E4 设计](raft-extensions.md)执行。[E0–E2](current-task/2026-11-07-raft-extensions-e0-e2.md)与 [E3](current-task/2026-11-07-raft-snapshots.md)已验收，本轮执行 [E4 联合配置](current-task/2026-11-07-raft-membership.md)。
 
 最近的开发任务是[启动五节点 Compose 并验收 Raft KV](current-task/2026-11-06-raft-compose.md)。后续任务按实际需求在 `current-task/` 记录。
 
