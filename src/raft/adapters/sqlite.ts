@@ -6,6 +6,8 @@
 import { DatabaseSync } from 'node:sqlite';
 import type { Entry, HardState, Snapshot, Storage } from '../core/types.ts';
 
+type SnapshotPayload = Pick<Snapshot, 'state' | 'membership'>;
+
 /** 打开或创建指定路径的存储；单一路径只应由一个节点进程使用。 */
 export function sqliteStorage(path: string): Storage {
   const db = new DatabaseSync(path);
@@ -59,6 +61,7 @@ export function sqliteStorage(path: string): Storage {
     /** 恢复单行硬状态与快照，日志行按绝对索引排序。 */
     load() {
       const row = latestSnapshot.get();
+      const payload = row ? JSON.parse(row.state as string) as Snapshot['state'] | SnapshotPayload : undefined;
       return {
         ...hard.get() as HardState,
         entries: log.all().map(row => ({
@@ -68,7 +71,7 @@ export function sqliteStorage(path: string): Storage {
         ...(row ? { snapshot: {
           lastIncludedIndex: row.last_included_index as number,
           lastIncludedTerm: row.last_included_term as number,
-          state: JSON.parse(row.state as string) as Snapshot['state'],
+          ...(Array.isArray(payload) ? { state: payload } : payload as SnapshotPayload),
         } } : {}),
       };
     },
@@ -89,7 +92,9 @@ export function sqliteStorage(path: string): Storage {
     saveSnapshot(snapshot, retainSuffix) {
       transaction(() => {
         // 快照和裁剪必须一起提交，重启只能看到完整的新状态或原来的日志。
-        saveSnapshot.run(snapshot.lastIncludedIndex, snapshot.lastIncludedTerm, JSON.stringify(snapshot.state));
+        const { state, membership } = snapshot;
+        const payload = membership ? { state, membership } : state;
+        saveSnapshot.run(snapshot.lastIncludedIndex, snapshot.lastIncludedTerm, JSON.stringify(payload));
         if (retainSuffix) prune.run(snapshot.lastIncludedIndex);
         else clear.run();
       });

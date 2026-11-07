@@ -1,7 +1,8 @@
-import { docker, image, nodeIds, nodePort, nodeUrl, volumeName } from './docker.ts';
+import { docker, image, labName, labNodeIds as nodeIds, membershipLab, nodePort, nodeUrl, volumeName } from './docker.ts';
 import { openEvidence } from './evidence.ts';
 import { raftClient } from './raft-client.ts';
 
+if (membershipLab && labName === 'minidb-lab') throw new Error('Use an isolated RAFT_LAB_NAME for membership experiments');
 const mode = 'raft-smoke';
 const evidence = openEvidence('SMOKE', 'pnpm demo', { mode, nodeIds, image });
 const runDocker = (args: string[]) => docker(args, evidence.log);

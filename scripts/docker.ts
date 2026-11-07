@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
+import { membershipLab } from '../src/raft/config.ts';
 
-export { nodeIds } from '../src/raft/config.ts';
+export { labNodeIds, membershipLab, nodeIds, standbyId } from '../src/raft/config.ts';
 export const labName = process.env.RAFT_LAB_NAME || 'minidb-lab';
 export const image = `${labName}:local`;
 export const volumeName = (nodeId: string) => `${labName}-${nodeId}`;
@@ -8,9 +9,10 @@ export const nodePort = (index: number) => Number(`${process.env.RAFT_PORT_PREFI
 export const nodeUrl = (index: number) => `http://127.0.0.1:${nodePort(index)}`;
 
 export function docker(args: string[], log = (line: string) => console.log(line)): string {
-  const result = spawnSync('docker', args, { encoding: 'utf8' });
-  log(`> docker ${args.join(' ')}\n${result.stdout ?? ''}${result.stderr ?? ''}`);
+  const command = membershipLab && args[0] === 'compose' ? ['compose', '--profile', 'membership', ...args.slice(1)] : args;
+  const result = spawnSync('docker', command, { encoding: 'utf8' });
+  log(`> docker ${command.join(' ')}\n${result.stdout ?? ''}${result.stderr ?? ''}`);
   if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error(`docker ${args.join(' ')} exited ${result.status}`);
+  if (result.status !== 0) throw new Error(`docker ${command.join(' ')} exited ${result.status}`);
   return result.stdout.trim();
 }

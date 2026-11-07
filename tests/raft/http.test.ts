@@ -59,7 +59,7 @@ it('waits for local application of the safe read index before reading KV', async
   let appliedIndex = 2;
   const readLocal = vi.fn(() => ({ appliedIndex, result: { found: true, value: 'new' } }));
   const node = {
-    status: () => ({ nodeId: 'a', role: 'follower', leader: 'b', lastApplied: appliedIndex }), readLocal,
+    status: () => ({ nodeId: 'a', role: 'follower', leader: 'b', voter: true, lastApplied: appliedIndex }), readLocal,
   } as unknown as RaftNode;
   const transport = new HttpTransport('a');
   vi.spyOn(transport, 'requestReadIndex').mockResolvedValue({ ok: true, term: 3, readIndex: 5 });
@@ -80,7 +80,7 @@ it('waits for local application of the safe read index before reading KV', async
 
 it('rejects a safe read when the read index RPC is blocked without reading the local value', async () => {
   const node = {
-    status: () => ({ nodeId: 'a', role: 'follower', leader: 'b', lastApplied: 9 }),
+    status: () => ({ nodeId: 'a', role: 'follower', leader: 'b', voter: true, lastApplied: 9 }),
     readLocal: vi.fn(),
   } as unknown as RaftNode;
   const transport = new HttpTransport('a');

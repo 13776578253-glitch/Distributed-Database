@@ -11,6 +11,7 @@ x-raft: &raft
 
 x-raft-env: &raft-env
   FAULTS_ENABLED: "1"
+  RAFT_MEMBERSHIP: "${RAFT_MEMBERSHIP:-0}"
 
 services:
   raft-1:
@@ -38,6 +39,12 @@ services:
     environment: { <<: *raft-env, NODE_ID: raft-5 }
     ports: ["127.0.0.1:${RAFT_PORT_PREFIX:-1808}5:8080"]
     volumes: ["raft-5:/data"]
+  raft-6:
+    <<: *raft
+    profiles: [membership]
+    environment: { <<: *raft-env, NODE_ID: raft-6 }
+    ports: ["127.0.0.1:${RAFT_PORT_PREFIX:-1808}6:8080"]
+    volumes: ["raft-6:/data"]
 
 volumes:
   raft-1: { external: true, name: "${RAFT_LAB_NAME:-minidb-lab}-raft-1" }
@@ -45,3 +52,4 @@ volumes:
   raft-3: { external: true, name: "${RAFT_LAB_NAME:-minidb-lab}-raft-3" }
   raft-4: { external: true, name: "${RAFT_LAB_NAME:-minidb-lab}-raft-4" }
   raft-5: { external: true, name: "${RAFT_LAB_NAME:-minidb-lab}-raft-5" }
+  raft-6: { external: true, name: "${RAFT_LAB_NAME:-minidb-lab}-raft-6" }

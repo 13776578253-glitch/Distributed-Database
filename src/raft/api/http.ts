@@ -12,7 +12,7 @@ import type { Operation } from '../../contracts/history.ts';
 import { rpcPath } from '../adapters/http-transport.ts';
 import type { HttpTransport } from '../adapters/http-transport.ts';
 import type { RaftNode } from '../core/node.ts';
-import type { RpcRequest } from '../core/types.ts';
+import type { Configuration, RpcRequest } from '../core/types.ts';
 import { batchWrites } from './write-batch.ts';
 
 const rpcKinds = ['vote', 'append', 'snapshot'] as const;
@@ -34,14 +34,29 @@ function index(value: unknown): value is number {
 }
 
 /** 按 kind 校验 RPC 载荷；追加条目只接受 noop/put/delete，get 不得写入日志。 */
-function isRpc(value: unknown, kind: RpcRequest['kind']): value is RpcRequest {
+function voterList(value: unknown, roster: string[]): value is string[] {
+  return Array.isArray(value) && value.length > 0 && new Set(value).size === value.length
+    && value.every(id => typeof id === 'string' && roster.includes(id));
+}
+
+function configuration(value: unknown, roster: string[]): value is Configuration {
+  return record(value) && voterList(value.voters, roster)
+    && (value.next === undefined || voterList(value.next, roster));
+}
+
+function isRpc(value: unknown, kind: RpcRequest['kind'], roster: string[]): value is RpcRequest {
   if (!record(value) || value.kind !== kind || !index(value.term)) return false;
-  if (kind === 'vote') return index(value.lastLogIndex) && index(value.lastLogTerm);
+  if (kind === 'vote') return index(value.lastLogIndex) && index(value.lastLogTerm)
+    && (value.configurationIndex === undefined
+      || (index(value.configurationIndex) && value.configurationIndex <= value.lastLogIndex));
   if (kind === 'snapshot') {
     const snapshot = value.snapshot;
     return record(snapshot) && index(snapshot.lastIncludedIndex) && snapshot.lastIncludedIndex > 0
       && index(snapshot.lastIncludedTerm) && snapshot.lastIncludedTerm > 0
       && snapshot.lastIncludedTerm <= value.term
+      && (snapshot.membership === undefined || (record(snapshot.membership) && index(snapshot.membership.index)
+        && snapshot.membership.index > 0 && snapshot.membership.index <= snapshot.lastIncludedIndex
+        && configuration(snapshot.membership.configuration, roster)))
       && Array.isArray(snapshot.state) && snapshot.state.every(pair => Array.isArray(pair) && pair.length === 2
         && isOperation({ type: 'put', key: pair[0], value: pair[1] }));
   }
@@ -49,7 +64,9 @@ function isRpc(value: unknown, kind: RpcRequest['kind']): value is RpcRequest {
     && (value.readId === undefined || index(value.readId))
     && Array.isArray(value.entries) && value.entries.every(entry =>
       record(entry) && index(entry.term) && record(entry.command)
-      && (entry.command.type === 'noop' || (isOperation(entry.command) && entry.command.type !== 'get')));
+      && (entry.command.type === 'noop'
+        || (entry.command.type === 'configure' && configuration(entry.command.configuration, roster))
+        || (isOperation(entry.command) && entry.command.type !== 'get')));
 }
 
 /** 读取完整请求体并解析 JSON；语法错误由调用方映射为 400。 */
@@ -62,17 +79,19 @@ async function readBody(request: IncomingMessage): Promise<unknown> {
 /** 构造请求处理器；peers 用于校验 RPC 来源，faultEnabled 控制故障端点是否开放。 */
 export function raftHttp(
   node: RaftNode, peers: string[], transport: HttpTransport, flush: () => void,
-  faultEnabled: boolean,
+  faultEnabled: boolean, membershipEnabled = false,
 ) {
   const write = batchWrites(node, flush);
+  const roster = [node.status().nodeId, ...peers];
 
   /** Follower 只返回自己的已应用状态。Safe 模式必须先拿到本次请求的新鲜读索引。 */
   async function followerRead(response: ServerResponse, key: string, consistency: 'stale' | 'safe-follower') {
-    const { nodeId, role, leader } = node.status();
+    const { nodeId, role, leader, voter } = node.status();
     if (role !== 'follower') return send(response, 409, { ok: false, error: 'NOT_FOLLOWER', leader });
     if (consistency === 'stale') {
       return send(response, 200, { ok: true, consistency, nodeId, ...node.readLocal(key) });
     }
+    if (!voter) return send(response, 409, { ok: false, error: 'NOT_VOTER', leader });
 
     const deadline = performance.now() + 2200;
     const barrier = leader === null ? undefined : await transport.requestReadIndex(leader);
@@ -81,6 +100,7 @@ export function raftHttp(
       if (state.role !== 'follower') {
         return send(response, 409, { ok: false, error: 'NOT_FOLLOWER', leader: state.leader });
       }
+      if (!state.voter) return send(response, 409, { ok: false, error: 'NOT_VOTER', leader: state.leader });
       if (state.lastApplied >= barrier.readIndex) {
         return send(response, 200, {
           ok: true, consistency, nodeId, term: barrier.term, readIndex: barrier.readIndex, ...node.readLocal(key),
@@ -141,8 +161,10 @@ export function raftHttp(
     const kind = rpcKinds.find(candidate => path === rpcPath[candidate]);
     const readIndex = path === rpcPath.readIndex;
     const fault = path === '/internal/fault/links' && faultEnabled;
+    const change = path === '/internal/raft/membership' && membershipEnabled;
     // 只接受 POST 的内部 RPC、故障端点和 KV 写路径；其余路径 404。
-    if (request.method !== 'POST' || (!kind && !readIndex && !fault && path !== '/kv/put' && path !== '/kv/delete')) {
+    if (request.method !== 'POST'
+        || (!kind && !readIndex && !fault && !change && path !== '/kv/put' && path !== '/kv/delete')) {
       return send(response, 404, { error: 'NOT_FOUND' });
     }
 
@@ -167,7 +189,7 @@ export function raftHttp(
       if (transport.isBlocked(from)) return send(response, 503, { error: 'LINK_BLOCKED' });
       if (kind) {
         const rpc = body.request;
-        if (!isRpc(rpc, kind)) return send(response, 400, { error: 'INVALID_RPC' });
+        if (!isRpc(rpc, kind, roster)) return send(response, 400, { error: 'INVALID_RPC' });
         const reply = node.receiveRequest(from, rpc, performance.now());
         flush();
         return send(response, 200, reply);
@@ -184,6 +206,12 @@ export function raftHttp(
       }
       transport.setBlocked(blockedPeers);
       return send(response, 200, { blockedPeers });
+    }
+    if (change) {
+      if (!voterList(body.voters, roster)) return send(response, 400, { ok: false, error: 'INVALID_VOTERS' });
+      const result = node.changeMembership(body.voters, performance.now());
+      flush();
+      return send(response, result.ok ? 202 : result.error === 'INVALID_VOTERS' ? 400 : 409, result);
     }
     // put/delete 在边界补齐 type 后复用契约校验；非法 key 或值返回 400。
     const operation = path === '/kv/put'

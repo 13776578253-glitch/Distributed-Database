@@ -1,12 +1,17 @@
-import { docker, image, labName, nodeIds, nodePort } from './docker.ts';
+import { docker, image, labName, labNodeIds, membershipLab, nodeIds, nodePort } from './docker.ts';
 import { openEvidence } from './evidence.ts';
 import { raftClient } from './raft-client.ts';
 import { batchExperiment, followerReadExperiment } from './raft-extension-experiments.ts';
 import { snapshotExperiment } from './raft-snapshot-experiment.ts';
+import { membershipExperiment } from './raft-membership-experiment.ts';
 
 const id = process.argv[2];
-if (id !== 'R01' && id !== 'R02' && id !== 'R03' && id !== 'E1' && id !== 'E2' && id !== 'E3B') {
-  console.error('Usage: pnpm experiment R01|R02|R03|E1|E2|E3B');
+if (id !== 'R01' && id !== 'R02' && id !== 'R03' && id !== 'E1' && id !== 'E2' && id !== 'E3B' && id !== 'E4B') {
+  console.error('Usage: pnpm experiment R01|R02|R03|E1|E2|E3B|E4B');
+  process.exit(1);
+}
+if ((id === 'E4B') !== membershipLab || (membershipLab && labName === 'minidb-lab')) {
+  console.error('E4B requires an isolated membership lab. Other experiments use the five-node profile.');
   process.exit(1);
 }
 if (id === 'E3B' && labName === 'minidb-lab') {
@@ -16,7 +21,7 @@ if (id === 'E3B' && labName === 'minidb-lab') {
 
 const electionLimitMs = 8000;
 const evidence = openEvidence(id, `pnpm experiment ${id}`, {
-  electionLimitMs, labName, nodeIds, ports: nodeIds.map((_, index) => nodePort(index)),
+  electionLimitMs, labName, nodeIds: labNodeIds, ports: labNodeIds.map((_, index) => nodePort(index)),
 });
 const client = raftClient(evidence);
 const runDocker = (args: string[]) => docker(args, evidence.log);
@@ -127,6 +132,7 @@ try {
   if (id === 'E1') await batchExperiment(evidence, client, runDocker);
   if (id === 'E2') await followerReadExperiment(evidence, client);
   if (id === 'E3B') await snapshotExperiment(evidence, client, runDocker);
+  if (id === 'E4B') await membershipExperiment(evidence, client, runDocker);
   runDocker(['compose', 'logs', '--no-color', '--since', evidence.startedAt]);
   evidence.finish(id === 'R03' ? 'INCONCLUSIVE' : 'PASS', { imageId, node: process.version });
 } catch (error) {

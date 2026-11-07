@@ -39,6 +39,22 @@ E1 记录批次和 Leader 崩溃前后的写结果，E2 对比分区中的三种
 
 快照由实验环境的 `POST /internal/raft/snapshot` 显式触发。状态接口保留 `logLength` 表示末尾绝对索引，新增 `snapshotIndex`、`snapshotTerm` 和 `retainedEntries`。压缩后 `committedDigest` 覆盖保留的已提交后缀，不同快照边界的节点用 `appliedDigest` 对比已应用 KV。已压缩的卷应使用支持快照的版本打开，回退 E3A 时使用压缩前的卷。
 
+### E4 成员变更
+
+在 PowerShell 选择专用实验项目。预配置的 `raft-6` 起初只追赶日志，五个原节点仍是初始投票成员。
+
+```powershell
+$env:RAFT_LAB_NAME = 'minidb-members'
+$env:RAFT_PORT_PREFIX = '1838'
+$env:RAFT_MEMBERSHIP = '1'
+pnpm demo
+pnpm membership status
+pnpm experiment E4B
+docker compose --profile membership down
+```
+
+可用 `pnpm membership set raft-1 raft-2 raft-3 raft-4 raft-5 raft-6` 提交一组目标投票成员。HTTP 202 表示联合条目已在 Leader 本地追加。用 `pnpm membership status` 查看 `membership` 与 `appliedMembership`，后者成为目标稳定配置时才算变更完成。一次只接受一个变更，加入者先追到提交边界，移除者保留容器和数据卷用于恢复或重新加入。
+
 使用 `docker compose down` 停止集群。数据卷由实验脚本创建并由 Compose 以外部卷引用，可跨容器重建保留。`pnpm reset:destructive --confirm` 会移除本项目容器和数据卷，适用于明确要清空实验数据时。
 
 `.scratch/` 用于临时数据和本地试验材料，正式实验输出统一放入 `evidence/`。
