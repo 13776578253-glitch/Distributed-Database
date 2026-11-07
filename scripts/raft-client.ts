@@ -107,5 +107,5 @@ export function raftClient(evidence: Evidence) {
     await response.json();
   }
 
-  return { leader, converged, call, block };
+  return { leader, converged, call, block, waitFor };
 }

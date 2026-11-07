@@ -50,5 +50,5 @@ export function openEvidence(experimentId: string, command: string, parameters: 
     console.log(`${experimentId} ${status} ${directory}`);
   }
 
-  return { runId, directory, event, log, assert, finish };
+  return { runId, directory, startedAt, event, log, assert, finish };
 }

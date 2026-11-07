@@ -7,7 +7,7 @@
 import type { Operation, Scalar } from '../../contracts/history.ts';
 import type {
   AppendRequest, ClientReply, Command, Entry, HardState, Role, RpcReply, RpcRequest,
-  Storage, VoteRequest,
+  Storage, VoteRequest, WriteOperation,
 } from './types.ts';
 
 /** 等待应答的客户端请求；deadline 基于调用方注入的单调毫秒时钟。 */
@@ -129,22 +129,30 @@ export class RaftNode {
 
   /** 提交客户端操作；非 Leader 立即返回 NOT_LEADER，否则在提交应用、读屏障完成、超时或降级后兑现。 */
   execute(operation: Operation, now: number): Promise<ClientReply> {
+    if (operation.type !== 'get') return this.executeWrites([operation], now)[0];
     if (this.role !== 'leader') return Promise.resolve(this.error('NOT_LEADER'));
 
     return new Promise(resolve => {
       const pending = { deadline: now + this.options.requestMs, resolve };
-      if (operation.type === 'get') {
-        // 读不写日志：记录发起时的 commitIndex，等待本任期 noop、多数派 readAck 和本地应用进度。
-        this.reads.set(++this.readId, { ...pending, key: operation.key, readIndex: this.commitIndex });
-        this.completeReads();
-      } else {
-        // 写先持久化进本地日志，再登记到对应索引；只有 apply() 才应答成功。
-        const index = this.append(operation);
-        this.writes.set(index, pending);
-        this.advanceCommit();
-      }
+      // 读不写日志：记录发起时的 commitIndex，等待本任期 noop、多数派 readAck 和本地应用进度。
+      this.reads.set(++this.readId, { ...pending, key: operation.key, readIndex: this.commitIndex });
+      this.completeReads();
       this.replicate(now);
     });
+  }
+
+  /** 持久化一组非空写入，并按各自的日志索引完成应答。任期变化时拒绝尚未入日志的整批。 */
+  executeWrites(commands: readonly WriteOperation[], now: number, term = this.hard.term): Promise<ClientReply>[] {
+    if (this.role !== 'leader' || this.hard.term !== term) {
+      return commands.map(() => Promise.resolve(this.error('NOT_LEADER')));
+    }
+    const first = this.append(commands);
+    const replies = commands.map((_, offset) => new Promise<ClientReply>(resolve => {
+      this.writes.set(first + offset, { deadline: now + this.options.requestMs, resolve });
+    }));
+    this.advanceCommit();
+    this.replicate(now);
+    return replies;
   }
 
   /** 处理入站 RPC；更高任期先降级并持久化，再按 kind 分派。 */
@@ -270,7 +278,7 @@ export class RaftNode {
       this.progress.set(peer, { nextIndex: this.log.length + 1, matchIndex: 0, readAck: 0 });
     }
     // 旧任期条目即使已复制到多数派也不能单独提交；noop 提交后它们随之提交。
-    this.leaderStartIndex = this.append({ type: 'noop' });
+    this.leaderStartIndex = this.append([{ type: 'noop' }]);
     this.advanceCommit();
     this.replicate(now);
   }
@@ -280,13 +288,13 @@ export class RaftNode {
     return index === 0 ? 0 : this.log[index - 1].term;
   }
 
-  /** 追加一条本地日志并返回索引；先持久化再更新内存，保证内存日志不领先于磁盘。 */
-  private append(command: Command): number {
-    const index = this.log.length + 1;
-    const entry = { term: this.hard.term, command };
-    this.options.storage.replaceSuffix(index, [entry]);
-    this.log.push(entry);
-    return index;
+  /** 在一个存储事务中追加连续日志并返回首索引，内存日志只在持久化后推进。 */
+  private append(commands: readonly Command[]): number {
+    const first = this.log.length + 1;
+    const entries = commands.map(command => ({ term: this.hard.term, command }));
+    this.options.storage.replaceSuffix(first, entries);
+    this.log.push(...entries);
+    return first;
   }
 
   /** 记录下次心跳时间，并向所有 peer 推送当前复制进度。 */

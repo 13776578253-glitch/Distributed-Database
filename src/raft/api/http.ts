@@ -12,6 +12,7 @@ import { rpcPath } from '../adapters/http-transport.ts';
 import type { HttpTransport } from '../adapters/http-transport.ts';
 import type { RaftNode } from '../core/node.ts';
 import type { RpcRequest } from '../core/types.ts';
+import { batchWrites } from './write-batch.ts';
 
 /** 以 JSON 结束响应；状态码和错误体由调用方决定。 */
 function send(response: ServerResponse, status: number, body: unknown) {
@@ -52,6 +53,7 @@ export function raftHttp(
   node: RaftNode, peers: string[], transport: HttpTransport, flush: () => void,
   faultEnabled: boolean,
 ) {
+  const write = batchWrites(node, flush);
   return async (request: IncomingMessage, response: ServerResponse) => {
     let url: URL;
     try {
@@ -70,10 +72,12 @@ export function raftHttp(
       return send(response, 200, { ...node.status(), committedDigest });
     }
 
-    /** 执行客户端操作：登记后立即冲刷出站消息，再等待提交、读屏障、超时或降级。 */
+    /** 读直接启动屏障，写进入短批次队列，HTTP 等待该请求自己的结果。 */
     async function execute(operation: Operation) {
-      const result = node.execute(operation, performance.now());
-      flush();
+      const result = operation.type === 'get'
+        ? node.execute(operation, performance.now())
+        : write(operation);
+      if (operation.type === 'get') flush();
       const reply = await result;
       // 504 表示写结果未知，不是普通的网关超时；调用方必须保留历史。
       const status = reply.ok ? 200 : { NOT_LEADER: 409, NO_QUORUM: 503, UNKNOWN_OUTCOME: 504 }[reply.error];

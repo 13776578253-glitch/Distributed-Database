@@ -6,7 +6,8 @@ import type { Operation, OperationResult } from '../../contracts/history.ts';
 
 export type Role = 'follower' | 'candidate' | 'leader';
 /** 可写入日志的命令：get 不写日志而走读屏障，noop 由新 Leader 追加用于提交本任期前缀。 */
-export type Command = Exclude<Operation, { type: 'get' }> | { type: 'noop' };
+export type WriteOperation = Exclude<Operation, { type: 'get' }>;
+export type Command = WriteOperation | { type: 'noop' };
 /** 日志项；term 同时用于选举新旧比较和冲突后缀截断。 */
 export type Entry = { term: number; command: Command };
 /** 必须同步持久化的选举状态；term 单调不减，votedFor 仅表示当前任期投出的票（null 为未投）。 */

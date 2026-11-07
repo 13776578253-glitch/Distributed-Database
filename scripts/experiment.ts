@@ -1,10 +1,11 @@
 import { docker, image, nodeIds } from './docker.ts';
 import { openEvidence } from './evidence.ts';
 import { raftClient } from './raft-client.ts';
+import { batchExperiment } from './raft-extension-experiments.ts';
 
 const id = process.argv[2];
-if (id !== 'R01' && id !== 'R02' && id !== 'R03') {
-  console.error('Usage: pnpm experiment R01|R02|R03');
+if (id !== 'R01' && id !== 'R02' && id !== 'R03' && id !== 'E1') {
+  console.error('Usage: pnpm experiment R01|R02|R03|E1');
   process.exit(1);
 }
 
@@ -116,12 +117,13 @@ try {
   if (id === 'R01') await killLeader();
   if (id === 'R02') await partition();
   if (id === 'R03') await captureHistory();
-  runDocker(['compose', 'logs', '--no-color', '--since', '2m']);
+  if (id === 'E1') await batchExperiment(evidence, client, runDocker);
+  runDocker(['compose', 'logs', '--no-color', '--since', evidence.startedAt]);
   evidence.finish(id === 'R03' ? 'INCONCLUSIVE' : 'PASS', { imageId, node: process.version });
 } catch (error) {
   evidence.log(error instanceof Error ? error.stack ?? error.message : String(error));
   try {
-    runDocker(['compose', 'logs', '--no-color', '--since', '2m']);
+    runDocker(['compose', 'logs', '--no-color', '--since', evidence.startedAt]);
   } finally {
     evidence.finish('FAIL', { imageId, node: process.version });
     process.exitCode = 1;

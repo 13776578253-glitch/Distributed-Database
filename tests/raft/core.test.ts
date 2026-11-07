@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { RaftNode } from '../../src/raft/core/node.ts';
 import type { Entry, HardState, RpcRequest, Storage } from '../../src/raft/core/types.ts';
 
@@ -128,6 +128,37 @@ describe('Raft core', () => {
     const missing = leader.execute({ type: 'get', key: 'k' }, cluster.now);
     cluster.pump();
     expect(await missing).toEqual({ ok: true, result: { found: false } });
+  });
+
+  it('persists a write batch once and confirms only its committed prefix', async () => {
+    const cluster = startCluster();
+    cluster.step(100);
+    const leader = cluster.node('a');
+    const persist = vi.spyOn(cluster.stores.get('a')!, 'replaceSuffix');
+    const commands = Array.from({ length: 65 }, (_, value) => ({ type: 'put', key: 'batch', value } as const));
+    const writes = leader.executeWrites(commands, cluster.now);
+    expect(persist).toHaveBeenCalledTimes(1);
+    expect(persist.mock.calls[0][1]).toHaveLength(65);
+    let lastConfirmed = false;
+    void writes[64].then(() => { lastConfirmed = true; });
+
+    cluster.pump(({ request }) => request.kind !== 'append' || request.entries.length === 0
+      || request.prevLogIndex === 1);
+    expect(await Promise.all(writes.slice(0, 64))).toEqual(Array(64).fill({ ok: true, result: { stored: true } }));
+    expect(leader.status()).toMatchObject({ commitIndex: 65, lastApplied: 65 });
+    expect(lastConfirmed).toBe(false);
+    cluster.step(20);
+    expect(await writes[64]).toEqual({ ok: true, result: { stored: true } });
+  });
+
+  it('rejects a queued batch from an earlier term without appending it', async () => {
+    const cluster = startCluster();
+    cluster.step(100);
+    const leader = cluster.node('a');
+    const store = cluster.stores.get('a')!;
+    const pending = leader.executeWrites([{ type: 'delete', key: 'k' }], cluster.now, 0);
+    expect(await pending[0]).toMatchObject({ ok: false, error: 'NOT_LEADER' });
+    expect(store.entries).toHaveLength(1);
   });
 
   it('does not commit an old-term batch stored by a quorum before its current-term no-op', () => {
