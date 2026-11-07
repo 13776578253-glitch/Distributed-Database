@@ -1,9 +1,8 @@
-import { docker, nodeIds, nodeUrl, volumeName } from './docker.ts';
+import { docker, image, nodeIds, nodePort, nodeUrl, volumeName } from './docker.ts';
 import { openEvidence } from './evidence.ts';
 import { raftClient } from './raft-client.ts';
 
 const mode = 'raft-smoke';
-const image = 'minidb-lab:local';
 const evidence = openEvidence('SMOKE', 'pnpm demo', { mode, nodeIds, image });
 const runDocker = (args: string[]) => docker(args, evidence.log);
 let imageId: string | undefined;
@@ -19,7 +18,7 @@ try {
     const response = await fetch(`${nodeUrl(index)}/health`, { signal: AbortSignal.timeout(3000) });
     const health = await response.json();
     evidence.assert(`${nodeId} health`, response.ok && health.nodeId === nodeId
-      && health.mode === 'raft', { port: 18081 + index, status: response.status, health });
+      && health.mode === 'raft', { port: nodePort(index), status: response.status, health });
 
     const container = runDocker(['compose', 'ps', '-q', nodeId]);
     const containerImage = runDocker(['inspect', container, '--format', '{{.Image}}']);

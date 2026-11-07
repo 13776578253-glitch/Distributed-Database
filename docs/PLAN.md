@@ -1,5 +1,7 @@
 # 开发顺序
 
+Raft 扩展按 [E0–E4 设计](raft-extensions.md)执行。本轮停点是 E2，执行结果见[扩展任务记录](current-task/2026-11-07-raft-extensions-e0-e2.md)。
+
 最近的开发任务是[启动五节点 Compose 并验收 Raft KV](current-task/2026-11-06-raft-compose.md)。后续任务按实际需求在 `current-task/` 记录。
 
 | 阶段 | 状态 | 范围 |

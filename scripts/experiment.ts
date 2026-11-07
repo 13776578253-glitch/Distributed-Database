@@ -1,4 +1,4 @@
-import { docker, nodeIds } from './docker.ts';
+import { docker, image, nodeIds } from './docker.ts';
 import { openEvidence } from './evidence.ts';
 import { raftClient } from './raft-client.ts';
 
@@ -112,7 +112,7 @@ async function captureHistory() {
 }
 
 try {
-  imageId = runDocker(['image', 'inspect', 'minidb-lab:local', '--format', '{{.Id}}']);
+  imageId = runDocker(['image', 'inspect', image, '--format', '{{.Id}}']);
   if (id === 'R01') await killLeader();
   if (id === 'R02') await partition();
   if (id === 'R03') await captureHistory();

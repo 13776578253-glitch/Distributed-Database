@@ -53,7 +53,12 @@ export function raftHttp(
   faultEnabled: boolean,
 ) {
   return async (request: IncomingMessage, response: ServerResponse) => {
-    const url = new URL(request.url!, 'http://localhost');
+    let url: URL;
+    try {
+      url = new URL(request.url!, 'http://localhost');
+    } catch {
+      return send(response, 400, { error: 'INVALID_URL' });
+    }
     const path = url.pathname;
     if (request.method === 'GET' && path === '/health') {
       // 健康检查只报告进程身份，不等待 Leader 或提交进度。

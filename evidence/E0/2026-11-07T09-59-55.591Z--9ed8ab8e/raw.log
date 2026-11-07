@@ -1,0 +1,34 @@
+> pnpm test
+✓ Lockfile passes supply-chain policies (verified 23h ago)
+Lockfile is up to date, resolution step is skipped
+Packages: -6
+------
+
+dependencies:
+- react 19.3.1
+- react-dom 19.3.1
+
+devDependencies:
+- @types/react 19.3.0
+- @types/react-dom 19.3.0
+- vite 7.3.7
+
+Done in 724ms using pnpm v11.25.0
+
+ RUN  v4.0.18 D:/Desktop/code/Distributed Database
+
+ ✓ tests/contracts.test.ts (2 tests) 3ms
+ ✓ tests/raft/core.test.ts (7 tests) 12ms
+
+ Test Files  2 passed (2)
+      Tests  9 passed (9)
+   Start at  17:59:59
+   Duration  949ms (transform 361ms, setup 0ms, import 467ms, tests 15ms, environment 0ms)
+
+$ vitest run
+
+> pnpm typecheck
+$ tsc --noEmit
+
+> docker compose config --quiet
+
