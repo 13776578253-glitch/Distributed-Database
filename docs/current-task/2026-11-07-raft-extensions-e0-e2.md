@@ -25,3 +25,17 @@ HTTP 队列按任期合并同时到达的单条请求，5 ms 或满 64 条即提
 默认 GET 仍走 Leader。显式 stale 只读本地已应用 KV。Safe Follower Read 每次都通过受阻断控制的 HTTP RPC 向 Leader 请求新鲜读索引，等本机应用到该索引后从本地取值。Leader GET 和该 RPC 复用同一 Core 读屏障。无屏障或超时返回 `NO_QUORUM`。
 
 先单测 stale 响应，再验 safe 的本地应用等待、链路阻断和屏障不可复用。17 项测试、类型与 Compose 配置检查通过。真实 3–2 分区里，多数派先确认 `after`，多数派的 Leader 和 Follower 安全读均返回 `after`。少数派 stale 在应用索引 142 返回 `before`，少数派 safe 和旧 Leader 读均返回 503。重连后原少数派 Follower 安全读返回 `after`。 [E2 首轮容器结果](../../evidence/E2/2026-11-07T10-14-48.997Z--b759cafe/result.json)
+
+## 停点复跑
+
+下列记录均使用干净源码提交 `f2a3dee` 和同一镜像。扩展实验在 `minidb-ext` 的五节点与独立卷执行。复跑结束后停止隔离容器、保留卷，默认五节点均为 healthy。
+
+| 运行 | 实际结果 |
+| --- | --- |
+| [SMOKE](../../evidence/SMOKE/2026-11-07T10-17-24.067Z--6ccbfa9f/result.json) | 五节点健康、镜像、卷和旧单条 API 通过 |
+| [E1](../../evidence/E1/2026-11-07T10-17-40.126Z--a1068c91/result.json) | 16 并发、128 写，8 次 Leader 本地日志事务。约 506 写/秒，P50 25.5 ms、P95 34.2 ms。12 条故障写返回未知，128 条确认写全部读回 |
+| [E2](../../evidence/E2/2026-11-07T10-17-47.341Z--6409a5ac/result.json) | 多数派确认新值后，少数派 stale 在索引 289 读旧值，safe 和旧 Leader 默认读均返回 503。恢复后 safe 在读索引 291 返回新值 |
+| [R01](../../evidence/R01/2026-11-07T10-17-50.902Z--f12a768a/result.json) · [R02](../../evidence/R02/2026-11-07T10-17-55.871Z--7cdb6ca8/result.json) · [R04](../../evidence/R04/2026-11-07T10-17-59.446Z--7d70f65b/result.json) | 杀 Leader、分区恢复、跨任期提交与 SQLite SIGKILL 探针通过 |
+| [R03](../../evidence/R03/2026-11-07T10-17-58.815Z--af09f0f6/result.json) | 并发历史采集完成，判定仍待 S4 |
+
+停在 E2，等待验收。E3A/E3B 和 E4A/E4B 只有设计记录。

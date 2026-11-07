@@ -1,0 +1,15 @@
+{
+  "startedAt": "2026-11-07T10:17:59.446Z",
+  "endedAt": "2026-11-07T10:18:01.118Z",
+  "gitSha": "f2a3deeb44486cf8790878075cfc39b7906707fc",
+  "gitDirty": false,
+  "parameters": {
+    "probe": "evidence/R04/2026-11-06T11-15-26.546Z--b81c0076/probe.mjs",
+    "transport": "deterministic in-process",
+    "storage": "SQLite on an anonymous Docker volume"
+  },
+  "environment": {
+    "node": "v24.21.0",
+    "imageId": "sha256:c934a02e86ecec24df792c6dcb46b756b99e7d4f635b3153f058c71f54feb35d"
+  }
+}
