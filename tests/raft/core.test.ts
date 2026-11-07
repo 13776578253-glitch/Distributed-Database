@@ -451,3 +451,247 @@ describe('joint membership', () => {
     });
   });
 });
+
+describe('membership protocol boundaries', () => {
+  const old = ['a', 'b', 'c'];
+  const target = ['c', 'd', 'e'];
+
+  async function mixedViews() {
+    const cluster = startCluster(old);
+    cluster.step(100);
+    const leader = cluster.node('a');
+    const write = leader.execute({ type: 'put', key: 'stable', value: 'confirmed' }, cluster.now);
+    cluster.pump();
+    expect(await write).toMatchObject({ ok: true });
+    expect(leader.changeMembership(target, cluster.now)).toEqual({ ok: true, jointIndex: 3 });
+    cluster.pump(({ to, request }) => {
+      if (request.kind !== 'append') return false;
+      const hasFinal = request.entries.some(({ command }) =>
+        command.type === 'configure' && !command.configuration.next);
+      return hasFinal ? to === 'd' : ['b', 'd', 'e'].includes(to);
+    });
+    const joint = { index: 3, configuration: { voters: old, next: target } };
+    const final = { index: 4, configuration: { voters: target } };
+    expect(ids.map(id => cluster.node(id).status().membership)).toEqual([
+      final, joint, { index: 0, configuration: { voters: old } }, final, joint,
+    ]);
+    expect(leader.status()).toMatchObject({ role: 'leader', commitIndex: 3, appliedMembership: joint });
+    return { cluster, leader, joint, final };
+  }
+
+  it.each(['late', 'early'])('preserves committed prefixes with %s final-view votes and mixed-view elections', async order => {
+    const { cluster, leader, joint, final } = await mixedViews();
+    const committed = leader.committedEntries();
+    const elected = new Map([[1, 'a']]);
+    const observe = () => {
+      for (const [id, node] of cluster.nodes) {
+        const { role, term } = node.status();
+        if (role === 'leader') {
+          const prior = elected.get(term);
+          if (prior !== undefined) expect(id).toBe(prior);
+          elected.set(term, id);
+        }
+        for (const [offset, entry] of node.committedEntries().entries()) {
+          const prior = committed[offset];
+          if (prior === undefined) committed[offset] = entry;
+          else expect(entry).toEqual(prior);
+        }
+      }
+    };
+    const deliver = (packet: Packet) => {
+      cluster.deliver(packet);
+      observe();
+    };
+    cluster.nodes.delete('a');
+    const b = cluster.node('b');
+    const c = cluster.node('c');
+    const d = cluster.node('d');
+    const e = cluster.node('e');
+
+    cluster.now = 250;
+    b.tick(cluster.now);
+    expect(b.status()).toMatchObject({ role: 'candidate', term: 2 });
+    cluster.drain();
+    cluster.now = 300;
+    c.tick(cluster.now);
+    const oldVote = cluster.drain().find(packet => packet.from === 'c' && packet.to === 'b')!;
+    expect(oldVote.request).toMatchObject({ kind: 'vote', term: 2 });
+    cluster.now = 350;
+    d.tick(cluster.now);
+    const finalVotes = cluster.drain();
+    deliver(finalVotes.find(packet => packet.to === 'c')!);
+    expect(d.status().role).toBe('candidate');
+    const finalVote = finalVotes.find(packet => packet.to === 'e')!;
+    expect(finalVote.request).toMatchObject({ kind: 'vote', term: 2, configurationIndex: final.index });
+    const finalReply = e.receiveRequest('d', finalVote.request, cluster.now);
+    expect(finalReply).toEqual({ kind: 'vote', term: 2, granted: true });
+    const electFinal = () => {
+      d.receiveReply('e', finalVote.request, finalReply, cluster.now);
+      observe();
+      expect(d.status()).toMatchObject({ role: 'leader', term: 2 });
+    };
+    if (order === 'early') {
+      electFinal();
+      cluster.pump(({ from, to }) => from === 'd' && to === 'e');
+      observe();
+      expect(d.status()).toMatchObject({ ready: true, commitIndex: 5, appliedMembership: final });
+    }
+
+    cluster.now = 400;
+    b.tick(cluster.now);
+    const jointVotes = cluster.drain();
+    expect(jointVotes.filter(packet => packet.from === 'b').map(packet => packet.to)).toEqual(['a', 'c', 'd', 'e']);
+    const voteTo = (id: string) => jointVotes.find(packet => packet.from === 'b' && packet.to === id)!;
+    expect(voteTo('c').request).toMatchObject({ kind: 'vote', term: 3, configurationIndex: joint.index });
+    deliver(voteTo('c'));
+    expect(b.status()).toMatchObject({ role: 'candidate', term: 3 });
+    deliver(oldVote);
+    expect(cluster.stores.get('b')!.hard).toEqual({ term: 3, votedFor: 'b' });
+    deliver(voteTo('d'));
+    expect(b.status().role).toBe('candidate');
+    deliver(voteTo('e'));
+
+    if (order === 'late') {
+      expect(b.status()).toMatchObject({ role: 'leader', term: 3, ready: false });
+      electFinal();
+      // 旧票可使尚未得知新任期的 d 自认当选，但 e 的新任期阻止其提交。
+      deliver(cluster.drain().find(packet => packet.from === 'd' && packet.to === 'e')!);
+      expect(d.status()).toMatchObject({ role: 'follower', term: 3, commitIndex: 3, appliedMembership: joint });
+      cluster.step(20);
+      observe();
+      expect(committed[3]).toEqual({ term: 3, command: { type: 'noop' } });
+    } else {
+      expect(b.status()).toMatchObject({ role: 'candidate', term: 3, ready: false });
+      expect(committed[3]).toEqual({ term: 1, command: { type: 'configure', configuration: final.configuration } });
+      // d 得知更高任期后，携带已提交的最终配置重新竞选。
+      cluster.now = 750;
+      d.tick(cluster.now);
+      cluster.pump(({ from, to }) => from === 'd' && to === 'c');
+      expect(d.status()).toMatchObject({ role: 'follower', term: 3, commitIndex: 5 });
+      cluster.now += 250;
+      d.tick(cluster.now);
+      cluster.pump();
+      expect(d.status()).toMatchObject({ role: 'leader', term: 4, ready: true });
+    }
+    observe();
+    expect([...elected]).toEqual(order === 'late' ? [[1, 'a'], [3, 'b'], [2, 'd']] : [[1, 'a'], [2, 'd'], [4, 'd']]);
+    for (const node of cluster.nodes.values()) {
+      expect(node.readLocal('stable').result).toEqual({ found: true, value: 'confirmed' });
+    }
+  });
+
+  it('elects a joint candidate with votes from added nodes that still hold the old view', () => {
+    const cluster = startCluster(old);
+    cluster.step(100);
+    expect(cluster.node('a').changeMembership(['a', 'd', 'e'], cluster.now)).toEqual({ ok: true, jointIndex: 2 });
+    cluster.pump(({ to }) => to === 'b');
+    expect(cluster.node('a').status().commitIndex).toBe(1);
+    for (const id of ['d', 'e']) {
+      expect(cluster.node(id).status()).toMatchObject({ voter: false, membership: { index: 0 } });
+    }
+    cluster.nodes.delete('a');
+    const b = cluster.node('b');
+    cluster.now = 250;
+    b.tick(cluster.now);
+    const votes = cluster.drain();
+    for (const id of ['c', 'd', 'e']) {
+      expect(b.status().role).toBe('candidate');
+      const packet = votes.find(({ to }) => to === id)!;
+      expect(packet.request).toMatchObject({ kind: 'vote', term: 2, configurationIndex: 2 });
+      cluster.deliver(packet);
+      expect(cluster.stores.get(id)!.hard).toEqual({ term: 2, votedFor: 'b' });
+    }
+    expect(b.status()).toMatchObject({ role: 'leader', term: 2, ready: false, commitIndex: 1 });
+  });
+
+  it('derives voters from the snapshot after a real leader overwrites an uncommitted final suffix', async () => {
+    const { cluster, leader, joint, final } = await mixedViews();
+    const oldStorage = cluster.stores.get('a')!;
+    expect(leader.compact()).toBe(true);
+    expect(oldStorage.snapshot).toMatchObject({ lastIncludedIndex: joint.index, membership: joint });
+    expect(oldStorage.entries).toEqual([{ term: 1, command: { type: 'configure', configuration: final.configuration } }]);
+    cluster.nodes.delete('a');
+
+    const held: Packet[] = [];
+    cluster.step(150, packet => {
+      if (packet.request.kind === 'vote') return true;
+      if (packet.from === 'b' && packet.to === 'a') held.push(packet);
+      return false;
+    });
+    expect(cluster.node('b').status()).toMatchObject({ role: 'leader', term: 2, membership: joint });
+    expect(held).toHaveLength(1);
+    expect(held[0].request).toMatchObject({
+      kind: 'append', term: 2, prevLogIndex: joint.index, entries: [{ term: 2, command: { type: 'noop' } }],
+    });
+    const restarted = cluster.start('a');
+    expect(restarted.status()).toMatchObject({ membership: final, appliedMembership: joint, voter: false });
+    cluster.deliver(held[0]);
+    expect(restarted.status()).toMatchObject({ membership: joint, appliedMembership: joint, voter: true });
+    expect(oldStorage.entries).toEqual([{ term: 2, command: { type: 'noop' } }]);
+    expect(cluster.start('a').status()).toMatchObject({
+      term: 2, snapshotIndex: joint.index, membership: joint, appliedMembership: joint, voter: true,
+    });
+
+    cluster.step(20);
+    const completed = { index: 5, configuration: final.configuration };
+    expect(cluster.node('b').status()).toMatchObject({ role: 'follower', appliedMembership: completed });
+    for (const id of ids) {
+      expect(cluster.start(id).status()).toMatchObject({ membership: completed, voter: target.includes(id) });
+    }
+    // 原 Leader 退出后，由最终配置下的下一任 Leader 广播已提交边界。
+    cluster.now += 200;
+    cluster.node('c').tick(cluster.now);
+    cluster.pump();
+    expect(cluster.node('c').status()).toMatchObject({ role: 'leader', term: 3, ready: true, commitIndex: 6 });
+    for (const id of ids) {
+      const state = cluster.node(id).status();
+      expect(state).toMatchObject({ membership: completed, appliedMembership: completed, voter: target.includes(id) });
+      expect(cluster.node(id).readLocal('stable').result).toEqual({ found: true, value: 'confirmed' });
+    }
+  });
+
+  it.each([['b', 'd'], ['d', 'b']])('keeps delayed confirmations out of new read barriers when only %s responds', async (one, other) => {
+    const cluster = startCluster(old);
+    cluster.step(100);
+    const leader = cluster.node('a');
+    const delay = ({ to, request }: Packet) => {
+      expect(request).toMatchObject({ kind: 'append', term: 1, readId: expect.any(Number) });
+      const reply = cluster.node(to).receiveRequest('a', request, cluster.now);
+      expect(reply).toEqual({ kind: 'append', term: 1, success: true });
+      return () => leader.receiveReply(to, request, reply, cluster.now);
+    };
+
+    const oldRead = leader.readBarrier(cluster.now);
+    const lateOldReplies = cluster.drain().map(delay);
+    expect(leader.changeMembership(['a', 'd', 'e'], cluster.now)).toEqual({ ok: true, jointIndex: 2 });
+    await expect(oldRead).resolves.toMatchObject({ ok: false, error: 'NO_QUORUM' });
+
+    const jointSettled = vi.fn();
+    const jointRead = leader.readBarrier(cluster.now).then(reply => {
+      jointSettled(reply);
+      return reply;
+    });
+    const jointPackets = cluster.drain();
+    const lateJointReply = delay(jointPackets.find(packet => packet.to === 'e')!);
+    for (const reply of lateOldReplies) reply();
+    cluster.deliver(jointPackets.find(packet => packet.to === one)!);
+    await Promise.resolve();
+    expect(jointSettled).not.toHaveBeenCalled();
+    expect(leader.status().commitIndex).toBe(1);
+    cluster.deliver(jointPackets.find(packet => packet.to === other)!);
+    await expect(jointRead).resolves.toMatchObject({ ok: false, error: 'NO_QUORUM' });
+    cluster.pump();
+    expect(leader.status()).toMatchObject({ commitIndex: 3, membership: { index: 3, configuration: { voters: ['a', 'd', 'e'] } } });
+
+    const finalSettled = vi.fn();
+    const finalRead = leader.readBarrier(cluster.now).then(finalSettled);
+    const finalPackets = cluster.drain();
+    lateJointReply();
+    cluster.deliver(finalPackets.find(packet => packet.to === 'b')!);
+    await Promise.resolve();
+    expect(finalSettled).not.toHaveBeenCalled();
+    cluster.deliver(finalPackets.find(packet => packet.to === 'd')!);
+    await finalRead;
+    expect(finalSettled).toHaveBeenCalledExactlyOnceWith({ ok: true, term: 1, readIndex: 3 });
+  });
+});
