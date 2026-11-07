@@ -5,6 +5,7 @@
  * caller, which keeps protocol timing reproducible in tests.
  */
 import type { Operation, OperationResult, Scalar } from '../../contracts/history.ts';
+import { RaftLog } from './log.ts';
 import type {
   AppendRequest, ClientFailure, ClientReply, Command, Entry, HardState, ReadBarrierReply, Role, RpcReply, RpcRequest,
   Storage, VoteRequest, WriteOperation,
@@ -35,8 +36,8 @@ export class RaftNode {
   private readonly options: Options;
   /** 多数派规模，包含自身。 */
   private readonly quorum: number;
-  /** 已持久化日志，索引 1 起；log[i] 对应日志索引 i+1。 */
-  private readonly log: Entry[];
+  /** 已持久化日志，Core 只使用绝对索引。 */
+  private readonly log: RaftLog;
   /** 已应用状态机，只由 apply() 在 commitIndex 推进后按序更新。 */
   private readonly kv = new Map<string, Scalar>();
   /** 每个 peer 最多保留一条待发消息，drain() 取走后清空。 */
@@ -72,7 +73,7 @@ export class RaftNode {
     // 只恢复持久化的任期、投票和日志；角色、定时器与 kv 都从本地初始状态重建。
     const { term, votedFor, entries } = options.storage.load();
     this.hard = { term, votedFor };
-    this.log = entries;
+    this.log = new RaftLog(entries);
     // kv 不持久化：重启后由日志按序重放，lastApplied 从 0 开始。
     this.quorum = Math.floor((options.peers.length + 1) / 2) + 1;
     this.electionAt = options.now + options.electionTimeout();
@@ -87,7 +88,7 @@ export class RaftNode {
       leader: this.leader,
       commitIndex: this.commitIndex,
       lastApplied: this.lastApplied,
-      logLength: this.log.length,
+      logLength: this.log.lastIndex,
       // ready 要求本任期 noop 已提交；此前的旧任期前缀不能对外视为可读。
       ready: this.role === 'leader' && this.commitIndex >= this.leaderStartIndex,
     };
@@ -95,7 +96,7 @@ export class RaftNode {
 
   /** 已提交前缀的副本；未提交尾部不会出现在摘要中。 */
   committedEntries(): Entry[] {
-    return this.log.slice(0, this.commitIndex);
+    return this.log.entriesFrom(this.log.baseIndex + 1, this.commitIndex - this.log.baseIndex);
   }
 
   /** 只读取本地已应用状态；调用方决定是否需要新鲜的多数派读屏障。 */
@@ -213,7 +214,7 @@ export class RaftNode {
     this.completeReads();
     // 提交推进后继续复制剩余日志；否则补发同一 peer 的下一批。
     if (advanced) this.replicate(now);
-    else if (peer.matchIndex < this.log.length) this.sendAppend(from);
+    else if (peer.matchIndex < this.log.lastIndex) this.sendAppend(from);
   }
 
   private error(error: ClientFailure['error']): ClientFailure {
@@ -262,17 +263,17 @@ export class RaftNode {
     }
     const request: VoteRequest = {
       kind: 'vote', term: this.hard.term,
-      lastLogIndex: this.log.length, lastLogTerm: this.termAt(this.log.length),
+      lastLogIndex: this.log.lastIndex, lastLogTerm: this.log.termAt(this.log.lastIndex)!,
     };
     for (const peer of this.options.peers) this.outbox.set(peer, request);
   }
 
   /** 处理拉票：同一任期只支持一个候选者，且候选日志不得旧于本地日志。 */
   private requestVote(from: string, request: VoteRequest, now: number): RpcReply {
-    const lastTerm = this.termAt(this.log.length);
+    const lastTerm = this.log.termAt(this.log.lastIndex)!;
     // 先比较最后日志任期，再比较长度；这是 Raft 的日志新旧判据。
     const upToDate = request.lastLogTerm > lastTerm
-      || (request.lastLogTerm === lastTerm && request.lastLogIndex >= this.log.length);
+      || (request.lastLogTerm === lastTerm && request.lastLogIndex >= this.log.lastIndex);
     const canVote = this.hard.votedFor === null || this.hard.votedFor === from;
     const granted = request.term === this.hard.term && canVote && upToDate;
     if (granted) {
@@ -291,7 +292,7 @@ export class RaftNode {
     this.progress.clear();
     // 进度从日志末尾之后开始；matchIndex 尚不知情，先按 0 处理。
     for (const peer of this.options.peers) {
-      this.progress.set(peer, { nextIndex: this.log.length + 1, matchIndex: 0, readAck: 0 });
+      this.progress.set(peer, { nextIndex: this.log.lastIndex + 1, matchIndex: 0, readAck: 0 });
     }
     // 旧任期条目即使已复制到多数派也不能单独提交；noop 提交后它们随之提交。
     this.leaderStartIndex = this.append([{ type: 'noop' }]);
@@ -299,17 +300,12 @@ export class RaftNode {
     this.replicate(now);
   }
 
-  /** 日志索引对应的任期；索引 0 固定为 0，调用方保证 index <= log.length。 */
-  private termAt(index: number): number {
-    return index === 0 ? 0 : this.log[index - 1].term;
-  }
-
   /** 在一个存储事务中追加连续日志并返回首索引，内存日志只在持久化后推进。 */
   private append(commands: readonly Command[]): number {
-    const first = this.log.length + 1;
+    const first = this.log.lastIndex + 1;
     const entries = commands.map(command => ({ term: this.hard.term, command }));
     this.options.storage.replaceSuffix(first, entries);
-    this.log.push(...entries);
+    this.log.replaceSuffix(first, entries);
     return first;
   }
 
@@ -325,8 +321,8 @@ export class RaftNode {
     const prevLogIndex = this.progress.get(peer)!.nextIndex - 1;
     this.outbox.set(peer, {
       kind: 'append', term: this.hard.term,
-      prevLogIndex, prevLogTerm: this.termAt(prevLogIndex),
-      entries: this.log.slice(prevLogIndex, prevLogIndex + APPEND_BATCH), leaderCommit: this.commitIndex,
+      prevLogIndex, prevLogTerm: this.log.termAt(prevLogIndex)!,
+      entries: this.log.entriesFrom(prevLogIndex + 1, APPEND_BATCH), leaderCommit: this.commitIndex,
       readId: this.reads.size > 0 && this.commitIndex >= this.leaderStartIndex ? this.readId : undefined,
     });
   }
@@ -337,7 +333,7 @@ export class RaftNode {
       kind: 'append', term: this.hard.term, success: false, nextIndex,
     });
     // 任期落后直接拒绝；应答携带本地更高任期，促使旧 Leader 尽快降级。
-    if (request.term < this.hard.term) return failure(this.log.length + 1);
+    if (request.term < this.hard.term) return failure(this.log.lastIndex + 1);
     // 同任期或更高任期的追加都使 Candidate/Leader 降级；随后刷新 Leader 与选举计时。
     if (this.role !== 'follower') this.follow(request.term, from, now);
     this.leader = from;
@@ -345,16 +341,13 @@ export class RaftNode {
 
     const { prevLogIndex, prevLogTerm, entries } = request;
     // 本地日志太短，前缀不可能匹配；提示 Leader 从日志末尾之后重发。
-    if (prevLogIndex > this.log.length) return failure(this.log.length + 1);
-    if (this.termAt(prevLogIndex) !== prevLogTerm) {
-      const conflictTerm = this.termAt(prevLogIndex);
-      let first = prevLogIndex;
-      while (first > 1 && this.termAt(first - 1) === conflictTerm) first--;
+    if (prevLogIndex > this.log.lastIndex) return failure(this.log.lastIndex + 1);
+    if (this.log.termAt(prevLogIndex) !== prevLogTerm) {
       // 返回冲突任期的首个索引，Leader 可一次跳过整个冲突任期。
-      return failure(first);
+      return failure(this.log.firstIndexOfTerm(prevLogIndex));
     }
     // 找到首个任期不同的位置；从该位置起必须替换为 Leader 的后缀。
-    const offset = entries.findIndex((entry, i) => this.log[prevLogIndex + i]?.term !== entry.term);
+    const offset = entries.findIndex((entry, i) => this.log.termAt(prevLogIndex + i + 1) !== entry.term);
     if (offset !== -1) {
       const first = prevLogIndex + offset + 1;
       // 已提交前缀不允许被覆盖；触发说明协议或持久化已损坏。
@@ -362,8 +355,7 @@ export class RaftNode {
       const suffix = entries.slice(offset);
       // 先原子替换持久化后缀，再同步内存日志，保持两者一致。
       this.options.storage.replaceSuffix(first, suffix);
-      this.log.length = first - 1;
-      for (const entry of suffix) this.log.push(entry);
+      this.log.replaceSuffix(first, suffix);
     }
     // 只能提交 Leader 已告知、且本地实际拥有的前缀；随后按序应用。
     const commit = Math.min(request.leaderCommit, prevLogIndex + entries.length);
@@ -376,9 +368,9 @@ export class RaftNode {
 
   /** 推进提交索引：只统计当前任期条目，且需多数派 matchIndex 覆盖目标索引。 */
   private advanceCommit(): boolean {
-    for (let index = this.log.length; index > this.commitIndex; index--) {
+    for (let index = this.log.lastIndex; index > this.commitIndex; index--) {
       // 旧任期条目不能仅凭多数派复制提交（Raft 图 8）；它们随本任期条目间接提交。
-      if (this.termAt(index) !== this.hard.term) continue;
+      if (this.log.termAt(index) !== this.hard.term) continue;
       // 自身算一份，其余按 matchIndex 统计。
       const copies = 1 + [...this.progress.values()].filter(peer => peer.matchIndex >= index).length;
       if (copies < this.quorum) continue;
@@ -392,7 +384,7 @@ export class RaftNode {
   /** 按日志顺序把已提交命令应用到 kv；客户端写在此处才收到成功应答。 */
   private apply() {
     while (this.lastApplied < this.commitIndex) {
-      const command = this.log[this.lastApplied].command;
+      const command = this.log.entryAt(this.lastApplied + 1)!.command;
       // 先推进 lastApplied 再执行命令，保证 kv 与日志索引严格对齐。
       this.lastApplied++;
       // noop 只推进提交前缀和读屏障，不改变 kv。

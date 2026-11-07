@@ -1,0 +1,22 @@
+{
+  "experimentId": "R04",
+  "runId": "2026-11-07T10-39-39.204Z--53d0ad92",
+  "startedAt": "2026-11-07T10:39:39.204Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "archived cross-term and SIGKILL probe passed",
+      "passed": true,
+      "details": {
+        "exitCode": 0
+      }
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}
