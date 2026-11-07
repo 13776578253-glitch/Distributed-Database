@@ -9,7 +9,10 @@ Raft 扩展 E0–E4 已完成，补齐[协议边界回归](current-task/2026-11-
 | S0 · 脚手架 | 已验收 | 公共契约、工具链、Compose 冒烟 |
 | S1 · Raft 纯核心 | 已验收 | 选举、复制、提交与读屏障 |
 | S2 · 容器 Raft | 已验收 | R01/R02 和 R03 历史采集，R03 判定在 S4 |
-| S3 · MVCC/WAL | 待开始 | RC/SI、墓碑和写冲突、自写 WAL、检查点、AS OF、Analysis/Redo/Undo 与 CLR，验收 T01/T02/T03 |
+| S3A · MVCC | 已实现，待审查 | [内存事务、版本链与历史契约](current-task/2026-11-07-s3a-mvcc.md)。停点验收确定性隔离与写偏差 |
+| S3B · WAL | 待开始 | LSN、BEGIN/UPDATE/COMMIT、持久化顺序和版本落盘。停点验收崩溃前后的提交边界 |
+| S3C · Recovery | 待开始 | Checkpoint、Analysis/Redo/Undo 和 CLR。停点验收恢复中再崩溃 |
+| S3D · 系统实验 | 待开始 | 独立事务服务、Docker、T01/T02/T03 与 Evidence。停点验收真实 SIGKILL 与完整复现 |
 | S4 · 一致性验证 | 待开始 | V01/V02/V03、R03 和 T02 历史回放 |
 | S5 · 课程交付 | 待开始 | 演示、选型对比、时序图和报告 |
 

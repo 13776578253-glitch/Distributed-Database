@@ -10,3 +10,4 @@
 | E3A–E3B | 迁移绝对日志索引，实现快照落盘、安装与重启恢复，复跑隔离容器实验 | [快照任务记录](docs/current-task/2026-11-07-raft-snapshots.md) |
 | E4A–E4B | 实现联合配置、双多数判定、Compose 成员实验与命令行控制台 | [成员变更任务记录](docs/current-task/2026-11-07-raft-membership.md) |
 | Raft 冻结 | 补齐跨配置选举、快照截断恢复和延迟读确认的确定性回归，运行全量测试和类型检查 | [协议边界回归](docs/current-task/2026-11-07-raft-protocol-freeze.md) |
+| S3A | 设计事务历史契约，实现内存 MVCC 与具名事务锁，编写确定性隔离测试 | [MVCC 任务记录](docs/current-task/2026-11-07-s3a-mvcc.md) |
