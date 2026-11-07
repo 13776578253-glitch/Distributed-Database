@@ -1,0 +1,310 @@
+{
+  "experimentId": "R01",
+  "runId": "2026-11-07T12-03-00.139Z--8640eecf",
+  "startedAt": "2026-11-07T12:03:00.139Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "put previous",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T12-03-00.139Z--8640eecf",
+        "operationId": "1",
+        "engine": "raft",
+        "clientId": "writer",
+        "operation": {
+          "type": "put",
+          "key": "R01/2026-11-07T12-03-00.139Z--8640eecf",
+          "value": "previous"
+        },
+        "invocationNs": "1283044039652100",
+        "responseNs": "1283044061092900",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "stored": true
+        }
+      }
+    },
+    {
+      "name": "put confirmed",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T12-03-00.139Z--8640eecf",
+        "operationId": "2",
+        "engine": "raft",
+        "clientId": "writer",
+        "operation": {
+          "type": "put",
+          "key": "R01/2026-11-07T12-03-00.139Z--8640eecf",
+          "value": "confirmed"
+        },
+        "invocationNs": "1283044061641200",
+        "responseNs": "1283044085012300",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "stored": true
+        }
+      }
+    },
+    {
+      "name": "killed by SIGKILL",
+      "passed": true,
+      "details": {
+        "exit": "137"
+      }
+    },
+    {
+      "name": "new leader elected",
+      "passed": true,
+      "details": {
+        "previous": "raft-3",
+        "next": "raft-4",
+        "previousTerm": 73,
+        "term": 74,
+        "elapsedMs": 903.6055
+      }
+    },
+    {
+      "name": "quorum read returns the latest confirmed write",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T12-03-00.139Z--8640eecf",
+        "operationId": "3",
+        "engine": "raft",
+        "clientId": "reader",
+        "operation": {
+          "type": "get",
+          "key": "R01/2026-11-07T12-03-00.139Z--8640eecf"
+        },
+        "invocationNs": "1283045223575400",
+        "responseNs": "1283045228420800",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": "confirmed"
+        }
+      }
+    },
+    {
+      "name": "restarted node converges",
+      "passed": true,
+      "details": [
+        {
+          "nodeId": "raft-1",
+          "role": "leader",
+          "term": 76,
+          "leader": "raft-1",
+          "commitIndex": 624,
+          "lastApplied": 624,
+          "logLength": 624,
+          "snapshotIndex": 620,
+          "snapshotTerm": 73,
+          "retainedEntries": 4,
+          "committedTerm": 76,
+          "membership": {
+            "index": 0,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5"
+              ]
+            }
+          },
+          "appliedMembership": {
+            "index": 0,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5"
+              ]
+            }
+          },
+          "voter": true,
+          "ready": true,
+          "committedDigest": "3a16bba1157af2e6d89eb6917b504d0d0b85c8f37bd686ccf5a6ee10fe9219ac",
+          "appliedDigest": "2c951803ffa134d473c75d12d67043d53389eec18a9d6205d56da37a9c657584"
+        },
+        {
+          "nodeId": "raft-2",
+          "role": "follower",
+          "term": 76,
+          "leader": "raft-1",
+          "commitIndex": 624,
+          "lastApplied": 624,
+          "logLength": 624,
+          "snapshotIndex": 616,
+          "snapshotTerm": 68,
+          "retainedEntries": 8,
+          "committedTerm": 76,
+          "membership": {
+            "index": 0,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5"
+              ]
+            }
+          },
+          "appliedMembership": {
+            "index": 0,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5"
+              ]
+            }
+          },
+          "voter": true,
+          "ready": false,
+          "committedDigest": "6e36b2a4f9f91295645df47a88e7af27a8327e23a08068580469a94345da3213",
+          "appliedDigest": "2c951803ffa134d473c75d12d67043d53389eec18a9d6205d56da37a9c657584"
+        },
+        {
+          "nodeId": "raft-3",
+          "role": "follower",
+          "term": 76,
+          "leader": "raft-1",
+          "commitIndex": 624,
+          "lastApplied": 624,
+          "logLength": 624,
+          "snapshotIndex": 616,
+          "snapshotTerm": 68,
+          "retainedEntries": 8,
+          "committedTerm": 76,
+          "membership": {
+            "index": 0,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5"
+              ]
+            }
+          },
+          "appliedMembership": {
+            "index": 0,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5"
+              ]
+            }
+          },
+          "voter": true,
+          "ready": false,
+          "committedDigest": "6e36b2a4f9f91295645df47a88e7af27a8327e23a08068580469a94345da3213",
+          "appliedDigest": "2c951803ffa134d473c75d12d67043d53389eec18a9d6205d56da37a9c657584"
+        },
+        {
+          "nodeId": "raft-4",
+          "role": "follower",
+          "term": 76,
+          "leader": "raft-1",
+          "commitIndex": 624,
+          "lastApplied": 624,
+          "logLength": 624,
+          "snapshotIndex": 616,
+          "snapshotTerm": 68,
+          "retainedEntries": 8,
+          "committedTerm": 76,
+          "membership": {
+            "index": 0,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5"
+              ]
+            }
+          },
+          "appliedMembership": {
+            "index": 0,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5"
+              ]
+            }
+          },
+          "voter": true,
+          "ready": false,
+          "committedDigest": "6e36b2a4f9f91295645df47a88e7af27a8327e23a08068580469a94345da3213",
+          "appliedDigest": "2c951803ffa134d473c75d12d67043d53389eec18a9d6205d56da37a9c657584"
+        },
+        {
+          "nodeId": "raft-5",
+          "role": "follower",
+          "term": 76,
+          "leader": "raft-1",
+          "commitIndex": 624,
+          "lastApplied": 624,
+          "logLength": 624,
+          "snapshotIndex": 616,
+          "snapshotTerm": 68,
+          "retainedEntries": 8,
+          "committedTerm": 76,
+          "membership": {
+            "index": 0,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5"
+              ]
+            }
+          },
+          "appliedMembership": {
+            "index": 0,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5"
+              ]
+            }
+          },
+          "voter": true,
+          "ready": false,
+          "committedDigest": "6e36b2a4f9f91295645df47a88e7af27a8327e23a08068580469a94345da3213",
+          "appliedDigest": "2c951803ffa134d473c75d12d67043d53389eec18a9d6205d56da37a9c657584"
+        }
+      ]
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

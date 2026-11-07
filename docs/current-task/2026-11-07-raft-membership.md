@@ -17,3 +17,12 @@ E4B 使用独立 Compose 项目，增加预配置的非投票节点。HTTP 与�
 Compose 的 `membership` profile 开启预配置的第六个端点。节点持续把日志复制给可达的非投票节点，只有有效配置的成员计入多数。加入者追到 Leader 已提交边界后才可提议。配置通过 HTTP 追加，由 `pnpm membership status` 查看有效和已应用投票集。该控制台是命令行入口，网页 Observer 代码在单独的 `feat/visualization` 分支。
 
 首轮六节点运行中，联合条目在索引 5 已复制到旧侧三节点，仍未提交。SIGKILL 原 Leader 后，在它恢复前由新 Leader 完成 5→6 并读回先前已确认的值。随后从命令行提议移除现任 Leader，最终配置在索引 9。移除节点写返回 `NOT_LEADER`、安全读返回 `NOT_VOTER`，快照重启仍恢复非投票身份。剩余成员确认新写，实验结束时恢复初始五个投票成员。 [E4B 首轮证据](../../evidence/E4B/2026-11-07T11-58-18.997Z--5f6eeca5/result.json)
+
+## 干净提交复跑
+
+E4A 提交 `a41c309`，E4B 提交 `dcb680e`。以下复跑均由干净的 `dcb680e` 生成。31 项测试、类型检查和 Compose 配置检查通过。
+
+- 六节点冒烟 21 项通过。E4B 19 项断言通过。联合条目在索引 18 未提交，原 Leader `raft-3` 被 SIGKILL 后，新 Leader `raft-1` 在原节点停机时应用索引 20 的最终六投票成员配置。CLI 随后向现任 `raft-4` 提议移除它自身，最终配置索引 24 写入快照并在重启后恢复。实验恢复到初始五投票成员，CLI 状态显示 `raft-6` 为非投票节点。 [六节点冒烟](../../evidence/SMOKE/2026-11-07T12-01-03.942Z--6b7f112f/result.json) · [E4B 复跑](../../evidence/E4B/2026-11-07T12-01-22.592Z--17b84b20/result.json)
+- 既有五节点隔离卷上的 E3 快照可以直接打开。五节点 profile 的成员修改端点返回 404。[冒烟](../../evidence/SMOKE/2026-11-07T12-02-33.941Z--13aad51c/result.json)、[E3B](../../evidence/E3B/2026-11-07T12-02-46.764Z--0fb67803/result.json)、[R01](../../evidence/R01/2026-11-07T12-03-00.139Z--8640eecf/result.json)、[R02](../../evidence/R02/2026-11-07T12-03-05.304Z--a0c71390/result.json)、[R04](../../evidence/R04/2026-11-07T12-03-18.784Z--8c945c41/result.json)、[E1](../../evidence/E1/2026-11-07T12-03-09.547Z--12fa6aeb/result.json) 和 [E2](../../evidence/E2/2026-11-07T12-03-15.373Z--46776e94/result.json) 通过。[R03](../../evidence/R03/2026-11-07T12-03-08.334Z--8c1d3503/result.json) 已采集，判定待 S4。
+
+两个隔离项目停止，数据卷保留。 [复现命令](../../README.md)

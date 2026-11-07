@@ -10,7 +10,7 @@
 | E3A 全局索引 | 将 `core/node.ts` 的 `log.length`、`termAt(index)`、`slice`、应用偏移收口到日志索引表示。用 `baseIndex/baseTerm` 表达基址，默认 0/0。`adapters/sqlite.ts` 继续按绝对索引存条目。此阶段只迁移索引。 | 现有数据库可以重开，投票、回退、提交和读索引沿用原语义。全部旧测试、SMOKE、R01–R04 和 E1/E2 用例回归。 |
 | E3B 快照与压缩 | `core` 在已应用边界导出 KV、`lastIncludedIndex/Term`。`sqlite.ts` 原子保存快照和删除覆盖前缀，启动先恢复快照再重放后缀。`main.ts`、HTTP 适配器接 InstallSnapshot，落后节点越过压缩边界后继续 AppendEntries。 | 快照前后读值一致、日志行数减少，SIGKILL 后快照及后缀均能恢复。断开落后节点直到 Leader 压缩，重连后实际发生 InstallSnapshot 并收敛。匹配基址时保留有效后缀，冲突时舍弃。 |
 | E4A 配置安全 | `core/types.ts` 增加配置命令，`core/node.ts` 及索引、恢复路径从日志与快照重建有效配置。用 `C_old → C_old,new → C_new`，联合阶段要求旧组和新组各自多数，覆盖选举、提交与 ReadIndex。配置冲突回退时重算有效配置。 | 纯 Core 测试覆盖任一组单独达多数、联合配置未提交时 Leader 崩溃、旧 Leader 被移出、配置日志截断和重启。一次只允许一个变更。 |
-| E4B 真实成员变更 | 在 E4A 通过后，把节点身份与可达地址配置接入 Docker、HTTP 和控制台。新增成员先同步，配置由 Raft 日志推进。移除成员停止参选和服务一致性读写。 | 真实 Compose 执行加入、移除及 Leader 在联合阶段崩溃，恢复后核对成员、日志前缀和已确认写。 |
+| E4B 真实成员变更 | Docker membership profile 启动六个预配置端点，HTTP 与命令行控制台提交变更。加入者先同步，配置由 Raft 日志推进。移除成员停止参选和服务一致性读写，保留为可追赶的非投票副本。 | 真实 Compose 执行加入、移除及 Leader 在联合阶段崩溃，恢复后核对成员、日志前缀和已确认写。 |
 
 ## E1 · 批次与确认
 
@@ -30,5 +30,5 @@ Leader 与 Safe Follower Read 共用 Core 的多数派屏障。屏障必须位�
 
 ## E3/E4 代码落点
 
-- E3A 将索引换算迁入 `RaftLog`。E3B 用已应用索引生成快照。过期快照跳过，安装成功在快照与日志变更落盘后回复。 [绝对索引](../src/raft/core/log.ts#L4) · [复制入口](../src/raft/core/node.ts#L359) · [Raft 论文 §7](https://raft.github.io/raft.pdf)
-- E4A 按论文的联合共识，从本地最新配置日志计算有效投票集，配置还未提交时也按该日志状态计算。联合条目提交后才追加最终配置。把 `startElection`、`advanceCommit` 和 `completeReads` 接到同一双多数判定，去掉固定门槛。E4B 再执行实际加入、删除和 Leader 崩溃复验。 [现有选举](../src/raft/core/node.ts#L290) · [现有提交](../src/raft/core/node.ts#L449) · [现有读屏障](../src/raft/core/node.ts#L486) · [Raft 论文 §6](https://raft.github.io/raft.pdf)
+- E3A 将索引换算迁入 `RaftLog`。E3B 用已应用索引生成快照。过期快照跳过，安装成功在快照与日志变更落盘后回复。 [绝对索引](../src/raft/core/log.ts#L4) · [复制入口](../src/raft/core/node.ts#L426) · [Raft 论文 §7](https://raft.github.io/raft.pdf)
+- E4A 从本地最新配置日志计算有效投票集，联合条目提交后才追加最终配置。`startElection`、`advanceCommit` 和 `completeReads` 共用双多数判定。E4B 用隔离 Compose 验证加入、移除和 Leader 崩溃。 [多数判定](../src/raft/core/membership.ts#L9) · [选举](../src/raft/core/node.ts#L351) · [提交](../src/raft/core/node.ts#L521) · [读屏障](../src/raft/core/node.ts#L572) · [Raft 论文 §6](https://raft.github.io/raft.pdf#page=11)

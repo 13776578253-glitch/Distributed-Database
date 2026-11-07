@@ -1,0 +1,203 @@
+> docker compose --profile membership config --quiet
+
+> docker volume create minidb-members-raft-1
+minidb-members-raft-1
+
+> docker volume create minidb-members-raft-2
+minidb-members-raft-2
+
+> docker volume create minidb-members-raft-3
+minidb-members-raft-3
+
+> docker volume create minidb-members-raft-4
+minidb-members-raft-4
+
+> docker volume create minidb-members-raft-5
+minidb-members-raft-5
+
+> docker volume create minidb-members-raft-6
+minidb-members-raft-6
+
+> docker compose --profile membership build --provenance=false raft-1
+#1 [internal] load local bake definitions
+#1 reading from stdin 544B 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 151B 0.0s done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:24.21.0-bookworm-slim
+#3 DONE 0.1s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 90B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 698B done
+#5 DONE 0.0s
+
+#6 [1/4] FROM docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
+#6 resolve docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 0.1s done
+#6 DONE 0.1s
+
+#7 [2/4] WORKDIR /app
+#7 CACHED
+
+#8 [3/4] COPY package.json ./
+#8 CACHED
+
+#9 [4/4] COPY src ./src
+#9 CACHED
+
+#10 exporting to image
+#10 exporting layers done
+#10 exporting manifest sha256:0776c21ffaf09ca90c0a45f5c93942e9d7302a4be503621838141926549bab74 0.0s done
+#10 exporting config sha256:b010e636618c319e497d4903cab339b1beec73f26dfd42ff25910931256242c7 done
+#10 naming to docker.io/library/minidb-members:local done
+#10 unpacking to docker.io/library/minidb-members:local 0.0s done
+#10 DONE 0.1s
+
+#11 resolving provenance for metadata file
+#11 DONE 0.0s
+ Image minidb-members:local Building 
+ Image minidb-members:local Built 
+
+> docker compose --profile membership up -d --no-build --force-recreate --wait --wait-timeout 60
+ Container minidb-members-raft-1-1 Recreate 
+ Container minidb-members-raft-2-1 Recreate 
+ Container minidb-members-raft-3-1 Recreate 
+ Container minidb-members-raft-4-1 Recreate 
+ Container minidb-members-raft-5-1 Recreate 
+ Container minidb-members-raft-6-1 Recreate 
+ Container minidb-members-raft-4-1 Recreated 
+ Container minidb-members-raft-1-1 Recreated 
+ Container minidb-members-raft-5-1 Recreated 
+ Container minidb-members-raft-2-1 Recreated 
+ Container minidb-members-raft-3-1 Recreated 
+ Container minidb-members-raft-6-1 Recreated 
+ Container minidb-members-raft-2-1 Starting 
+ Container minidb-members-raft-4-1 Starting 
+ Container minidb-members-raft-3-1 Starting 
+ Container minidb-members-raft-5-1 Starting 
+ Container minidb-members-raft-1-1 Starting 
+ Container minidb-members-raft-6-1 Starting 
+ Container minidb-members-raft-3-1 Started 
+ Container minidb-members-raft-2-1 Started 
+ Container minidb-members-raft-4-1 Started 
+ Container minidb-members-raft-5-1 Started 
+ Container minidb-members-raft-6-1 Started 
+ Container minidb-members-raft-1-1 Started 
+ Container minidb-members-raft-5-1 Waiting 
+ Container minidb-members-raft-6-1 Waiting 
+ Container minidb-members-raft-1-1 Waiting 
+ Container minidb-members-raft-2-1 Waiting 
+ Container minidb-members-raft-3-1 Waiting 
+ Container minidb-members-raft-4-1 Waiting 
+ Container minidb-members-raft-3-1 Healthy 
+ Container minidb-members-raft-2-1 Healthy 
+ Container minidb-members-raft-4-1 Healthy 
+ Container minidb-members-raft-5-1 Healthy 
+ Container minidb-members-raft-6-1 Healthy 
+ Container minidb-members-raft-1-1 Healthy 
+
+> docker image inspect minidb-members:local --format {{.Id}}
+sha256:0776c21ffaf09ca90c0a45f5c93942e9d7302a4be503621838141926549bab74
+
+> docker compose --profile membership ps -q raft-1
+0d5b7dfaceb243448f702119f81e174fed91a24cda3da64c8f2d9e755863a5c0
+
+> docker inspect 0d5b7dfaceb243448f702119f81e174fed91a24cda3da64c8f2d9e755863a5c0 --format {{.Image}}
+sha256:0776c21ffaf09ca90c0a45f5c93942e9d7302a4be503621838141926549bab74
+
+> docker inspect 0d5b7dfaceb243448f702119f81e174fed91a24cda3da64c8f2d9e755863a5c0 --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-members-raft-1
+
+> docker compose --profile membership ps -q raft-2
+ef2d2d1292c3c69f956338a9ca7b7956c3129197126e3e1f234ce52529a9bed1
+
+> docker inspect ef2d2d1292c3c69f956338a9ca7b7956c3129197126e3e1f234ce52529a9bed1 --format {{.Image}}
+sha256:0776c21ffaf09ca90c0a45f5c93942e9d7302a4be503621838141926549bab74
+
+> docker inspect ef2d2d1292c3c69f956338a9ca7b7956c3129197126e3e1f234ce52529a9bed1 --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-members-raft-2
+
+> docker compose --profile membership ps -q raft-3
+ff4d84ed71bb3ef903664384c5b81c0f87e3bcb3bef481c37b24662451aa7133
+
+> docker inspect ff4d84ed71bb3ef903664384c5b81c0f87e3bcb3bef481c37b24662451aa7133 --format {{.Image}}
+sha256:0776c21ffaf09ca90c0a45f5c93942e9d7302a4be503621838141926549bab74
+
+> docker inspect ff4d84ed71bb3ef903664384c5b81c0f87e3bcb3bef481c37b24662451aa7133 --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-members-raft-3
+
+> docker compose --profile membership ps -q raft-4
+66ba992634eb43bf7048f67aa37dbafb315aa9d2b35063d684cc03904e2657bd
+
+> docker inspect 66ba992634eb43bf7048f67aa37dbafb315aa9d2b35063d684cc03904e2657bd --format {{.Image}}
+sha256:0776c21ffaf09ca90c0a45f5c93942e9d7302a4be503621838141926549bab74
+
+> docker inspect 66ba992634eb43bf7048f67aa37dbafb315aa9d2b35063d684cc03904e2657bd --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-members-raft-4
+
+> docker compose --profile membership ps -q raft-5
+d89ff257e85323334ad9a463f03378bc8c0a09a572066f7c4012f7e4057b6bba
+
+> docker inspect d89ff257e85323334ad9a463f03378bc8c0a09a572066f7c4012f7e4057b6bba --format {{.Image}}
+sha256:0776c21ffaf09ca90c0a45f5c93942e9d7302a4be503621838141926549bab74
+
+> docker inspect d89ff257e85323334ad9a463f03378bc8c0a09a572066f7c4012f7e4057b6bba --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-members-raft-5
+
+> docker compose --profile membership ps -q raft-6
+a51f89a10ba999a3e24ebc60c7f3aebaba26307f12ee15975a59f3e98aab10fe
+
+> docker inspect a51f89a10ba999a3e24ebc60c7f3aebaba26307f12ee15975a59f3e98aab10fe --format {{.Image}}
+sha256:0776c21ffaf09ca90c0a45f5c93942e9d7302a4be503621838141926549bab74
+
+> docker inspect a51f89a10ba999a3e24ebc60c7f3aebaba26307f12ee15975a59f3e98aab10fe --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}
+minidb-members-raft-6
+
+> docker compose --profile membership logs --no-color
+raft-4-1  | {"kind":"raft.role","nodeId":"raft-4","role":"follower","term":9,"leader":null}
+raft-4-1  | {"kind":"raft.role","nodeId":"raft-4","role":"follower","term":10,"leader":null}
+raft-2-1  | {"kind":"raft.role","nodeId":"raft-2","role":"follower","term":9,"leader":null}
+raft-1-1  | {"kind":"raft.role","nodeId":"raft-1","role":"follower","term":10,"leader":"raft-3"}
+raft-4-1  | {"kind":"raft.role","nodeId":"raft-4","role":"follower","term":10,"leader":"raft-3"}
+raft-3-1  | {"kind":"raft.role","nodeId":"raft-3","role":"follower","term":9,"leader":null}
+raft-2-1  | {"kind":"raft.role","nodeId":"raft-2","role":"follower","term":10,"leader":null}
+raft-2-1  | {"kind":"raft.role","nodeId":"raft-2","role":"follower","term":10,"leader":"raft-3"}
+raft-3-1  | {"kind":"raft.role","nodeId":"raft-3","role":"candidate","term":10,"leader":null}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-2","request":{"kind":"vote","term":10,"lastLogIndex":13,"lastLogTerm":9,"configurationIndex":13},"reply":{"kind":"vote","term":10,"granted":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-4","request":{"kind":"vote","term":10,"lastLogIndex":13,"lastLogTerm":9,"configurationIndex":13},"reply":{"kind":"vote","term":10,"granted":true}}
+raft-3-1  | {"kind":"raft.role","nodeId":"raft-3","role":"leader","term":10,"leader":"raft-3"}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-2","request":{"kind":"append","term":10,"prevLogIndex":13,"prevLogTerm":9,"entries":[{"term":10,"command":{"type":"noop"}}],"leaderCommit":0},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-4","request":{"kind":"append","term":10,"prevLogIndex":13,"prevLogTerm":9,"entries":[{"term":10,"command":{"type":"noop"}}],"leaderCommit":0},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-5","request":{"kind":"append","term":10,"prevLogIndex":13,"prevLogTerm":9,"entries":[{"term":10,"command":{"type":"noop"}}],"leaderCommit":14},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-5","request":{"kind":"append","term":10,"prevLogIndex":13,"prevLogTerm":9,"entries":[{"term":10,"command":{"type":"noop"}}],"leaderCommit":14},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-6","request":{"kind":"append","term":10,"prevLogIndex":13,"prevLogTerm":9,"entries":[{"term":10,"command":{"type":"noop"}}],"leaderCommit":14},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-1","request":{"kind":"append","term":10,"prevLogIndex":13,"prevLogTerm":9,"entries":[{"term":10,"command":{"type":"noop"}}],"leaderCommit":14},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.write.batch","nodeId":"raft-3","term":10,"size":1,"firstIndex":15,"lastIndex":15}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-1","request":{"kind":"append","term":10,"prevLogIndex":14,"prevLogTerm":10,"entries":[{"term":10,"command":{"type":"put","key":"smoke/2026-11-07T12-01-03.942Z--6b7f112f","value":null}}],"leaderCommit":14},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-6","request":{"kind":"append","term":10,"prevLogIndex":14,"prevLogTerm":10,"entries":[{"term":10,"command":{"type":"put","key":"smoke/2026-11-07T12-01-03.942Z--6b7f112f","value":null}}],"leaderCommit":14},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-4","request":{"kind":"append","term":10,"prevLogIndex":14,"prevLogTerm":10,"entries":[{"term":10,"command":{"type":"put","key":"smoke/2026-11-07T12-01-03.942Z--6b7f112f","value":null}}],"leaderCommit":14},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-2","request":{"kind":"append","term":10,"prevLogIndex":14,"prevLogTerm":10,"entries":[{"term":10,"command":{"type":"put","key":"smoke/2026-11-07T12-01-03.942Z--6b7f112f","value":null}}],"leaderCommit":14},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-5","request":{"kind":"append","term":10,"prevLogIndex":14,"prevLogTerm":10,"entries":[{"term":10,"command":{"type":"put","key":"smoke/2026-11-07T12-01-03.942Z--6b7f112f","value":null}}],"leaderCommit":14},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-1","request":{"kind":"append","term":10,"prevLogIndex":15,"prevLogTerm":10,"entries":[],"leaderCommit":15,"readId":1},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-4","request":{"kind":"append","term":10,"prevLogIndex":15,"prevLogTerm":10,"entries":[],"leaderCommit":15,"readId":1},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-6","request":{"kind":"append","term":10,"prevLogIndex":15,"prevLogTerm":10,"entries":[],"leaderCommit":15,"readId":1},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.write.batch","nodeId":"raft-3","term":10,"size":1,"firstIndex":16,"lastIndex":16}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-2","request":{"kind":"append","term":10,"prevLogIndex":14,"prevLogTerm":10,"entries":[{"term":10,"command":{"type":"put","key":"smoke/2026-11-07T12-01-03.942Z--6b7f112f","value":null}}],"leaderCommit":15},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-6","request":{"kind":"append","term":10,"prevLogIndex":15,"prevLogTerm":10,"entries":[{"term":10,"command":{"type":"delete","key":"smoke/2026-11-07T12-01-03.942Z--6b7f112f"}}],"leaderCommit":15},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-4","request":{"kind":"append","term":10,"prevLogIndex":15,"prevLogTerm":10,"entries":[{"term":10,"command":{"type":"delete","key":"smoke/2026-11-07T12-01-03.942Z--6b7f112f"}}],"leaderCommit":15},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-1","request":{"kind":"append","term":10,"prevLogIndex":15,"prevLogTerm":10,"entries":[{"term":10,"command":{"type":"delete","key":"smoke/2026-11-07T12-01-03.942Z--6b7f112f"}}],"leaderCommit":15},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-5","request":{"kind":"append","term":10,"prevLogIndex":14,"prevLogTerm":10,"entries":[{"term":10,"command":{"type":"put","key":"smoke/2026-11-07T12-01-03.942Z--6b7f112f","value":null}}],"leaderCommit":15},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-2","request":{"kind":"append","term":10,"prevLogIndex":15,"prevLogTerm":10,"entries":[{"term":10,"command":{"type":"delete","key":"smoke/2026-11-07T12-01-03.942Z--6b7f112f"}}],"leaderCommit":15},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-2","request":{"kind":"append","term":10,"prevLogIndex":15,"prevLogTerm":10,"entries":[{"term":10,"command":{"type":"delete","key":"smoke/2026-11-07T12-01-03.942Z--6b7f112f"}}],"leaderCommit":16},"reply":{"kind":"append","term":10,"success":true}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-5","request":{"kind":"append","term":10,"prevLogIndex":15,"prevLogTerm":10,"entries":[{"term":10,"command":{"type":"delete","key":"smoke/2026-11-07T12-01-03.942Z--6b7f112f"}}],"leaderCommit":16},"reply":{"kind":"append","term":10,"success":true}}
+raft-6-1  | {"kind":"raft.role","nodeId":"raft-6","role":"follower","term":9,"leader":null}
+raft-6-1  | {"kind":"raft.role","nodeId":"raft-6","role":"follower","term":10,"leader":"raft-3"}
+raft-5-1  | {"kind":"raft.role","nodeId":"raft-5","role":"follower","term":9,"leader":null}
+raft-5-1  | {"kind":"raft.role","nodeId":"raft-5","role":"follower","term":10,"leader":"raft-3"}
+

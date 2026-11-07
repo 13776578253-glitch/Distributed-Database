@@ -1,0 +1,210 @@
+{
+  "experimentId": "SMOKE",
+  "runId": "2026-11-07T12-02-33.941Z--13aad51c",
+  "startedAt": "2026-11-07T12:02:33.941Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "raft-1 health",
+      "passed": true,
+      "details": {
+        "port": 18181,
+        "status": 200,
+        "health": {
+          "nodeId": "raft-1",
+          "mode": "raft"
+        }
+      }
+    },
+    {
+      "name": "raft-1 image",
+      "passed": true,
+      "details": {
+        "imageId": "sha256:774a7f2e70e52f5bf3ba1da050d1e050c5b3eeaabc4f600f6e0b83ac0876a10d"
+      }
+    },
+    {
+      "name": "raft-1 dedicated volume",
+      "passed": true,
+      "details": {
+        "mount": "minidb-ext-raft-1"
+      }
+    },
+    {
+      "name": "raft-2 health",
+      "passed": true,
+      "details": {
+        "port": 18182,
+        "status": 200,
+        "health": {
+          "nodeId": "raft-2",
+          "mode": "raft"
+        }
+      }
+    },
+    {
+      "name": "raft-2 image",
+      "passed": true,
+      "details": {
+        "imageId": "sha256:774a7f2e70e52f5bf3ba1da050d1e050c5b3eeaabc4f600f6e0b83ac0876a10d"
+      }
+    },
+    {
+      "name": "raft-2 dedicated volume",
+      "passed": true,
+      "details": {
+        "mount": "minidb-ext-raft-2"
+      }
+    },
+    {
+      "name": "raft-3 health",
+      "passed": true,
+      "details": {
+        "port": 18183,
+        "status": 200,
+        "health": {
+          "nodeId": "raft-3",
+          "mode": "raft"
+        }
+      }
+    },
+    {
+      "name": "raft-3 image",
+      "passed": true,
+      "details": {
+        "imageId": "sha256:774a7f2e70e52f5bf3ba1da050d1e050c5b3eeaabc4f600f6e0b83ac0876a10d"
+      }
+    },
+    {
+      "name": "raft-3 dedicated volume",
+      "passed": true,
+      "details": {
+        "mount": "minidb-ext-raft-3"
+      }
+    },
+    {
+      "name": "raft-4 health",
+      "passed": true,
+      "details": {
+        "port": 18184,
+        "status": 200,
+        "health": {
+          "nodeId": "raft-4",
+          "mode": "raft"
+        }
+      }
+    },
+    {
+      "name": "raft-4 image",
+      "passed": true,
+      "details": {
+        "imageId": "sha256:774a7f2e70e52f5bf3ba1da050d1e050c5b3eeaabc4f600f6e0b83ac0876a10d"
+      }
+    },
+    {
+      "name": "raft-4 dedicated volume",
+      "passed": true,
+      "details": {
+        "mount": "minidb-ext-raft-4"
+      }
+    },
+    {
+      "name": "raft-5 health",
+      "passed": true,
+      "details": {
+        "port": 18185,
+        "status": 200,
+        "health": {
+          "nodeId": "raft-5",
+          "mode": "raft"
+        }
+      }
+    },
+    {
+      "name": "raft-5 image",
+      "passed": true,
+      "details": {
+        "imageId": "sha256:774a7f2e70e52f5bf3ba1da050d1e050c5b3eeaabc4f600f6e0b83ac0876a10d"
+      }
+    },
+    {
+      "name": "raft-5 dedicated volume",
+      "passed": true,
+      "details": {
+        "mount": "minidb-ext-raft-5"
+      }
+    },
+    {
+      "name": "confirmed put",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T12-02-33.941Z--13aad51c",
+        "operationId": "1",
+        "engine": "raft",
+        "clientId": "demo",
+        "operation": {
+          "type": "put",
+          "key": "smoke/2026-11-07T12-02-33.941Z--13aad51c",
+          "value": null
+        },
+        "invocationNs": "1283029352382100",
+        "responseNs": "1283029382803400",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "stored": true
+        }
+      }
+    },
+    {
+      "name": "quorum read of stored null",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T12-02-33.941Z--13aad51c",
+        "operationId": "2",
+        "engine": "raft",
+        "clientId": "demo",
+        "operation": {
+          "type": "get",
+          "key": "smoke/2026-11-07T12-02-33.941Z--13aad51c"
+        },
+        "invocationNs": "1283029383325500",
+        "responseNs": "1283029389150800",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": null
+        }
+      }
+    },
+    {
+      "name": "confirmed delete",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T12-02-33.941Z--13aad51c",
+        "operationId": "3",
+        "engine": "raft",
+        "clientId": "demo",
+        "operation": {
+          "type": "delete",
+          "key": "smoke/2026-11-07T12-02-33.941Z--13aad51c"
+        },
+        "invocationNs": "1283029389573700",
+        "responseNs": "1283029414250700",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "deleted": true
+        }
+      }
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

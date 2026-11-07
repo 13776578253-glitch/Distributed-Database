@@ -1,0 +1,582 @@
+{
+  "experimentId": "E1",
+  "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+  "startedAt": "2026-11-07T12:03:09.547Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "load group 1 confirmed",
+      "passed": true,
+      "details": {
+        "offset": 0,
+        "count": 16,
+        "failed": []
+      }
+    },
+    {
+      "name": "load group 2 confirmed",
+      "passed": true,
+      "details": {
+        "offset": 16,
+        "count": 16,
+        "failed": []
+      }
+    },
+    {
+      "name": "load group 3 confirmed",
+      "passed": true,
+      "details": {
+        "offset": 32,
+        "count": 16,
+        "failed": []
+      }
+    },
+    {
+      "name": "load group 4 confirmed",
+      "passed": true,
+      "details": {
+        "offset": 48,
+        "count": 16,
+        "failed": []
+      }
+    },
+    {
+      "name": "load group 5 confirmed",
+      "passed": true,
+      "details": {
+        "offset": 64,
+        "count": 16,
+        "failed": []
+      }
+    },
+    {
+      "name": "load group 6 confirmed",
+      "passed": true,
+      "details": {
+        "offset": 80,
+        "count": 16,
+        "failed": []
+      }
+    },
+    {
+      "name": "load group 7 confirmed",
+      "passed": true,
+      "details": {
+        "offset": 96,
+        "count": 16,
+        "failed": []
+      }
+    },
+    {
+      "name": "load group 8 confirmed",
+      "passed": true,
+      "details": {
+        "offset": 112,
+        "count": 16,
+        "failed": []
+      }
+    },
+    {
+      "name": "concurrent requests used fewer local transactions than entries",
+      "passed": true,
+      "details": {
+        "count": 128,
+        "concurrent": 16,
+        "elapsedMs": 302.69579999999996,
+        "operationsPerSecond": 422.86678573009607,
+        "p50Ms": 26.405,
+        "p95Ms": 48.1857,
+        "localTransactions": 10,
+        "maxBatch": 16,
+        "batchSizes": [
+          13,
+          3,
+          16,
+          15,
+          1,
+          16,
+          16,
+          16,
+          16,
+          16
+        ]
+      }
+    },
+    {
+      "name": "batch leader stopped by SIGKILL",
+      "passed": true,
+      "details": {
+        "exit": "137"
+      }
+    },
+    {
+      "name": "all unconfirmed writes report unknown outcome",
+      "passed": true,
+      "details": [
+        {
+          "status": "fulfilled",
+          "value": {
+            "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+            "operationId": "129",
+            "engine": "raft",
+            "clientId": "pending-0",
+            "operation": {
+              "type": "put",
+              "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/0",
+              "value": 0
+            },
+            "invocationNs": "1283053977332200",
+            "responseNs": "1283055203499000",
+            "outcome": "unknown",
+            "errorCode": "UNKNOWN_OUTCOME"
+          }
+        },
+        {
+          "status": "fulfilled",
+          "value": {
+            "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+            "operationId": "130",
+            "engine": "raft",
+            "clientId": "pending-1",
+            "operation": {
+              "type": "put",
+              "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/1",
+              "value": 1
+            },
+            "invocationNs": "1283053977715500",
+            "responseNs": "1283055202470200",
+            "outcome": "unknown",
+            "errorCode": "UNKNOWN_OUTCOME"
+          }
+        },
+        {
+          "status": "fulfilled",
+          "value": {
+            "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+            "operationId": "131",
+            "engine": "raft",
+            "clientId": "pending-2",
+            "operation": {
+              "type": "put",
+              "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/2",
+              "value": 2
+            },
+            "invocationNs": "1283053978021500",
+            "responseNs": "1283055203706600",
+            "outcome": "unknown",
+            "errorCode": "UNKNOWN_OUTCOME"
+          }
+        },
+        {
+          "status": "fulfilled",
+          "value": {
+            "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+            "operationId": "132",
+            "engine": "raft",
+            "clientId": "pending-3",
+            "operation": {
+              "type": "put",
+              "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/3",
+              "value": 3
+            },
+            "invocationNs": "1283053978257300",
+            "responseNs": "1283055205333000",
+            "outcome": "unknown",
+            "errorCode": "UNKNOWN_OUTCOME"
+          }
+        },
+        {
+          "status": "fulfilled",
+          "value": {
+            "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+            "operationId": "133",
+            "engine": "raft",
+            "clientId": "pending-4",
+            "operation": {
+              "type": "put",
+              "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/4",
+              "value": 4
+            },
+            "invocationNs": "1283053978502400",
+            "responseNs": "1283055204441300",
+            "outcome": "unknown",
+            "errorCode": "UNKNOWN_OUTCOME"
+          }
+        },
+        {
+          "status": "fulfilled",
+          "value": {
+            "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+            "operationId": "134",
+            "engine": "raft",
+            "clientId": "pending-5",
+            "operation": {
+              "type": "put",
+              "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/5",
+              "value": 5
+            },
+            "invocationNs": "1283053978723000",
+            "responseNs": "1283055204161600",
+            "outcome": "unknown",
+            "errorCode": "UNKNOWN_OUTCOME"
+          }
+        },
+        {
+          "status": "fulfilled",
+          "value": {
+            "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+            "operationId": "135",
+            "engine": "raft",
+            "clientId": "pending-6",
+            "operation": {
+              "type": "put",
+              "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/6",
+              "value": 6
+            },
+            "invocationNs": "1283053978941900",
+            "responseNs": "1283055203264600",
+            "outcome": "unknown",
+            "errorCode": "UNKNOWN_OUTCOME"
+          }
+        },
+        {
+          "status": "fulfilled",
+          "value": {
+            "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+            "operationId": "136",
+            "engine": "raft",
+            "clientId": "pending-7",
+            "operation": {
+              "type": "put",
+              "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/7",
+              "value": 7
+            },
+            "invocationNs": "1283053979137000",
+            "responseNs": "1283055204679100",
+            "outcome": "unknown",
+            "errorCode": "UNKNOWN_OUTCOME"
+          }
+        },
+        {
+          "status": "fulfilled",
+          "value": {
+            "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+            "operationId": "137",
+            "engine": "raft",
+            "clientId": "pending-8",
+            "operation": {
+              "type": "put",
+              "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/8",
+              "value": 8
+            },
+            "invocationNs": "1283053979322800",
+            "responseNs": "1283055203907500",
+            "outcome": "unknown",
+            "errorCode": "UNKNOWN_OUTCOME"
+          }
+        },
+        {
+          "status": "fulfilled",
+          "value": {
+            "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+            "operationId": "138",
+            "engine": "raft",
+            "clientId": "pending-9",
+            "operation": {
+              "type": "put",
+              "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/9",
+              "value": 9
+            },
+            "invocationNs": "1283053979532300",
+            "responseNs": "1283055205165200",
+            "outcome": "unknown",
+            "errorCode": "UNKNOWN_OUTCOME"
+          }
+        },
+        {
+          "status": "fulfilled",
+          "value": {
+            "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+            "operationId": "139",
+            "engine": "raft",
+            "clientId": "pending-10",
+            "operation": {
+              "type": "put",
+              "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/10",
+              "value": 10
+            },
+            "invocationNs": "1283053979750400",
+            "responseNs": "1283055204947500",
+            "outcome": "unknown",
+            "errorCode": "UNKNOWN_OUTCOME"
+          }
+        },
+        {
+          "status": "fulfilled",
+          "value": {
+            "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+            "operationId": "140",
+            "engine": "raft",
+            "clientId": "pending-11",
+            "operation": {
+              "type": "put",
+              "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/11",
+              "value": 11
+            },
+            "invocationNs": "1283053979954200",
+            "responseNs": "1283055202989100",
+            "outcome": "unknown",
+            "errorCode": "UNKNOWN_OUTCOME"
+          }
+        }
+      ]
+    },
+    {
+      "name": "majority commits after the batch crash",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+        "operationId": "141",
+        "engine": "raft",
+        "clientId": "new-leader",
+        "operation": {
+          "type": "put",
+          "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/barrier",
+          "value": "majority"
+        },
+        "invocationNs": "1283055211466200",
+        "responseNs": "1283055238119100",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "stored": true
+        }
+      }
+    },
+    {
+      "name": "all confirmed batch entries survive",
+      "passed": true,
+      "details": {
+        "count": 128,
+        "mismatched": []
+      }
+    },
+    {
+      "name": "minority-only suffix is removed after healing",
+      "passed": true,
+      "details": [
+        {
+          "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+          "operationId": "270",
+          "engine": "raft",
+          "clientId": "check-pending-0",
+          "operation": {
+            "type": "get",
+            "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/0"
+          },
+          "invocationNs": "1283058297876700",
+          "responseNs": "1283058304258200",
+          "httpStatus": 200,
+          "outcome": "ok",
+          "result": {
+            "found": false
+          }
+        },
+        {
+          "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+          "operationId": "271",
+          "engine": "raft",
+          "clientId": "check-pending-1",
+          "operation": {
+            "type": "get",
+            "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/1"
+          },
+          "invocationNs": "1283058298228400",
+          "responseNs": "1283058307153600",
+          "httpStatus": 200,
+          "outcome": "ok",
+          "result": {
+            "found": false
+          }
+        },
+        {
+          "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+          "operationId": "272",
+          "engine": "raft",
+          "clientId": "check-pending-2",
+          "operation": {
+            "type": "get",
+            "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/2"
+          },
+          "invocationNs": "1283058298497200",
+          "responseNs": "1283058306396500",
+          "httpStatus": 200,
+          "outcome": "ok",
+          "result": {
+            "found": false
+          }
+        },
+        {
+          "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+          "operationId": "273",
+          "engine": "raft",
+          "clientId": "check-pending-3",
+          "operation": {
+            "type": "get",
+            "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/3"
+          },
+          "invocationNs": "1283058298762300",
+          "responseNs": "1283058306842500",
+          "httpStatus": 200,
+          "outcome": "ok",
+          "result": {
+            "found": false
+          }
+        },
+        {
+          "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+          "operationId": "274",
+          "engine": "raft",
+          "clientId": "check-pending-4",
+          "operation": {
+            "type": "get",
+            "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/4"
+          },
+          "invocationNs": "1283058298997800",
+          "responseNs": "1283058305786400",
+          "httpStatus": 200,
+          "outcome": "ok",
+          "result": {
+            "found": false
+          }
+        },
+        {
+          "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+          "operationId": "275",
+          "engine": "raft",
+          "clientId": "check-pending-5",
+          "operation": {
+            "type": "get",
+            "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/5"
+          },
+          "invocationNs": "1283058299244500",
+          "responseNs": "1283058307410800",
+          "httpStatus": 200,
+          "outcome": "ok",
+          "result": {
+            "found": false
+          }
+        },
+        {
+          "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+          "operationId": "276",
+          "engine": "raft",
+          "clientId": "check-pending-6",
+          "operation": {
+            "type": "get",
+            "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/6"
+          },
+          "invocationNs": "1283058299450500",
+          "responseNs": "1283058307972000",
+          "httpStatus": 200,
+          "outcome": "ok",
+          "result": {
+            "found": false
+          }
+        },
+        {
+          "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+          "operationId": "277",
+          "engine": "raft",
+          "clientId": "check-pending-7",
+          "operation": {
+            "type": "get",
+            "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/7"
+          },
+          "invocationNs": "1283058299773600",
+          "responseNs": "1283058308672500",
+          "httpStatus": 200,
+          "outcome": "ok",
+          "result": {
+            "found": false
+          }
+        },
+        {
+          "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+          "operationId": "278",
+          "engine": "raft",
+          "clientId": "check-pending-8",
+          "operation": {
+            "type": "get",
+            "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/8"
+          },
+          "invocationNs": "1283058300057900",
+          "responseNs": "1283058308448900",
+          "httpStatus": 200,
+          "outcome": "ok",
+          "result": {
+            "found": false
+          }
+        },
+        {
+          "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+          "operationId": "279",
+          "engine": "raft",
+          "clientId": "check-pending-9",
+          "operation": {
+            "type": "get",
+            "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/9"
+          },
+          "invocationNs": "1283058300347100",
+          "responseNs": "1283058308914000",
+          "httpStatus": 200,
+          "outcome": "ok",
+          "result": {
+            "found": false
+          }
+        },
+        {
+          "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+          "operationId": "280",
+          "engine": "raft",
+          "clientId": "check-pending-10",
+          "operation": {
+            "type": "get",
+            "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/10"
+          },
+          "invocationNs": "1283058300567200",
+          "responseNs": "1283058308213200",
+          "httpStatus": 200,
+          "outcome": "ok",
+          "result": {
+            "found": false
+          }
+        },
+        {
+          "runId": "2026-11-07T12-03-09.547Z--12fa6aeb",
+          "operationId": "281",
+          "engine": "raft",
+          "clientId": "check-pending-11",
+          "operation": {
+            "type": "get",
+            "key": "E1/2026-11-07T12-03-09.547Z--12fa6aeb/pending/11"
+          },
+          "invocationNs": "1283058300804800",
+          "responseNs": "1283058307685200",
+          "httpStatus": 200,
+          "outcome": "ok",
+          "result": {
+            "found": false
+          }
+        }
+      ]
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}
