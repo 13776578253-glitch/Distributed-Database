@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "demo": "node scripts/demo.ts",
     "experiment": "node scripts/experiment.ts",
+    "txn:experiment": "node scripts/transaction-experiment.ts",
     "membership": "node scripts/membership.ts",
     "reset:destructive": "node scripts/reset.ts"
   },

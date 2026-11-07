@@ -5,6 +5,7 @@ import type {
   TransactionId, TransactionReadResult, TransactionTrace, TransactionWrite, VersionData,
 } from '../../contracts/transaction.ts';
 import { readValue, VersionStore } from './versions.ts';
+import type { CommittedVersion } from './versions.ts';
 
 type ActiveTransaction = {
   trace: TransactionTrace & { accesses: TransactionAccess[] };
@@ -20,18 +21,44 @@ export type CommitResult =
   | { ok: true; history: CommittedTransaction }
   | { ok: false; error: 'WRITE_CONFLICT'; key: string; history: AbortedTransaction };
 
+/** 同步持久化边界。出错后调用方结束进程，由恢复处理未完成的持久化动作。 */
+export interface TransactionDurability {
+  begin(txnId: TransactionId): void;
+  update(txnId: TransactionId, write: TransactionWrite): void;
+  commit(txnId: TransactionId, commitSeq: CommitSeq): void;
+  abort(txnId: TransactionId): void;
+}
+
+export type RecoveredState = {
+  nextTxnId: number;
+  commitSeq: CommitSeq;
+  versions: readonly CommittedVersion[];
+};
+
 export class TransactionEngine {
   private readonly active = new Map<TransactionId, ActiveTransaction>();
   private readonly locks = new Map<string, TransactionId>();
   private readonly versions = new VersionStore();
+  private readonly durability?: TransactionDurability;
   private nextTxnId = 1;
   private commitSeq: CommitSeq = 0;
+
+  constructor(durability?: TransactionDurability, recovered?: RecoveredState) {
+    this.durability = durability;
+    if (recovered) {
+      this.nextTxnId = recovered.nextTxnId;
+      this.commitSeq = recovered.commitSeq;
+      for (const version of recovered.versions) this.versions.append(version);
+    }
+  }
 
   /** 可选的具名排他锁在取 SI 快照前申请。争用者用新事务重试。 */
   begin(isolation: IsolationLevel, lock?: string): BeginResult {
     if (lock !== undefined && this.locks.has(lock)) return { ok: false, error: 'LOCK_CONFLICT' };
 
-    const txnId = `txn-${this.nextTxnId++}`;
+    const txnId = `txn-${this.nextTxnId}`;
+    this.durability?.begin(txnId);
+    this.nextTxnId++;
     if (lock !== undefined) this.locks.set(lock, txnId);
     this.active.set(txnId, {
       trace: {
@@ -80,7 +107,9 @@ export class TransactionEngine {
       }
     }
 
-    const commitSeq = ++this.commitSeq;
+    const commitSeq = this.commitSeq + 1;
+    this.durability?.commit(txnId, commitSeq);
+    this.commitSeq = commitSeq;
     for (const write of txn.writes.values()) {
       this.versions.append({
         key: write.key, versionId: write.createdVersionId, creatorTxn: txnId,
@@ -91,7 +120,9 @@ export class TransactionEngine {
   }
 
   abort(txnId: TransactionId): AbortedTransaction {
-    return { ...this.finish(this.requireActive(txnId)), status: 'aborted' };
+    const txn = this.requireActive(txnId);
+    this.durability?.abort(txnId);
+    return { ...this.finish(txn), status: 'aborted' };
   }
 
   asOf(key: string, commitSeq: CommitSeq): TransactionReadResult {
@@ -101,11 +132,17 @@ export class TransactionEngine {
     return readValue(this.versions.visible(key, commitSeq)?.data);
   }
 
+  status() {
+    return { commitSeq: this.commitSeq, active: [...this.active.keys()] };
+  }
+
   private write(txnId: TransactionId, key: string, data: VersionData): void {
     const txn = this.requireActive(txnId);
     const write: TransactionWrite = {
-      kind: 'write', key, data, createdVersionId: `${txnId}:${++txn.writeOrdinal}`,
+      kind: 'write', key, data, createdVersionId: `${txnId}:${txn.writeOrdinal + 1}`,
     };
+    this.durability?.update(txnId, write);
+    txn.writeOrdinal++;
     txn.writes.set(key, write);
     txn.trace.accesses.push(write);
   }

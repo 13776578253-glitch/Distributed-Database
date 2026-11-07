@@ -19,6 +19,8 @@
 
 ## 方向三 · MVCC/WAL
 
+按顺序运行 `pnpm txn:experiment T01`、`pnpm txn:experiment T02`、`pnpm txn:experiment T03`。每次运行自动构建事务镜像，创建独立项目和专用卷，采集容器退出状态、原卷重启、HTTP、WAL 与恢复输出。运行结束后停止最后的容器并保留专用卷。
+
 | ID | 动作 | 判定 |
 | --- | --- | --- |
 | T01 | 在提交前后、检查点和 Redo 中强制终止 | 恢复结果符合持久化 COMMIT 边界，无半提交，AS OF 可由日志核对 |

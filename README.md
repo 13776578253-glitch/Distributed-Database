@@ -2,6 +2,24 @@
 
 三人课程项目，依次实现 Raft KV、单节点 MVCC/WAL、外部一致性验证。见[开发计划](docs/PLAN.md)、[任务记录](docs/current-task/)和[实验清单](docs/experiments.md)。
 
+## 单节点事务服务
+
+```sh
+docker compose -f compose.transaction.yaml up -d --build transaction
+docker compose -f compose.transaction.yaml port transaction 8080
+```
+
+使用返回的本地端口调用 `GET /health`、`GET /txn/status`。`POST /txn/begin` 接收 `{"isolation":"SI"}` 或 RC，可选 `lock`。随后在 `POST /txn/<id>/read|put|delete|commit|abort` 操作，读写请求使用 `key`，PUT 另传 `value`。`GET /txn/as-of?key=x&lsn=N` 按 WAL LSN 读取已提交历史。实验观测入口为 `GET /internal/txn/wal`、`GET /internal/txn/recovery` 与 `POST /internal/txn/checkpoint`。默认启动关闭故障注入。
+
+```sh
+pnpm txn:experiment T01
+pnpm txn:experiment T02
+pnpm txn:experiment T03
+docker compose -f compose.transaction.yaml stop transaction
+```
+
+每条实验命令独立启动专用容器和卷，证据写入 `evidence/<ID>/<Run ID>/`。详情见[方向三实验](docs/experiments.md#方向三--mvccwal)。
+
 ## 启动
 
 使用 Node.js 24.21.0、pnpm 11.25.0 和运行中的 Docker Desktop 或 Docker Engine（含 Compose 插件）。

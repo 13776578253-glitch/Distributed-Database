@@ -1,0 +1,302 @@
+{
+  "experimentId": "T03",
+  "runId": "2026-11-07T13-41-46.480Z--f54ca554",
+  "startedAt": "2026-11-07T13:41:46.480Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "transaction uses the dedicated project volume",
+      "passed": true,
+      "details": {
+        "container": "c9ef7b4d676658621e50d51f7b7e2b72ca208aa175654b6ed740b0e454892c47",
+        "name": "txn-t03-f54ca554-boot-1",
+        "volume": "txn-t03-f54ca554_data",
+        "boot": 1
+      }
+    },
+    {
+      "name": "observed SIGKILL exit 137",
+      "passed": true,
+      "details": {
+        "container": "c9ef7b4d676658621e50d51f7b7e2b72ca208aa175654b6ed740b0e454892c47",
+        "exit": "137",
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-11-07T13:41:48.933827527Z",
+          "FinishedAt": "2026-11-07T13:41:50.174962159Z"
+        }
+      }
+    },
+    {
+      "name": "loser has three durable private updates before SIGKILL",
+      "passed": true,
+      "details": {
+        "project": "txn-t03-f54ca554",
+        "loser": "txn-2",
+        "status": {
+          "commitSeq": 1,
+          "active": [
+            "txn-2"
+          ],
+          "pending": 3,
+          "committed": 1,
+          "appliedLsn": 10,
+          "lastLsn": 10
+        },
+        "updates": [
+          6,
+          9,
+          10
+        ]
+      }
+    },
+    {
+      "name": "transaction uses the dedicated project volume",
+      "passed": true,
+      "details": {
+        "container": "4cb2361b510868dd51a5bc5e221e9a1ea784d5cb008d26bbaecccd9bfcf3d1a9",
+        "name": "txn-t03-f54ca554-boot-2",
+        "volume": "txn-t03-f54ca554_data",
+        "boot": 2,
+        "startupFault": "after-clr-wal"
+      }
+    },
+    {
+      "name": "observed SIGKILL exit 137",
+      "passed": true,
+      "details": {
+        "container": "4cb2361b510868dd51a5bc5e221e9a1ea784d5cb008d26bbaecccd9bfcf3d1a9",
+        "point": "after-clr-wal",
+        "exit": "137",
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-11-07T13:41:51.631054488Z",
+          "FinishedAt": "2026-11-07T13:41:52.370618788Z"
+        }
+      }
+    },
+    {
+      "name": "partial undo flushed one CLR with an undo-next link",
+      "passed": true,
+      "details": {
+        "firstClr": {
+          "type": "CLR",
+          "txnId": "txn-2",
+          "versionId": "txn-2:3",
+          "undoneLsn": 10,
+          "undoNextLsn": 9,
+          "lsn": 12,
+          "prevLsn": 11
+        },
+        "updates": [
+          6,
+          9,
+          10
+        ]
+      }
+    },
+    {
+      "name": "transaction uses the dedicated project volume",
+      "passed": true,
+      "details": {
+        "container": "4c3d22b6b962dda2c04efd10b78683cbec33d514cfd565e77cefb3664d4b5186",
+        "name": "txn-t03-f54ca554-boot-3",
+        "volume": "txn-t03-f54ca554_data",
+        "boot": 3
+      }
+    },
+    {
+      "name": "redo replays the durable CLR and undo resumes without duplicating it",
+      "passed": true,
+      "details": {
+        "resumed": {
+          "checkpointLsn": 8,
+          "analysisStartLsn": 9,
+          "redoStartLsn": 7,
+          "redoLsns": [
+            12
+          ],
+          "winners": [],
+          "losers": [
+            "txn-2"
+          ],
+          "undoneLsns": [
+            9,
+            6
+          ]
+        },
+        "clrs": [
+          {
+            "type": "CLR",
+            "txnId": "txn-2",
+            "versionId": "txn-2:3",
+            "undoneLsn": 10,
+            "undoNextLsn": 9,
+            "lsn": 12,
+            "prevLsn": 11
+          },
+          {
+            "type": "CLR",
+            "txnId": "txn-2",
+            "versionId": "txn-2:2",
+            "undoneLsn": 9,
+            "undoNextLsn": 6,
+            "lsn": 13,
+            "prevLsn": 12
+          },
+          {
+            "type": "CLR",
+            "txnId": "txn-2",
+            "versionId": "txn-2:1",
+            "undoneLsn": 6,
+            "undoNextLsn": 5,
+            "lsn": 14,
+            "prevLsn": 13
+          }
+        ]
+      }
+    },
+    {
+      "name": "transaction uses the dedicated project volume",
+      "passed": true,
+      "details": {
+        "container": "cf6025a51cbcd71c8bb28adc08580a46b520d9e01faa42b159ee3541e7bba1da",
+        "name": "txn-t03-f54ca554-control-boot-1",
+        "volume": "txn-t03-f54ca554-control_data",
+        "boot": 1
+      }
+    },
+    {
+      "name": "observed SIGKILL exit 137",
+      "passed": true,
+      "details": {
+        "container": "cf6025a51cbcd71c8bb28adc08580a46b520d9e01faa42b159ee3541e7bba1da",
+        "exit": "137",
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-11-07T13:41:55.43239542Z",
+          "FinishedAt": "2026-11-07T13:41:56.564576972Z"
+        }
+      }
+    },
+    {
+      "name": "loser has three durable private updates before SIGKILL",
+      "passed": true,
+      "details": {
+        "project": "txn-t03-f54ca554-control",
+        "loser": "txn-2",
+        "status": {
+          "commitSeq": 1,
+          "active": [
+            "txn-2"
+          ],
+          "pending": 3,
+          "committed": 1,
+          "appliedLsn": 10,
+          "lastLsn": 10
+        },
+        "updates": [
+          6,
+          9,
+          10
+        ]
+      }
+    },
+    {
+      "name": "transaction uses the dedicated project volume",
+      "passed": true,
+      "details": {
+        "container": "95452f7f7b37cde4e761f67ed3ebb5e55fe8e4b19a39cb2e013972925ce16699",
+        "name": "txn-t03-f54ca554-control-boot-2",
+        "volume": "txn-t03-f54ca554-control_data",
+        "boot": 2
+      }
+    },
+    {
+      "name": "interrupted undo and single recovery have identical terminal state",
+      "passed": true,
+      "details": {
+        "status": {
+          "commitSeq": 1,
+          "active": [],
+          "pending": 0,
+          "committed": 1,
+          "appliedLsn": 15,
+          "lastLsn": 15
+        },
+        "baselineStatus": {
+          "commitSeq": 1,
+          "active": [],
+          "pending": 0,
+          "committed": 1,
+          "appliedLsn": 15,
+          "lastLsn": 15
+        },
+        "values": [
+          {
+            "found": true,
+            "value": "confirmed"
+          },
+          {
+            "found": false
+          }
+        ],
+        "baselineValues": [
+          {
+            "found": true,
+            "value": "confirmed"
+          },
+          {
+            "found": false
+          }
+        ],
+        "control": {
+          "checkpointLsn": 8,
+          "analysisStartLsn": 9,
+          "redoStartLsn": 7,
+          "redoLsns": [],
+          "winners": [],
+          "losers": [
+            "txn-2"
+          ],
+          "undoneLsns": [
+            10,
+            9,
+            6
+          ]
+        }
+      }
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}
