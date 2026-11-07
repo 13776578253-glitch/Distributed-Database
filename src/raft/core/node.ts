@@ -4,14 +4,14 @@
  * asynchronous I/O: storage, time, and message delivery are supplied by the
  * caller, which keeps protocol timing reproducible in tests.
  */
-import type { Operation, Scalar } from '../../contracts/history.ts';
+import type { Operation, OperationResult, Scalar } from '../../contracts/history.ts';
 import type {
-  AppendRequest, ClientReply, Command, Entry, HardState, Role, RpcReply, RpcRequest,
+  AppendRequest, ClientFailure, ClientReply, Command, Entry, HardState, ReadBarrierReply, Role, RpcReply, RpcRequest,
   Storage, VoteRequest, WriteOperation,
 } from './types.ts';
 
 /** 等待应答的客户端请求；deadline 基于调用方注入的单调毫秒时钟。 */
-type Pending = { deadline: number; resolve: (reply: ClientReply) => void };
+type Pending<T> = { deadline: number; resolve: (reply: T) => void };
 /** Leader 对单个 peer 的复制进度；readAck 是该 peer 已确认的最大读编号。 */
 type Progress = { nextIndex: number; matchIndex: number; readAck: number };
 /** 构造参数；electionTimeout 每次调用返回新的随机超时，now 使用 performance.now() 基准。 */
@@ -46,9 +46,9 @@ export class RaftNode {
   /** 仅竞选期间用于计票；除自己的初始一票外，只统计当前任期且 granted 的应答。 */
   private readonly votes = new Set<string>();
   /** 等待提交的客户端写，键为本地日志索引；apply() 兑现。 */
-  private readonly writes = new Map<number, Pending>();
+  private readonly writes = new Map<number, Pending<ClientReply>>();
   /** 等待读屏障的客户端读，键为 Leader 本地 readId。 */
-  private readonly reads = new Map<number, Pending & { key: string; readIndex: number }>();
+  private readonly reads = new Map<number, Pending<ReadBarrierReply> & { readIndex: number }>();
   /** 当前任期与投票；每次变更先持久化再更新内存。 */
   private hard: HardState;
   /** 当前角色；启动时固定为 follower。 */
@@ -98,6 +98,15 @@ export class RaftNode {
     return this.log.slice(0, this.commitIndex);
   }
 
+  /** 只读取本地已应用状态；调用方决定是否需要新鲜的多数派读屏障。 */
+  readLocal(key: string): { appliedIndex: number; result: Extract<OperationResult, { found: boolean }> } {
+    const value = this.kv.get(key);
+    return {
+      appliedIndex: this.lastApplied,
+      result: value === undefined ? { found: false } : { found: true, value },
+    };
+  }
+
   /** 取走并清空出站消息；同一 peer 的旧消息已被最新消息覆盖。 */
   drain() {
     const messages = [...this.outbox.entries()];
@@ -130,12 +139,19 @@ export class RaftNode {
   /** 提交客户端操作；非 Leader 立即返回 NOT_LEADER，否则在提交应用、读屏障完成、超时或降级后兑现。 */
   execute(operation: Operation, now: number): Promise<ClientReply> {
     if (operation.type !== 'get') return this.executeWrites([operation], now)[0];
+    return this.readBarrier(now).then(barrier => barrier.ok
+      ? { ok: true, result: this.readLocal(operation.key).result }
+      : barrier);
+  }
+
+  /** Leader 读和 Follower ReadIndex 共用屏障。每次请求登记一个新的读编号。 */
+  readBarrier(now: number): Promise<ReadBarrierReply> {
     if (this.role !== 'leader') return Promise.resolve(this.error('NOT_LEADER'));
 
     return new Promise(resolve => {
       const pending = { deadline: now + this.options.requestMs, resolve };
       // 读不写日志：记录发起时的 commitIndex，等待本任期 noop、多数派 readAck 和本地应用进度。
-      this.reads.set(++this.readId, { ...pending, key: operation.key, readIndex: this.commitIndex });
+      this.reads.set(++this.readId, { ...pending, readIndex: this.commitIndex });
       this.completeReads();
       this.replicate(now);
     });
@@ -200,7 +216,7 @@ export class RaftNode {
     else if (peer.matchIndex < this.log.length) this.sendAppend(from);
   }
 
-  private error(error: Extract<ClientReply, { ok: false }>['error']): ClientReply {
+  private error(error: ClientFailure['error']): ClientFailure {
     return { ok: false, error, leader: this.leader };
   }
 
@@ -403,9 +419,9 @@ export class RaftNode {
       const acknowledgements = 1 + [...this.progress.values()].filter(peer => peer.readAck >= id).length;
       // 三个条件缺一不可：noop 已应用；多数派确认本次 readId；状态已应用到发起时的 readIndex。
       if (acknowledgements < this.quorum || this.lastApplied < pending.readIndex) continue;
-      const value = this.kv.get(pending.key);
-      // 键缺失返回 found:false，与保存的 JSON null 区分。
-      pending.resolve({ ok: true, result: value === undefined ? { found: false } : { found: true, value } });
+      pending.resolve({
+        ok: true, term: this.hard.term, readIndex: Math.max(pending.readIndex, this.leaderStartIndex),
+      });
       this.reads.delete(id);
     }
   }

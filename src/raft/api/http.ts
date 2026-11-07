@@ -6,6 +6,7 @@
  */
 import { createHash } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { isOperation } from '../../contracts/history.ts';
 import type { Operation } from '../../contracts/history.ts';
 import { rpcPath } from '../adapters/http-transport.ts';
@@ -54,6 +55,32 @@ export function raftHttp(
   faultEnabled: boolean,
 ) {
   const write = batchWrites(node, flush);
+
+  /** Follower 只返回自己的已应用状态。Safe 模式必须先拿到本次请求的新鲜读索引。 */
+  async function followerRead(response: ServerResponse, key: string, consistency: 'stale' | 'safe-follower') {
+    const { nodeId, role, leader } = node.status();
+    if (role !== 'follower') return send(response, 409, { ok: false, error: 'NOT_FOLLOWER', leader });
+    if (consistency === 'stale') {
+      return send(response, 200, { ok: true, consistency, nodeId, ...node.readLocal(key) });
+    }
+
+    const deadline = performance.now() + 2200;
+    const barrier = leader === null ? undefined : await transport.requestReadIndex(leader);
+    while (barrier && performance.now() < deadline) {
+      const state = node.status();
+      if (state.role !== 'follower') {
+        return send(response, 409, { ok: false, error: 'NOT_FOLLOWER', leader: state.leader });
+      }
+      if (state.lastApplied >= barrier.readIndex) {
+        return send(response, 200, {
+          ok: true, consistency, nodeId, term: barrier.term, readIndex: barrier.readIndex, ...node.readLocal(key),
+        });
+      }
+      await sleep(10);
+    }
+    return send(response, 503, { ok: false, error: 'NO_QUORUM', leader: node.status().leader });
+  }
+
   return async (request: IncomingMessage, response: ServerResponse) => {
     let url: URL;
     try {
@@ -88,12 +115,16 @@ export function raftHttp(
       const key = url.searchParams.get('key');
       // 缺失或空 key 均拒绝；契约要求 key 非空。
       if (!key) return send(response, 400, { error: 'INVALID_OPERATION' });
+      const consistency = url.searchParams.get('consistency');
+      if (consistency === 'stale' || consistency === 'safe-follower') return followerRead(response, key, consistency);
+      if (consistency !== null) return send(response, 400, { error: 'INVALID_CONSISTENCY' });
       return execute({ type: 'get', key });
     }
     const kind = path === rpcPath.vote ? 'vote' : path === rpcPath.append ? 'append' : undefined;
+    const readIndex = path === rpcPath.readIndex;
     const fault = path === '/internal/fault/links' && faultEnabled;
     // 只接受 POST 的内部 RPC、故障端点和 KV 写路径；其余路径 404。
-    if (request.method !== 'POST' || (!kind && !fault && path !== '/kv/put' && path !== '/kv/delete')) {
+    if (request.method !== 'POST' || (!kind && !readIndex && !fault && path !== '/kv/put' && path !== '/kv/delete')) {
       return send(response, 404, { error: 'NOT_FOUND' });
     }
 
@@ -108,17 +139,24 @@ export function raftHttp(
     }
     if (!record(body)) return send(response, 400, { error: 'INVALID_BODY' });
 
-    if (kind) {
-      const { from, request: rpc } = body;
-      // 来源必须是配置中的其他成员，载荷形状必须与 kind 匹配，避免伪造 RPC 进入核心。
-      if (typeof from !== 'string' || !peers.includes(from) || !isRpc(rpc, kind)) {
+    if (kind || readIndex) {
+      const { from } = body;
+      // RPC 来源必须是配置中的其他成员。
+      if (typeof from !== 'string' || !peers.includes(from)) {
         return send(response, 400, { error: 'INVALID_RPC' });
       }
       // 入站阻断与出站共用同一集合；被阻断的 RPC 在进入协议核心前返回 503。
       if (transport.isBlocked(from)) return send(response, 503, { error: 'LINK_BLOCKED' });
-      const reply = node.receiveRequest(from, rpc, performance.now());
+      if (kind) {
+        const rpc = body.request;
+        if (!isRpc(rpc, kind)) return send(response, 400, { error: 'INVALID_RPC' });
+        const reply = node.receiveRequest(from, rpc, performance.now());
+        flush();
+        return send(response, 200, reply);
+      }
+      const barrier = node.readBarrier(performance.now());
       flush();
-      return send(response, 200, reply);
+      return send(response, 200, await barrier);
     }
     if (fault) {
       const { blockedPeers } = body;

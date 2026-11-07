@@ -1,0 +1,21 @@
+{
+  "startedAt": "2026-11-07T10:14:32.618Z",
+  "endedAt": "2026-11-07T10:14:48.435Z",
+  "gitSha": "46ed1315565fe9f0af5f97b2162585bcc5013b05",
+  "gitDirty": true,
+  "parameters": {
+    "mode": "raft-smoke",
+    "nodeIds": [
+      "raft-1",
+      "raft-2",
+      "raft-3",
+      "raft-4",
+      "raft-5"
+    ],
+    "image": "minidb-ext:local"
+  },
+  "environment": {
+    "node": "v24.21.0",
+    "imageId": "sha256:c934a02e86ecec24df792c6dcb46b756b99e7d4f635b3153f058c71f54feb35d"
+  }
+}

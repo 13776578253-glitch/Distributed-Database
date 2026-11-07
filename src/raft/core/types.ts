@@ -56,6 +56,11 @@ export type RpcReply =
  * 客户端应答。NOT_LEADER 表示操作未执行；NO_QUORUM 表示读未获多数派确认；
  * UNKNOWN_OUTCOME 表示写可能已生效，调用方不得按失败处理。
  */
-export type ClientReply =
-  | { ok: true; result: OperationResult }
-  | { ok: false; error: 'NOT_LEADER' | 'NO_QUORUM' | 'UNKNOWN_OUTCOME'; leader: string | null };
+export type ClientFailure = {
+  ok: false; error: 'NOT_LEADER' | 'NO_QUORUM' | 'UNKNOWN_OUTCOME'; leader: string | null;
+};
+export type ClientReply = { ok: true; result: OperationResult } | ClientFailure;
+
+/** 一次新鲜多数派读屏障的任期与最低应用索引。 */
+export type ReadBarrier = { ok: true; term: number; readIndex: number };
+export type ReadBarrierReply = ReadBarrier | ClientFailure;

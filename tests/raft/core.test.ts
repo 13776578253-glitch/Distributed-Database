@@ -196,6 +196,18 @@ describe('Raft core', () => {
     expect(await read).toEqual({ ok: true, result: { found: false } });
   });
 
+  it('issues a fresh barrier for every follower read index request', async () => {
+    const cluster = startCluster();
+    cluster.step(100);
+    const leader = cluster.node('a');
+    const first = leader.readBarrier(cluster.now);
+    cluster.pump();
+    expect(await first).toEqual({ ok: true, term: 1, readIndex: 1 });
+    const next = leader.readBarrier(cluster.now);
+    cluster.step(300, () => false);
+    expect(await next).toMatchObject({ ok: false, error: 'NO_QUORUM' });
+  });
+
   it('times out minority operations and replaces the conflicting suffix after healing', async () => {
     const cluster = startCluster();
     cluster.step(100);

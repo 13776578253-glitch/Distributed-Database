@@ -1,16 +1,18 @@
-import { docker, image, nodeIds } from './docker.ts';
+import { docker, image, labName, nodeIds, nodePort } from './docker.ts';
 import { openEvidence } from './evidence.ts';
 import { raftClient } from './raft-client.ts';
-import { batchExperiment } from './raft-extension-experiments.ts';
+import { batchExperiment, followerReadExperiment } from './raft-extension-experiments.ts';
 
 const id = process.argv[2];
-if (id !== 'R01' && id !== 'R02' && id !== 'R03' && id !== 'E1') {
-  console.error('Usage: pnpm experiment R01|R02|R03|E1');
+if (id !== 'R01' && id !== 'R02' && id !== 'R03' && id !== 'E1' && id !== 'E2') {
+  console.error('Usage: pnpm experiment R01|R02|R03|E1|E2');
   process.exit(1);
 }
 
 const electionLimitMs = 8000;
-const evidence = openEvidence(id, `pnpm experiment ${id}`, { electionLimitMs, nodeIds });
+const evidence = openEvidence(id, `pnpm experiment ${id}`, {
+  electionLimitMs, labName, nodeIds, ports: nodeIds.map((_, index) => nodePort(index)),
+});
 const client = raftClient(evidence);
 const runDocker = (args: string[]) => docker(args, evidence.log);
 const key = `${id}/${evidence.runId}`;
@@ -118,6 +120,7 @@ try {
   if (id === 'R02') await partition();
   if (id === 'R03') await captureHistory();
   if (id === 'E1') await batchExperiment(evidence, client, runDocker);
+  if (id === 'E2') await followerReadExperiment(evidence, client);
   runDocker(['compose', 'logs', '--no-color', '--since', evidence.startedAt]);
   evidence.finish(id === 'R03' ? 'INCONCLUSIVE' : 'PASS', { imageId, node: process.version });
 } catch (error) {

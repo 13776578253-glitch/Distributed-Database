@@ -7,6 +7,9 @@ import type { openEvidence } from './evidence.ts';
 
 type Status = ReturnType<RaftNode['status']> & { committedDigest: string };
 type Evidence = ReturnType<typeof openEvidence>;
+type ReadMode = 'stale' | 'safe-follower';
+type ReadObservation = { consistency?: ReadMode; readIndex?: number; appliedIndex?: number; term?: number };
+type CallHistory = ClientHistory & ReadObservation & { httpStatus?: number };
 
 const address = (nodeId: string) => nodeUrl(nodeIds.indexOf(nodeId));
 
@@ -61,15 +64,18 @@ export function raftClient(evidence: Evidence) {
         && node.committedDigest === nodes[0].committedDigest));
   }
 
-  async function call(nodeId: string, clientId: string, operation: Operation): Promise<ClientHistory> {
+  async function call(nodeId: string, clientId: string, operation: Operation, consistency?: ReadMode): Promise<CallHistory> {
     const invocation = {
       runId: evidence.runId, operationId: String(++sequence), engine: 'raft' as const,
       clientId, operation, invocationNs: process.hrtime.bigint().toString(),
     };
-    evidence.event('client.invoke', { ...invocation, nodeId });
+    evidence.event('client.invoke', { ...invocation, nodeId, consistency });
     const url = new URL(`${address(nodeId)}/kv`);
     const init: RequestInit = { signal: AbortSignal.timeout(3000) };
-    if (operation.type === 'get') url.searchParams.set('key', operation.key);
+    if (operation.type === 'get') {
+      url.searchParams.set('key', operation.key);
+      if (consistency) url.searchParams.set('consistency', consistency);
+    }
     else {
       url.pathname += `/${operation.type}`;
       init.method = 'POST';
@@ -77,19 +83,21 @@ export function raftClient(evidence: Evidence) {
       init.body = JSON.stringify(operation);
     }
 
-    let history: ClientHistory;
+    let history: CallHistory;
     try {
       const response = await fetch(url, init);
-      const reply = await response.json() as ClientReply;
+      const reply = await response.json() as ClientReply & ReadObservation;
       const responseNs = process.hrtime.bigint().toString();
+      const observed = { ...invocation, responseNs, httpStatus: response.status };
       history = reply.ok
-        ? { ...invocation, responseNs, outcome: 'ok', result: reply.result }
-        : { ...invocation, responseNs, outcome: reply.error === 'UNKNOWN_OUTCOME' ? 'unknown' : 'rejected',
+        ? { ...observed, outcome: 'ok', result: reply.result, consistency: reply.consistency,
+          readIndex: reply.readIndex, appliedIndex: reply.appliedIndex, term: reply.term }
+        : { ...observed, consistency, outcome: reply.error === 'UNKNOWN_OUTCOME' ? 'unknown' : 'rejected',
           errorCode: reply.error };
     } catch (error) {
       if (!networkFailure(error)) throw error;
       history = {
-        ...invocation, responseNs: process.hrtime.bigint().toString(), outcome: 'unknown',
+        ...invocation, consistency, responseNs: process.hrtime.bigint().toString(), outcome: 'unknown',
         errorCode: error instanceof DOMException && error.name === 'TimeoutError' ? 'TIMEOUT' : 'UNKNOWN_OUTCOME',
       };
     }
