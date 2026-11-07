@@ -1,23 +1,28 @@
 # 开发顺序
 
-最近的开发任务是[启动五节点 Compose 并验收 Raft KV](current-task/2026-11-06-raft-compose.md)。后续任务按实际需求在 `current-task/` 记录。
+Raft 扩展 E0–E4 已完成，补齐[协议边界回归](current-task/2026-11-07-raft-protocol-freeze.md)后冻结。验收记录见 [E0–E2](current-task/2026-11-07-raft-extensions-e0-e2.md)、[E3](current-task/2026-11-07-raft-snapshots.md)和 [E4 联合配置](current-task/2026-11-07-raft-membership.md)。
+
+Raft、MVCC/WAL 和一致性验证的后端核心已验收并冻结。后续范围为注释、文档、可视化探针和前端所需数据结构。
 
 | 阶段 | 状态 | 范围 |
 | --- | --- | --- |
 | S0 · 脚手架 | 已验收 | 公共契约、工具链、Compose 冒烟 |
 | S1 · Raft 纯核心 | 已验收 | 选举、复制、提交与读屏障 |
 | S2 · 容器 Raft | 已验收 | R01/R02 和 R03 历史采集，R03 判定在 S4 |
-| S3 · MVCC/WAL | 待开始 | RC/SI、墓碑和写冲突、自写 WAL、检查点、AS OF、Analysis/Redo/Undo 与 CLR，验收 T01/T02/T03 |
-| S4 · 一致性验证 | 待开始 | V01/V02/V03、R03 和 T02 历史回放 |
-| S5 · 课程交付 | 待开始 | 演示、选型对比、时序图和报告 |
+| S3A · MVCC | 已实现 | [内存事务、版本链与历史契约](current-task/2026-11-07-s3a-mvcc.md)，确定性隔离与写偏差通过 |
+| S3B · WAL | 已验证 | 独立 WAL、SQLite 版本落盘与提交边界 |
+| S3C · Recovery | 已验证 | Checkpoint、Analysis/Redo/Undo、CLR 与恢复中断 |
+| S3D · 系统实验 | 已验证 | [独立事务服务及 T01/T02/T03 证据](current-task/2026-11-07-s3b-s3d-wal-recovery.md)，真实 SIGKILL 和原卷恢复 |
+| S4A–S4D · 一致性验证 | 已验收 | [V01/V02/V03、R03 与 T02 回放](current-task/2026-11-07-s4-verification.md)，以及[六维选型对比](comparison.md) |
+| S5 · 课程交付 | 待开始 | 注释、文档、时序图、报告、可视化探针和前端数据结构 |
 
 实验运行器通过公开 API 或故障接口操作。Raft term 和 log index、事务 LSN、实验 operation ID 各自独立。
 
 三个方向的复现入口见[实验清单](experiments.md)。选型对比、时序图和报告分别放在 `docs/comparison.md`、`docs/diagrams/` 和 `docs/report.pdf`，成稿后逐项查看。
 
-## Raft 观测控制台（拟议）
+## 数据库观测控制台
 
-第一批已交付一键启动、五节点状态聚合、拓扑和节点详情。见[首批任务记录](current-task/2026-11-06-raft-console.md)。第二批已接入[实时事件与实验回放](current-task/2026-11-06-raft-console-timeline.md)，第三批已接入[实验调度和服务管理](current-task/2026-11-06-raft-console-operations.md)。Raft 观测接口的扩展单独讨论，Transaction 与验证器的接入分别跟随 S3 与 S4。
+第一批已交付一键启动、五节点状态聚合、拓扑和节点详情。见[首批任务记录](current-task/2026-11-06-raft-console.md)。第二批已接入[实时事件与实验回放](current-task/2026-11-06-raft-console-timeline.md)，第三批已接入[实验调度和服务管理](current-task/2026-11-06-raft-console-operations.md)。冻结版联调接入 Transaction、Verification 和 Raft 扩展状态。
 
 ### 进程和数据流
 
@@ -30,14 +35,15 @@
 
 | 接口（拟定） | 数据与行为 |
 | --- | --- |
-| `GET /api/cluster` | 并行读取五个 `/internal/raft/status`，每节点独立超时并校验身份，返回采样时间、状态或失败原因。每次保持五个固定成员。同一采样合并在途请求，客户端默认 3 秒轮询，可改为 1、5、10 秒或暂停。暂停或采样失败时标明数据时效。 |
+| `GET /api/cluster` | 并行读取各节点 `/internal/raft/status`，每节点独立超时并校验身份。默认五节点，成员实验配置六节点。同一采样合并在途请求，客户端默认 3 秒轮询。 |
 | `GET /api/events/stream` | 第二批启用。共享 Docker 日志监听，以带时间戳的真实输出解析角色、投票、追加和阻断事件。SSE 提供心跳、事件 ID、有界补发和缺口提示。监听在容器更换后重新挂接，历史排序保留来源与各自时钟信息。 |
 | `GET /api/runs`、`GET /api/runs/:experimentId/:runId` | 第二批启用。读取已记录的结果、元数据和 JSONL，按 Run ID 和文件白名单打开原始证据。按 `events.jsonl` 的时间戳回放，旧 `raw.log` 作为独立原文查看。 |
 | `GET /api/services` | 返回实际监听地址、Observer PID、Compose 容器状态、日志采集状态和项目操作锁。节点 HTTP 探测仍由集群状态接口提供。 |
 | `GET /api/operations`、`POST /api/operations` | 查询任务与项目锁，或提交 R01–R03、指定项目成员重启。 |
 | `POST /api/services/restart-observer` | 获取项目锁后，由启动器重启 Observer。 |
+| `GET /api/transaction/{status,wal,recovery,as-of}` | 发现独立事务 Compose 项目的本机端口，转发到冻结服务对应的四个只读 HTTP 接口。 |
 
-首页分别展示 `HTTP 可达数 / 5`、`多数派门槛 3 / 5`、节点自报 Leader 和 `ready`。节点的 `ready` 表示本任期 no-op 已提交的 Leader。R02 的 RPC 分区可以发生在五个节点 HTTP 均可达时，实时协议多数派先显示待观测。实验回放可显示 Evidence 中实际记录的分组和结果。采样出现多个自报 Leader 时保留各自节点与任期。
+首页分别展示 HTTP 可达数、节点自报 Leader 和 `ready`。节点详情展示当前投票配置，包括联合配置的两个成员组。实时协议多数派显示待观测。实验回放可显示 Evidence 中实际记录的分组和结果。采样出现多个自报 Leader 时保留各自节点与任期。
 
 ### 五个页面
 
@@ -45,8 +51,8 @@
 | --- | --- | --- |
 | Raft Cluster | 展示采样时效、可达数和 Leader。拓扑保留五个成员，由最高观测任期的唯一自报 Leader 占顶位，近期 RPC 应答来自容器日志。点击节点查看任期、日志进度和近期应答。窄屏将拓扑和详情纵向排列。 | 按条目查看节点副本、提交与应用状态。 |
 | Raft Timeline | 实时和实验回放两种模式，按节点、任期、事件类别筛选，追加批次支持按索引范围匹配。选中一条后查看来源和原始 JSON。实时可暂停自动跟随。 | 补齐 RPC 失败、精确提交与应用事件。 |
-| Transaction | 事务、版本链、WAL 与恢复四个区域显示接入阶段。 | S3 提供事务记录、LSN、Checkpoint 和 Analysis/Redo/Undo/CLR 轨迹后再接入。 |
-| Verification | 以 Run ID 浏览 R01、R02、R04 的原始证据和断言。R03 展示操作调用及返回，判定为 `INCONCLUSIVE`。R04 标记为隔离探针历史。 | S4 接入线性一致性判定、依赖图和反例。调度能力上线后可创建实验。 |
+| Transaction | 展示活动事务、WAL 进度、按键筛选的版本写入、按 LSN 历史查询、Checkpoint 和 Analysis/Redo/Undo/CLR，并可回放 T01–T03。 | 事务写操作继续由实验入口管理。 |
+| Verification | 从 V01–V03 显示线性化顺序、依赖边和不变量反例，链接实际来源 Run。R03 原采集保留 `INCONCLUSIVE`。 | 通过 `pnpm verify` 生成新记录。 |
 | Settings | 服务监听和 Docker 状态只读。数据刷新、12/24 小时制及浅色/深色/跟随系统为本地偏好。日志策略先提供显示过滤、暂停跟随和有界缓存。 | 观测服务重启由启动器管理。项目节点重启走调度器，展示执行、恢复与失败状态。 |
 
 视觉采用固定侧栏、紧凑指标卡、细边框和低阴影。浅色为暖白与紫灰，深色为蓝灰，青蓝突出交互焦点，角色和故障状态同时使用文字。任期、索引和原始日志使用等宽数字。两套主题分别验证正文对比度，节点与详情支持键盘导航。刷新保持节点位置，连接状态变更提供可访问提示。

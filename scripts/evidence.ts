@@ -53,5 +53,5 @@ export function openEvidence(experimentId: string, command: string, parameters: 
     return result;
   }
 
-  return { runId, directory, event, log, assert, finish };
+  return { runId, directory, startedAt, event, log, assert, finish };
 }

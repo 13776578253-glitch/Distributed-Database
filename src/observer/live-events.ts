@@ -13,11 +13,13 @@ const windowMs = 8000;
 export function liveEvents(members: readonly string[], {
   capacity = 400,
   now = Date.now,
+  membershipLab = false,
   read = async () => {
     const options = { encoding: 'utf8' as const, timeout: 1200, maxBuffer: 512 * 1024, windowsHide: true };
+    const compose = membershipLab ? ['compose', '--profile', 'membership'] : ['compose'];
     const [logs, containers] = await Promise.all([
-      exec('docker', ['compose', 'logs', '--timestamps', '--no-log-prefix', '--no-color', '--since', '8s', ...members], options),
-      exec('docker', ['compose', 'ps', '--all', '--quiet', ...members], options),
+      exec('docker', [...compose, 'logs', '--timestamps', '--no-log-prefix', '--no-color', '--since', '8s', ...members], options),
+      exec('docker', [...compose, 'ps', '--all', '--quiet', ...members], options),
     ]);
     return { logs: logs.stdout, containers: containers.stdout.trim().split(/\s+/).sort().join(' ') };
   },

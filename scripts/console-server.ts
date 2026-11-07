@@ -9,15 +9,18 @@ import { build } from 'vite';
 import { clusterReader } from '../src/observer/cluster.ts';
 import { evidenceReader } from '../src/observer/evidence.ts';
 import { liveEvents } from '../src/observer/live-events.ts';
+import { transactionReader } from '../src/observer/transaction.ts';
 import { acquireProjectLock, ProjectBusy, readProjectLock } from './cluster-lock.ts';
 import { prepareConsoleCluster } from './console-cluster.ts';
 import { composeServices } from './console-services.ts';
+import { membershipLab } from './docker.ts';
 import { operationJobs } from './operation-jobs.ts';
 import { parseOperation } from './operation-worker.ts';
 
 const host = '127.0.0.1';
 const port = Number(process.env.CONSOLE_PORT ?? 5173);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid CONSOLE_PORT');
+const readTransaction = transactionReader();
 
 const mimeTypes: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -45,7 +48,7 @@ const server = createServer({ requestTimeout: 10000 });
 server.listen(port, host);
 await once(server, 'listening');
 const cluster = prepareConsoleCluster(undefined, { initialize: !process.argv.includes('--attach-only') });
-const events = liveEvents(cluster.targets.map(target => target.nodeId));
+const events = liveEvents(cluster.targets.map(target => target.nodeId), { membershipLab });
 const evidence = evidenceReader();
 const jobs = operationJobs(cluster.project);
 const listener = `http://${host}:${port}`;
@@ -104,8 +107,14 @@ server.on('request', async (request, response) => {
   }
   try {
     if (path === '/api/cluster') return json(response, 200, await readCluster());
+    const transaction = /^\/api\/transaction\/(status|wal|recovery|as-of)$/.exec(path)?.[1];
+    if (transaction === 'status' || transaction === 'wal' || transaction === 'recovery' || transaction === 'as-of') {
+      const sample = await readTransaction(transaction, new URLSearchParams(request.url?.slice(path.length + 1)));
+      return json(response, sample.status, sample.data);
+    }
     if (path === '/api/operations') return json(response, 200, {
-      project: cluster.project, jobs: jobs.list(), lock: cluster.project ? readProjectLock(cluster.project) : null,
+      project: cluster.project, membershipLab, jobs: jobs.list(),
+      lock: cluster.project ? readProjectLock(cluster.project) : null,
     });
     if (path === '/api/services') return json(response, 200, {
       listener, pid: process.pid, project: cluster.project,

@@ -1,6 +1,7 @@
 /** Checks the timestamped, payload-free RPC projection used by the console. */
 import { describe, expect, it } from 'vitest';
 import { projectRpcReplies } from '../../src/observer/rpc-observation.ts';
+import { containerEvent } from '../../src/observer/timeline.ts';
 
 const now = Date.parse('2026-11-06T12:00:10.000Z');
 const members = ['raft-1', 'raft-2', 'raft-3'];
@@ -30,5 +31,13 @@ describe('recent RPC observation', () => {
     ].join('\n');
 
     expect(projectRpcReplies(logs, members, now)).toEqual([]);
+  });
+
+  it('retains the actual snapshot boundary and follower read index', () => {
+    const snapshot = '2026-11-06T12:00:08Z {"kind":"raft.rpc","from":"raft-1","to":"raft-2","request":{"kind":"snapshot","term":4,"lastIncludedIndex":18},"reply":{"kind":"snapshot","success":true}}';
+    const read = '2026-11-06T12:00:09Z {"kind":"raft.read-index","from":"raft-3","to":"raft-1","reply":{"ok":true,"term":4,"readIndex":21}}';
+    expect(containerEvent(snapshot)?.event).toMatchObject({ kind: 'snapshot', term: 4, indexSamples: [18] });
+    expect(containerEvent(read)?.event).toMatchObject({ kind: 'read-index', term: 4, indexSamples: [21] });
+    expect(projectRpcReplies(snapshot + '\n' + read, members, now).map(rpc => rpc.kind)).toEqual(['read-index', 'snapshot']);
   });
 });

@@ -1,0 +1,30 @@
+{
+  "experimentId": "R03",
+  "runId": "2026-11-07T10-15-02.276Z--28bfcbfc",
+  "startedAt": "2026-11-07T10:15:02.276Z",
+  "status": "INCONCLUSIVE",
+  "assertionResults": [
+    {
+      "name": "six invocations and returns captured",
+      "passed": true,
+      "details": {
+        "operations": 6
+      }
+    },
+    {
+      "name": "client calls overlap",
+      "passed": true,
+      "details": {
+        "firstResponse": "1276566160721700",
+        "secondInvocation": "1276566137846200"
+      }
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

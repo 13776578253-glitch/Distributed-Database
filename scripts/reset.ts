@@ -1,14 +1,15 @@
 import { acquireProjectLock } from './cluster-lock.ts';
 import { configuredVolumes, readComposeConfig } from './console-cluster.ts';
-import { docker } from './docker.ts';
+import { docker, labName, labNodeIds, membershipLab } from './docker.ts';
 
+if (membershipLab && labName === 'minidb-lab') throw new Error('Use an isolated RAFT_LAB_NAME for membership experiments');
 if (!process.argv.includes('--confirm')) {
-  console.error('This deletes all five Raft volumes. Run pnpm reset:destructive --confirm to proceed.');
+  console.error(`This deletes all ${labNodeIds.length} Raft volumes. Run pnpm reset:destructive --confirm to proceed.`);
   process.exit(1);
 }
 
 const config = readComposeConfig();
-const volumes = configuredVolumes(config);
+const volumes = configuredVolumes(config, labNodeIds);
 const lease = acquireProjectLock(config.name, 'reset');
 try {
   docker(['compose', 'down']);

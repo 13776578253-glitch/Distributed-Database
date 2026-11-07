@@ -1,8 +1,8 @@
-name: minidb-lab
+name: "${RAFT_LAB_NAME:-minidb-lab}"
 
 x-raft: &raft
   build: .
-  image: minidb-lab:local
+  image: "${RAFT_LAB_NAME:-minidb-lab}:local"
   healthcheck:
     test: ["CMD", "node", "-e", "fetch('http://localhost:8080/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
     interval: 2s
@@ -11,37 +11,45 @@ x-raft: &raft
 
 x-raft-env: &raft-env
   FAULTS_ENABLED: "1"
+  RAFT_MEMBERSHIP: "${RAFT_MEMBERSHIP:-0}"
 
 services:
   raft-1:
     <<: *raft
     environment: { <<: *raft-env, NODE_ID: raft-1 }
-    ports: ["127.0.0.1:18081:8080"]
+    ports: ["127.0.0.1:${RAFT_PORT_PREFIX:-1808}1:8080"]
     volumes: ["raft-1:/data"]
   raft-2:
     <<: *raft
     environment: { <<: *raft-env, NODE_ID: raft-2 }
-    ports: ["127.0.0.1:18082:8080"]
+    ports: ["127.0.0.1:${RAFT_PORT_PREFIX:-1808}2:8080"]
     volumes: ["raft-2:/data"]
   raft-3:
     <<: *raft
     environment: { <<: *raft-env, NODE_ID: raft-3 }
-    ports: ["127.0.0.1:18083:8080"]
+    ports: ["127.0.0.1:${RAFT_PORT_PREFIX:-1808}3:8080"]
     volumes: ["raft-3:/data"]
   raft-4:
     <<: *raft
     environment: { <<: *raft-env, NODE_ID: raft-4 }
-    ports: ["127.0.0.1:18084:8080"]
+    ports: ["127.0.0.1:${RAFT_PORT_PREFIX:-1808}4:8080"]
     volumes: ["raft-4:/data"]
   raft-5:
     <<: *raft
     environment: { <<: *raft-env, NODE_ID: raft-5 }
-    ports: ["127.0.0.1:18085:8080"]
+    ports: ["127.0.0.1:${RAFT_PORT_PREFIX:-1808}5:8080"]
     volumes: ["raft-5:/data"]
+  raft-6:
+    <<: *raft
+    profiles: [membership]
+    environment: { <<: *raft-env, NODE_ID: raft-6 }
+    ports: ["127.0.0.1:${RAFT_PORT_PREFIX:-1808}6:8080"]
+    volumes: ["raft-6:/data"]
 
 volumes:
-  raft-1: { external: true, name: minidb-lab-raft-1 }
-  raft-2: { external: true, name: minidb-lab-raft-2 }
-  raft-3: { external: true, name: minidb-lab-raft-3 }
-  raft-4: { external: true, name: minidb-lab-raft-4 }
-  raft-5: { external: true, name: minidb-lab-raft-5 }
+  raft-1: { external: true, name: "${RAFT_LAB_NAME:-minidb-lab}-raft-1" }
+  raft-2: { external: true, name: "${RAFT_LAB_NAME:-minidb-lab}-raft-2" }
+  raft-3: { external: true, name: "${RAFT_LAB_NAME:-minidb-lab}-raft-3" }
+  raft-4: { external: true, name: "${RAFT_LAB_NAME:-minidb-lab}-raft-4" }
+  raft-5: { external: true, name: "${RAFT_LAB_NAME:-minidb-lab}-raft-5" }
+  raft-6: { external: true, name: "${RAFT_LAB_NAME:-minidb-lab}-raft-6" }

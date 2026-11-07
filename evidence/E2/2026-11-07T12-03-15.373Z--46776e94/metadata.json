@@ -1,0 +1,28 @@
+{
+  "startedAt": "2026-11-07T12:03:15.373Z",
+  "endedAt": "2026-11-07T12:03:18.573Z",
+  "gitSha": "dcb680e1fef0e224847b1a61f593712717220e6c",
+  "gitDirty": false,
+  "parameters": {
+    "electionLimitMs": 8000,
+    "labName": "minidb-ext",
+    "nodeIds": [
+      "raft-1",
+      "raft-2",
+      "raft-3",
+      "raft-4",
+      "raft-5"
+    ],
+    "ports": [
+      18181,
+      18182,
+      18183,
+      18184,
+      18185
+    ]
+  },
+  "environment": {
+    "imageId": "sha256:774a7f2e70e52f5bf3ba1da050d1e050c5b3eeaabc4f600f6e0b83ac0876a10d",
+    "node": "v24.21.0"
+  }
+}

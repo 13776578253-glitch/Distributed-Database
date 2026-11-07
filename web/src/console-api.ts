@@ -19,7 +19,7 @@ export async function postJson<T>(path: string, body: unknown): Promise<T> {
   }));
 }
 
-export function usePolling<T>(path: string, interval: number) {
+export function usePolling<T>(path: string, interval: number, revision = 0) {
   const [data, setData] = useState<T>();
   const [error, setError] = useState('');
   useEffect(() => {
@@ -32,11 +32,11 @@ export function usePolling<T>(path: string, interval: number) {
       } catch (failure) {
         if (!stop.signal.aborted) setError(failure instanceof Error ? failure.message : String(failure));
       } finally {
-        if (!stop.signal.aborted) timer = setTimeout(poll, interval);
+        if (!stop.signal.aborted && interval > 0) timer = setTimeout(poll, interval);
       }
     }
     void poll();
     return () => { stop.abort(); clearTimeout(timer); };
-  }, [path, interval]);
+  }, [path, interval, revision]);
   return { data, error };
 }

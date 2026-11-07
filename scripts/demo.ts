@@ -1,15 +1,16 @@
 import { acquireProjectLock } from './cluster-lock.ts';
 import { configuredTargets, configuredVolumes, readComposeConfig } from './console-cluster.ts';
-import { docker, nodeIds } from './docker.ts';
+import { docker, labName, labNodeIds as nodeIds, membershipLab } from './docker.ts';
 import { openEvidence } from './evidence.ts';
 import { raftClient } from './raft-client.ts';
 
+if (membershipLab && labName === 'minidb-lab') throw new Error('Use an isolated RAFT_LAB_NAME for membership experiments');
 const mode = 'raft-smoke';
 const config = readComposeConfig();
 const image = config.services[nodeIds[0]]?.image;
 if (!image) throw new Error('Compose 缺少 Raft 镜像配置');
-const targets = configuredTargets(config);
-const volumes = configuredVolumes(config);
+const targets = configuredTargets(config, nodeIds);
+const volumes = configuredVolumes(config, nodeIds);
 const lease = acquireProjectLock(config.name, 'demo');
 const evidence = (() => {
   try { return openEvidence('SMOKE', 'pnpm demo', { mode, nodeIds, image, project: config.name }); }

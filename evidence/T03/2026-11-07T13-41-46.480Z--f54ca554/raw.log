@@ -1,0 +1,182 @@
+> docker compose -f compose.transaction.yaml -p txn-t03-f54ca554 build transaction
+#1 [internal] load local bake definitions
+#1 reading from stdin 557B 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 151B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:24.21.0-bookworm-slim
+#3 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 90B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 1.31kB done
+#5 DONE 0.0s
+
+#6 [1/4] FROM docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
+#6 resolve docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 0.1s done
+#6 DONE 0.1s
+
+#7 [2/4] WORKDIR /app
+#7 CACHED
+
+#8 [3/4] COPY package.json ./
+#8 CACHED
+
+#9 [4/4] COPY src ./src
+#9 CACHED
+
+#10 exporting to image
+#10 exporting layers done
+#10 exporting manifest sha256:7f566dbc58f08bd3f389628ad4759ce70b1b9c27399e6704f12baba3e265deb2 0.0s done
+#10 exporting config sha256:a981805003d46ce022a95ad743da86e5807ac13fbb48104f2e6cf08e9d8d02fc
+#10 exporting config sha256:a981805003d46ce022a95ad743da86e5807ac13fbb48104f2e6cf08e9d8d02fc 0.0s done
+#10 exporting attestation manifest sha256:c2a5a24cc21069ef9ed23dd4dccfb6e8e50250ebb4da450816da43c14fa4aa99 0.0s done
+#10 exporting manifest list sha256:7ae5d223f257fce308cca95e264bdc1a60be14ce8543701d34e1fce706b4af2b 0.0s done
+#10 naming to docker.io/library/minidb-txn:local
+#10 naming to docker.io/library/minidb-txn:local done
+#10 unpacking to docker.io/library/minidb-txn:local 0.0s done
+#10 DONE 0.2s
+
+#11 resolving provenance for metadata file
+#11 DONE 0.0s
+ Image minidb-txn:local Building 
+ Image minidb-txn:local Built 
+
+> docker image inspect minidb-txn:local --format {{.Id}}
+sha256:7ae5d223f257fce308cca95e264bdc1a60be14ce8543701d34e1fce706b4af2b
+
+> docker compose -f compose.transaction.yaml -p txn-t03-f54ca554 run -d --no-deps --service-ports --name txn-t03-f54ca554-boot-1 transaction
+c9ef7b4d676658621e50d51f7b7e2b72ca208aa175654b6ed740b0e454892c47
+ Volume txn-t03-f54ca554_data Creating 
+ Volume txn-t03-f54ca554_data Creating 
+ Network txn-t03-f54ca554_default Creating 
+ Network txn-t03-f54ca554_default Creating 
+ Volume txn-t03-f54ca554_data Created 
+ Volume txn-t03-f54ca554_data Created 
+ Network txn-t03-f54ca554_default Created 
+ Network txn-t03-f54ca554_default Created 
+ Container txn-t03-f54ca554-boot-1 Creating 
+ Container txn-t03-f54ca554-boot-1 Created 
+
+> docker inspect --format {{json .Mounts}} c9ef7b4d676658621e50d51f7b7e2b72ca208aa175654b6ed740b0e454892c47
+[{"Type":"volume","Name":"txn-t03-f54ca554_data","Source":"/var/lib/docker/volumes/txn-t03-f54ca554_data/_data","Destination":"/data","Driver":"local","Mode":"rw","RW":true,"Propagation":""}]
+
+> docker port c9ef7b4d676658621e50d51f7b7e2b72ca208aa175654b6ed740b0e454892c47 8080/tcp
+127.0.0.1:45192
+
+> docker kill --signal SIGKILL c9ef7b4d676658621e50d51f7b7e2b72ca208aa175654b6ed740b0e454892c47
+c9ef7b4d676658621e50d51f7b7e2b72ca208aa175654b6ed740b0e454892c47
+
+> docker wait c9ef7b4d676658621e50d51f7b7e2b72ca208aa175654b6ed740b0e454892c47
+137
+
+> docker inspect --format {{json .State}} c9ef7b4d676658621e50d51f7b7e2b72ca208aa175654b6ed740b0e454892c47
+{"Status":"exited","Running":false,"Paused":false,"Restarting":false,"OOMKilled":false,"Dead":false,"Pid":0,"ExitCode":137,"Error":"","StartedAt":"2026-11-07T13:41:48.933827527Z","FinishedAt":"2026-11-07T13:41:50.174962159Z"}
+
+> docker logs --timestamps c9ef7b4d676658621e50d51f7b7e2b72ca208aa175654b6ed740b0e454892c47
+2026-11-07T13:41:49.756110395Z {"kind":"recovery","checkpointLsn":null,"analysisStartLsn":1,"redoStartLsn":1,"redoLsns":[],"winners":[],"losers":[],"undoneLsns":[]}
+2026-11-07T13:41:49.762630701Z {"kind":"ready","address":{"address":"0.0.0.0","family":"IPv4","port":8080}}
+
+> docker cp c9ef7b4d676658621e50d51f7b7e2b72ca208aa175654b6ed740b0e454892c47:/data/wal.jsonl .scratch\2026-11-07T13-41-46.480Z--f54ca554\txn-t03-f54ca554-1.jsonl
+
+> docker compose -f compose.transaction.yaml -p txn-t03-f54ca554 run -d --no-deps --service-ports --name txn-t03-f54ca554-boot-2 -e TXN_FAULT_POINT=after-clr-wal transaction
+4cb2361b510868dd51a5bc5e221e9a1ea784d5cb008d26bbaecccd9bfcf3d1a9
+time="2026-11-07T21:41:51+08:00" level=warning msg="Found orphan containers (txn-t03-f54ca554-boot-1) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container txn-t03-f54ca554-boot-2 Creating 
+ Container txn-t03-f54ca554-boot-2 Created 
+
+> docker inspect --format {{json .Mounts}} 4cb2361b510868dd51a5bc5e221e9a1ea784d5cb008d26bbaecccd9bfcf3d1a9
+[{"Type":"volume","Name":"txn-t03-f54ca554_data","Source":"/var/lib/docker/volumes/txn-t03-f54ca554_data/_data","Destination":"/data","Driver":"local","Mode":"rw","RW":true,"Propagation":""}]
+
+> docker wait 4cb2361b510868dd51a5bc5e221e9a1ea784d5cb008d26bbaecccd9bfcf3d1a9
+137
+
+> docker inspect --format {{json .State}} 4cb2361b510868dd51a5bc5e221e9a1ea784d5cb008d26bbaecccd9bfcf3d1a9
+{"Status":"exited","Running":false,"Paused":false,"Restarting":false,"OOMKilled":false,"Dead":false,"Pid":0,"ExitCode":137,"Error":"","StartedAt":"2026-11-07T13:41:51.631054488Z","FinishedAt":"2026-11-07T13:41:52.370618788Z"}
+
+> docker logs --timestamps 4cb2361b510868dd51a5bc5e221e9a1ea784d5cb008d26bbaecccd9bfcf3d1a9
+2026-11-07T13:41:52.366345764Z {"kind":"fault","signal":"SIGKILL","point":"after-clr-wal","record":{"type":"CLR","txnId":"txn-2","versionId":"txn-2:3","undoneLsn":10,"undoNextLsn":9,"lsn":12,"prevLsn":11}}
+
+> docker cp 4cb2361b510868dd51a5bc5e221e9a1ea784d5cb008d26bbaecccd9bfcf3d1a9:/data/wal.jsonl .scratch\2026-11-07T13-41-46.480Z--f54ca554\txn-t03-f54ca554-2.jsonl
+
+> docker compose -f compose.transaction.yaml -p txn-t03-f54ca554 run -d --no-deps --service-ports --name txn-t03-f54ca554-boot-3 transaction
+4c3d22b6b962dda2c04efd10b78683cbec33d514cfd565e77cefb3664d4b5186
+time="2026-11-07T21:41:53+08:00" level=warning msg="Found orphan containers (txn-t03-f54ca554-boot-2, txn-t03-f54ca554-boot-1) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container txn-t03-f54ca554-boot-3 Creating 
+ Container txn-t03-f54ca554-boot-3 Created 
+
+> docker inspect --format {{json .Mounts}} 4c3d22b6b962dda2c04efd10b78683cbec33d514cfd565e77cefb3664d4b5186
+[{"Type":"volume","Name":"txn-t03-f54ca554_data","Source":"/var/lib/docker/volumes/txn-t03-f54ca554_data/_data","Destination":"/data","Driver":"local","Mode":"rw","RW":true,"Propagation":""}]
+
+> docker port 4c3d22b6b962dda2c04efd10b78683cbec33d514cfd565e77cefb3664d4b5186 8080/tcp
+127.0.0.1:45284
+
+> docker compose -f compose.transaction.yaml -p txn-t03-f54ca554-control run -d --no-deps --service-ports --name txn-t03-f54ca554-control-boot-1 transaction
+cf6025a51cbcd71c8bb28adc08580a46b520d9e01faa42b159ee3541e7bba1da
+ Volume txn-t03-f54ca554-control_data Creating 
+ Volume txn-t03-f54ca554-control_data Creating 
+ Network txn-t03-f54ca554-control_default Creating 
+ Network txn-t03-f54ca554-control_default Creating 
+ Volume txn-t03-f54ca554-control_data Created 
+ Volume txn-t03-f54ca554-control_data Created 
+ Network txn-t03-f54ca554-control_default Created 
+ Network txn-t03-f54ca554-control_default Created 
+ Container txn-t03-f54ca554-control-boot-1 Creating 
+ Container txn-t03-f54ca554-control-boot-1 Created 
+
+> docker inspect --format {{json .Mounts}} cf6025a51cbcd71c8bb28adc08580a46b520d9e01faa42b159ee3541e7bba1da
+[{"Type":"volume","Name":"txn-t03-f54ca554-control_data","Source":"/var/lib/docker/volumes/txn-t03-f54ca554-control_data/_data","Destination":"/data","Driver":"local","Mode":"rw","RW":true,"Propagation":""}]
+
+> docker port cf6025a51cbcd71c8bb28adc08580a46b520d9e01faa42b159ee3541e7bba1da 8080/tcp
+127.0.0.1:44446
+
+> docker kill --signal SIGKILL cf6025a51cbcd71c8bb28adc08580a46b520d9e01faa42b159ee3541e7bba1da
+cf6025a51cbcd71c8bb28adc08580a46b520d9e01faa42b159ee3541e7bba1da
+
+> docker wait cf6025a51cbcd71c8bb28adc08580a46b520d9e01faa42b159ee3541e7bba1da
+137
+
+> docker inspect --format {{json .State}} cf6025a51cbcd71c8bb28adc08580a46b520d9e01faa42b159ee3541e7bba1da
+{"Status":"exited","Running":false,"Paused":false,"Restarting":false,"OOMKilled":false,"Dead":false,"Pid":0,"ExitCode":137,"Error":"","StartedAt":"2026-11-07T13:41:55.43239542Z","FinishedAt":"2026-11-07T13:41:56.564576972Z"}
+
+> docker logs --timestamps cf6025a51cbcd71c8bb28adc08580a46b520d9e01faa42b159ee3541e7bba1da
+2026-11-07T13:41:56.220042552Z {"kind":"recovery","checkpointLsn":null,"analysisStartLsn":1,"redoStartLsn":1,"redoLsns":[],"winners":[],"losers":[],"undoneLsns":[]}
+2026-11-07T13:41:56.226334443Z {"kind":"ready","address":{"address":"0.0.0.0","family":"IPv4","port":8080}}
+
+> docker cp cf6025a51cbcd71c8bb28adc08580a46b520d9e01faa42b159ee3541e7bba1da:/data/wal.jsonl .scratch\2026-11-07T13-41-46.480Z--f54ca554\txn-t03-f54ca554-control-1.jsonl
+
+> docker compose -f compose.transaction.yaml -p txn-t03-f54ca554-control run -d --no-deps --service-ports --name txn-t03-f54ca554-control-boot-2 transaction
+95452f7f7b37cde4e761f67ed3ebb5e55fe8e4b19a39cb2e013972925ce16699
+time="2026-11-07T21:41:57+08:00" level=warning msg="Found orphan containers (txn-t03-f54ca554-control-boot-1) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container txn-t03-f54ca554-control-boot-2 Creating 
+ Container txn-t03-f54ca554-control-boot-2 Created 
+
+> docker inspect --format {{json .Mounts}} 95452f7f7b37cde4e761f67ed3ebb5e55fe8e4b19a39cb2e013972925ce16699
+[{"Type":"volume","Name":"txn-t03-f54ca554-control_data","Source":"/var/lib/docker/volumes/txn-t03-f54ca554-control_data/_data","Destination":"/data","Driver":"local","Mode":"rw","RW":true,"Propagation":""}]
+
+> docker port 95452f7f7b37cde4e761f67ed3ebb5e55fe8e4b19a39cb2e013972925ce16699 8080/tcp
+127.0.0.1:44246
+
+> docker stop 4c3d22b6b962dda2c04efd10b78683cbec33d514cfd565e77cefb3664d4b5186
+4c3d22b6b962dda2c04efd10b78683cbec33d514cfd565e77cefb3664d4b5186
+
+> docker logs --timestamps 4c3d22b6b962dda2c04efd10b78683cbec33d514cfd565e77cefb3664d4b5186
+2026-11-07T13:41:54.651299401Z {"kind":"recovery","checkpointLsn":8,"analysisStartLsn":9,"redoStartLsn":7,"redoLsns":[12],"winners":[],"losers":["txn-2"],"undoneLsns":[9,6]}
+2026-11-07T13:41:54.657442525Z {"kind":"ready","address":{"address":"0.0.0.0","family":"IPv4","port":8080}}
+
+> docker stop 95452f7f7b37cde4e761f67ed3ebb5e55fe8e4b19a39cb2e013972925ce16699
+95452f7f7b37cde4e761f67ed3ebb5e55fe8e4b19a39cb2e013972925ce16699
+
+> docker logs --timestamps 95452f7f7b37cde4e761f67ed3ebb5e55fe8e4b19a39cb2e013972925ce16699
+2026-11-07T13:41:58.838338757Z {"kind":"recovery","checkpointLsn":8,"analysisStartLsn":9,"redoStartLsn":7,"redoLsns":[],"winners":[],"losers":["txn-2"],"undoneLsns":[10,9,6]}
+2026-11-07T13:41:58.844431751Z {"kind":"ready","address":{"address":"0.0.0.0","family":"IPv4","port":8080}}
+

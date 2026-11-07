@@ -1,0 +1,47 @@
+{
+  "startedAt": "2026-11-07T15:08:43.583Z",
+  "endedAt": "2026-11-07T15:08:49.094Z",
+  "gitSha": "427553216a80bf49596e8900f2636edb5773fa6d",
+  "gitDirty": true,
+  "parameters": {
+    "project": "minidb-console-freeze-1107",
+    "action": {
+      "kind": "experiment",
+      "experimentId": "R01"
+    },
+    "nodeIds": [
+      "raft-1",
+      "raft-2",
+      "raft-3",
+      "raft-4",
+      "raft-5"
+    ],
+    "electionLimitMs": 8000,
+    "targets": [
+      {
+        "nodeId": "raft-1",
+        "address": "http://127.0.0.1:18681"
+      },
+      {
+        "nodeId": "raft-2",
+        "address": "http://127.0.0.1:18682"
+      },
+      {
+        "nodeId": "raft-3",
+        "address": "http://127.0.0.1:18683"
+      },
+      {
+        "nodeId": "raft-4",
+        "address": "http://127.0.0.1:18684"
+      },
+      {
+        "nodeId": "raft-5",
+        "address": "http://127.0.0.1:18685"
+      }
+    ]
+  },
+  "environment": {
+    "imageId": "sha256:76a30b78a8ef906e3f11866812bd304175492822e85509af82b53f249e1887bb",
+    "node": "v24.21.0"
+  }
+}

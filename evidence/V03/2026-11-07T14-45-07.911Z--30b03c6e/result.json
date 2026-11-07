@@ -1,0 +1,99 @@
+{
+  "experimentId": "V03",
+  "runId": "2026-11-07T14-45-07.911Z--30b03c6e",
+  "startedAt": "2026-11-07T14:45:07.911Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "unlocked T02 violates on-call coverage",
+      "passed": true,
+      "details": {
+        "status": "FAIL",
+        "checked": 3,
+        "violation": {
+          "txnId": "txn-4",
+          "commitSeq": 3,
+          "required": 1,
+          "actual": 0,
+          "observed": [
+            {
+              "key": "alice",
+              "version": {
+                "id": "txn-3:1",
+                "key": "alice",
+                "txnId": "txn-3",
+                "commitSeq": 2,
+                "data": {
+                  "tombstone": false,
+                  "value": false
+                }
+              }
+            },
+            {
+              "key": "bob",
+              "version": {
+                "id": "txn-4:1",
+                "key": "bob",
+                "txnId": "txn-4",
+                "commitSeq": 3,
+                "data": {
+                  "tombstone": false,
+                  "value": false
+                }
+              }
+            }
+          ],
+          "related": [
+            {
+              "txnId": "txn-3",
+              "reads": [
+                {
+                  "kind": "read",
+                  "key": "bob",
+                  "viewSeq": 1,
+                  "source": "committed",
+                  "observedVersionId": "txn-2:2",
+                  "result": {
+                    "found": true,
+                    "value": true
+                  }
+                }
+              ]
+            },
+            {
+              "txnId": "txn-4",
+              "reads": [
+                {
+                  "kind": "read",
+                  "key": "alice",
+                  "viewSeq": 1,
+                  "source": "committed",
+                  "observedVersionId": "txn-2:1",
+                  "result": {
+                    "found": true,
+                    "value": true
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "guarded T02 preserves on-call coverage at every checked commit",
+      "passed": true,
+      "details": {
+        "status": "PASS",
+        "checked": 3
+      }
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

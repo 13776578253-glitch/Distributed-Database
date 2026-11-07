@@ -4,7 +4,7 @@ import type { ConsoleOperation } from '../src/contracts/console.ts';
 import type { ExperimentResult } from '../src/contracts/history.ts';
 import { acquireProjectLock, ProjectBusy } from './cluster-lock.ts';
 import { configuredTargets, readComposeConfig } from './console-cluster.ts';
-import { docker, nodeIds } from './docker.ts';
+import { docker, labNodeIds, membershipLab, nodeIds } from './docker.ts';
 import { openEvidence } from './evidence.ts';
 import { electionLimitMs, runExperiment } from './run-experiment.ts';
 
@@ -20,7 +20,7 @@ export function parseOperation(input: unknown): ConsoleOperation | undefined {
   if (value.kind === 'experiment' && (value.experimentId === 'R01' || value.experimentId === 'R02' || value.experimentId === 'R03')) {
     return { kind: value.kind, experimentId: value.experimentId };
   }
-  if (value.kind === 'restart-node' && typeof value.nodeId === 'string' && nodeIds.includes(value.nodeId)) {
+  if (value.kind === 'restart-node' && typeof value.nodeId === 'string' && labNodeIds.includes(value.nodeId)) {
     return { kind: value.kind, nodeId: value.nodeId };
   }
 }
@@ -54,9 +54,11 @@ async function restartNode(nodeId: string, address: string, evidence: ReturnType
 export async function performOperation(
   action: ConsoleOperation, report: (message: WorkerMessage) => void = () => {}, expectedProject?: string,
 ) {
+  if (membershipLab && action.kind === 'experiment') throw new Error('此控制台操作适用于固定五节点实验环境');
   const config = readComposeConfig();
   if (expectedProject && expectedProject !== config.name) throw new Error('Compose 项目已变更，请重启控制台');
-  const targets = configuredTargets(config);
+  if (membershipLab && config.name === 'minidb-lab') throw new Error('成员实验需要隔离的 Compose 项目');
+  const targets = configuredTargets(config, labNodeIds);
   const image = config.services[nodeIds[0]]?.image;
   if (action.kind === 'experiment' && !image) throw new Error('Compose 缺少 Raft 镜像配置');
   const lease = acquireProjectLock(config.name, action.kind);

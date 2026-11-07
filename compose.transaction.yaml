@@ -1,0 +1,18 @@
+name: minidb-txn
+
+services:
+  transaction:
+    build: .
+    image: minidb-txn:local
+    init: true
+    command: ["node", "src/transaction/main.ts"]
+    environment:
+      TXN_DATA_DIR: /data
+      TXN_FAULTS_ENABLED: "${TXN_FAULTS_ENABLED:-0}"
+    ports:
+      - target: 8080
+        host_ip: 127.0.0.1
+    volumes: ["data:/data"]
+
+volumes:
+  data:

@@ -1,0 +1,160 @@
+{
+  "experimentId": "R01",
+  "runId": "2026-11-07T10-39-19.788Z--4dd15faf",
+  "startedAt": "2026-11-07T10:39:19.788Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "put previous",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-39-19.788Z--4dd15faf",
+        "operationId": "1",
+        "engine": "raft",
+        "clientId": "writer",
+        "operation": {
+          "type": "put",
+          "key": "R01/2026-11-07T10-39-19.788Z--4dd15faf",
+          "value": "previous"
+        },
+        "invocationNs": "1278023686990100",
+        "responseNs": "1278023716197900",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "stored": true
+        }
+      }
+    },
+    {
+      "name": "put confirmed",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-39-19.788Z--4dd15faf",
+        "operationId": "2",
+        "engine": "raft",
+        "clientId": "writer",
+        "operation": {
+          "type": "put",
+          "key": "R01/2026-11-07T10-39-19.788Z--4dd15faf",
+          "value": "confirmed"
+        },
+        "invocationNs": "1278023716757200",
+        "responseNs": "1278023741951200",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "stored": true
+        }
+      }
+    },
+    {
+      "name": "killed by SIGKILL",
+      "passed": true,
+      "details": {
+        "exit": "137"
+      }
+    },
+    {
+      "name": "new leader elected",
+      "passed": true,
+      "details": {
+        "previous": "raft-1",
+        "next": "raft-2",
+        "previousTerm": 29,
+        "term": 30,
+        "elapsedMs": 846.7167000000001
+      }
+    },
+    {
+      "name": "quorum read returns the latest confirmed write",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-39-19.788Z--4dd15faf",
+        "operationId": "3",
+        "engine": "raft",
+        "clientId": "reader",
+        "operation": {
+          "type": "get",
+          "key": "R01/2026-11-07T10-39-19.788Z--4dd15faf"
+        },
+        "invocationNs": "1278024787546300",
+        "responseNs": "1278024791433600",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": "confirmed"
+        }
+      }
+    },
+    {
+      "name": "restarted node converges",
+      "passed": true,
+      "details": [
+        {
+          "nodeId": "raft-1",
+          "role": "follower",
+          "term": 33,
+          "leader": "raft-5",
+          "commitIndex": 307,
+          "lastApplied": 307,
+          "logLength": 307,
+          "ready": false,
+          "committedDigest": "2440696be3850218c338d1e4477f8513d509f4c7b9e1d77d911b7597517af53e"
+        },
+        {
+          "nodeId": "raft-2",
+          "role": "follower",
+          "term": 33,
+          "leader": "raft-5",
+          "commitIndex": 307,
+          "lastApplied": 307,
+          "logLength": 307,
+          "ready": false,
+          "committedDigest": "2440696be3850218c338d1e4477f8513d509f4c7b9e1d77d911b7597517af53e"
+        },
+        {
+          "nodeId": "raft-3",
+          "role": "follower",
+          "term": 33,
+          "leader": "raft-5",
+          "commitIndex": 307,
+          "lastApplied": 307,
+          "logLength": 307,
+          "ready": false,
+          "committedDigest": "2440696be3850218c338d1e4477f8513d509f4c7b9e1d77d911b7597517af53e"
+        },
+        {
+          "nodeId": "raft-4",
+          "role": "follower",
+          "term": 33,
+          "leader": "raft-5",
+          "commitIndex": 307,
+          "lastApplied": 307,
+          "logLength": 307,
+          "ready": false,
+          "committedDigest": "2440696be3850218c338d1e4477f8513d509f4c7b9e1d77d911b7597517af53e"
+        },
+        {
+          "nodeId": "raft-5",
+          "role": "leader",
+          "term": 33,
+          "leader": "raft-5",
+          "commitIndex": 307,
+          "lastApplied": 307,
+          "logLength": 307,
+          "ready": true,
+          "committedDigest": "2440696be3850218c338d1e4477f8513d509f4c7b9e1d77d911b7597517af53e"
+        }
+      ]
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

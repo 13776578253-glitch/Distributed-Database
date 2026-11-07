@@ -1,0 +1,1 @@
+Get-Content -Raw -LiteralPath 'evidence/R04/2026-11-06T11-15-26.546Z--b81c0076/probe.mjs' | docker run --rm -i --network none --pull never --mount type=volume,destination=/data minidb-ext:local node --input-type=module -

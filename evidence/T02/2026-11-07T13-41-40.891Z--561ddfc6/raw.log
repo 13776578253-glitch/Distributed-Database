@@ -1,0 +1,78 @@
+> docker compose -f compose.transaction.yaml -p txn-t02-561ddfc6 build transaction
+#1 [internal] load local bake definitions
+#1 reading from stdin 557B 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 151B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:24.21.0-bookworm-slim
+#3 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 90B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 1.31kB done
+#5 DONE 0.0s
+
+#6 [1/4] FROM docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
+#6 resolve docker.io/library/node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 0.1s done
+#6 DONE 0.1s
+
+#7 [2/4] WORKDIR /app
+#7 CACHED
+
+#8 [3/4] COPY package.json ./
+#8 CACHED
+
+#9 [4/4] COPY src ./src
+#9 CACHED
+
+#10 exporting to image
+#10 exporting layers done
+#10 exporting manifest sha256:79aa0672460e2d361a9e778ae7b3e65372ec2e670a6e74400afc73903bd1851b 0.0s done
+#10 exporting config sha256:217fb1c39c609173d8fd585f7624ac703815f0350ce9093fae103f20aee70f09 0.0s done
+#10 exporting attestation manifest sha256:1f2f1fef439e35726e65890bdff1f9f80bd2a28a74e17bbf179670a4dd4292cc
+#10 exporting attestation manifest sha256:1f2f1fef439e35726e65890bdff1f9f80bd2a28a74e17bbf179670a4dd4292cc 0.0s done
+#10 exporting manifest list sha256:9aaab7a12a0e9306c9c953cde4519134f837fcee194eabaed736d3ae6e9d50fc 0.0s done
+#10 naming to docker.io/library/minidb-txn:local done
+#10 unpacking to docker.io/library/minidb-txn:local 0.0s done
+#10 DONE 0.2s
+
+#11 resolving provenance for metadata file
+#11 DONE 0.0s
+ Image minidb-txn:local Building 
+ Image minidb-txn:local Built 
+
+> docker image inspect minidb-txn:local --format {{.Id}}
+sha256:9aaab7a12a0e9306c9c953cde4519134f837fcee194eabaed736d3ae6e9d50fc
+
+> docker compose -f compose.transaction.yaml -p txn-t02-561ddfc6 run -d --no-deps --service-ports --name txn-t02-561ddfc6-boot-1 transaction
+69d9857084a76cef77452e98556a4d6606fba2593f9473cb656c913c9fba7957
+ Volume txn-t02-561ddfc6_data Creating 
+ Volume txn-t02-561ddfc6_data Creating 
+ Network txn-t02-561ddfc6_default Creating 
+ Network txn-t02-561ddfc6_default Creating 
+ Volume txn-t02-561ddfc6_data Created 
+ Volume txn-t02-561ddfc6_data Created 
+ Network txn-t02-561ddfc6_default Created 
+ Network txn-t02-561ddfc6_default Created 
+ Container txn-t02-561ddfc6-boot-1 Creating 
+ Container txn-t02-561ddfc6-boot-1 Created 
+
+> docker inspect --format {{json .Mounts}} 69d9857084a76cef77452e98556a4d6606fba2593f9473cb656c913c9fba7957
+[{"Type":"volume","Name":"txn-t02-561ddfc6_data","Source":"/var/lib/docker/volumes/txn-t02-561ddfc6_data/_data","Destination":"/data","Driver":"local","Mode":"rw","RW":true,"Propagation":""}]
+
+> docker port 69d9857084a76cef77452e98556a4d6606fba2593f9473cb656c913c9fba7957 8080/tcp
+127.0.0.1:43550
+
+> docker stop 69d9857084a76cef77452e98556a4d6606fba2593f9473cb656c913c9fba7957
+69d9857084a76cef77452e98556a4d6606fba2593f9473cb656c913c9fba7957
+
+> docker logs --timestamps 69d9857084a76cef77452e98556a4d6606fba2593f9473cb656c913c9fba7957
+2026-11-07T13:41:44.229829106Z {"kind":"recovery","checkpointLsn":null,"analysisStartLsn":1,"redoStartLsn":1,"redoLsns":[],"winners":[],"losers":[],"undoneLsns":[]}
+2026-11-07T13:41:44.237636299Z {"kind":"ready","address":{"address":"0.0.0.0","family":"IPv4","port":8080}}
+

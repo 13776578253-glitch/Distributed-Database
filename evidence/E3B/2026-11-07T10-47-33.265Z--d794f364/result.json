@@ -1,0 +1,566 @@
+{
+  "experimentId": "E3B",
+  "runId": "2026-11-07T10-47-33.265Z--d794f364",
+  "startedAt": "2026-11-07T10:47:33.265Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "pre-snapshot operation confirmed",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-33.265Z--d794f364",
+        "operationId": "1",
+        "engine": "raft",
+        "clientId": "snapshot-writer",
+        "operation": {
+          "type": "put",
+          "key": "E3B/2026-11-07T10-47-33.265Z--d794f364/base",
+          "value": null
+        },
+        "invocationNs": "1278520961290300",
+        "responseNs": "1278520990515400",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "stored": true
+        }
+      }
+    },
+    {
+      "name": "pre-snapshot operation confirmed",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-33.265Z--d794f364",
+        "operationId": "2",
+        "engine": "raft",
+        "clientId": "snapshot-writer",
+        "operation": {
+          "type": "put",
+          "key": "E3B/2026-11-07T10-47-33.265Z--d794f364/gone",
+          "value": "deleted before snapshot"
+        },
+        "invocationNs": "1278520991043700",
+        "responseNs": "1278521010204000",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "stored": true
+        }
+      }
+    },
+    {
+      "name": "pre-snapshot operation confirmed",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-33.265Z--d794f364",
+        "operationId": "3",
+        "engine": "raft",
+        "clientId": "snapshot-writer",
+        "operation": {
+          "type": "delete",
+          "key": "E3B/2026-11-07T10-47-33.265Z--d794f364/gone"
+        },
+        "invocationNs": "1278521010731400",
+        "responseNs": "1278521036489200",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "deleted": true
+        }
+      }
+    },
+    {
+      "name": "value readable before compaction",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-33.265Z--d794f364",
+        "operationId": "4",
+        "engine": "raft",
+        "clientId": "snapshot-reader",
+        "operation": {
+          "type": "get",
+          "key": "E3B/2026-11-07T10-47-33.265Z--d794f364/base"
+        },
+        "invocationNs": "1278521037211200",
+        "responseNs": "1278521043026600",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": null
+        }
+      }
+    },
+    {
+      "name": "raft-2 compacted at the shared boundary",
+      "passed": true,
+      "details": {
+        "nodeId": "raft-2",
+        "compacted": true,
+        "snapshotIndex": 453,
+        "snapshotTerm": 43,
+        "retainedEntries": 0
+      }
+    },
+    {
+      "name": "raft-3 compacted at the shared boundary",
+      "passed": true,
+      "details": {
+        "nodeId": "raft-3",
+        "compacted": true,
+        "snapshotIndex": 453,
+        "snapshotTerm": 43,
+        "retainedEntries": 0
+      }
+    },
+    {
+      "name": "raft-4 compacted at the shared boundary",
+      "passed": true,
+      "details": {
+        "nodeId": "raft-4",
+        "compacted": true,
+        "snapshotIndex": 453,
+        "snapshotTerm": 43,
+        "retainedEntries": 0
+      }
+    },
+    {
+      "name": "raft-5 compacted at the shared boundary",
+      "passed": true,
+      "details": {
+        "nodeId": "raft-5",
+        "compacted": true,
+        "snapshotIndex": 453,
+        "snapshotTerm": 43,
+        "retainedEntries": 0
+      }
+    },
+    {
+      "name": "SQLite log rows removed and snapshot persisted",
+      "passed": true,
+      "details": {
+        "before": {
+          "count": 453,
+          "firstIndex": 1
+        },
+        "after": {
+          "count": 0,
+          "firstIndex": null,
+          "snapshotIndex": 453,
+          "snapshotTerm": 43
+        }
+      }
+    },
+    {
+      "name": "snapshot preserves value after compaction",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-33.265Z--d794f364",
+        "operationId": "5",
+        "engine": "raft",
+        "clientId": "snapshot-reader",
+        "operation": {
+          "type": "get",
+          "key": "E3B/2026-11-07T10-47-33.265Z--d794f364/base"
+        },
+        "invocationNs": "1278521618819400",
+        "responseNs": "1278521622257200",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": null
+        }
+      }
+    },
+    {
+      "name": "post-snapshot tail confirmed",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-33.265Z--d794f364",
+        "operationId": "6",
+        "engine": "raft",
+        "clientId": "snapshot-writer",
+        "operation": {
+          "type": "put",
+          "key": "E3B/2026-11-07T10-47-33.265Z--d794f364/tail",
+          "value": "after snapshot"
+        },
+        "invocationNs": "1278521622652100",
+        "responseNs": "1278521645205600",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "stored": true
+        }
+      }
+    },
+    {
+      "name": "lagging follower installed a snapshot over HTTP and applied its suffix",
+      "passed": true,
+      "details": {
+        "laggard": {
+          "nodeId": "raft-1",
+          "role": "follower",
+          "term": 43,
+          "leader": "raft-3",
+          "commitIndex": 450,
+          "lastApplied": 450,
+          "logLength": 450,
+          "snapshotIndex": 0,
+          "snapshotTerm": 0,
+          "retainedEntries": 450,
+          "committedTerm": 43,
+          "ready": false,
+          "committedDigest": "821a20420bc71b16870f50bcff63da10c4a7ebd796da486f878c76ade9457fc0",
+          "appliedDigest": "ae585b4d7e2f52c428a3e3bd236e68d1b77cf28d1501cfd0c755709f2f9964af"
+        },
+        "installed": {
+          "nodeId": "raft-1",
+          "role": "follower",
+          "term": 45,
+          "leader": "raft-5",
+          "commitIndex": 455,
+          "lastApplied": 455,
+          "logLength": 455,
+          "snapshotIndex": 453,
+          "snapshotTerm": 43,
+          "retainedEntries": 2,
+          "committedTerm": 45,
+          "ready": false,
+          "committedDigest": "dfd617279ac80927c8ab016b6b0433cfe901150e1e0d71703d4a3cc9744684e9",
+          "appliedDigest": "5a32325cefad6036c894eb9b76793a3c047a702611f6d3db04023ba00549f5a0"
+        },
+        "installs": [
+          {
+            "kind": "raft.rpc",
+            "from": "raft-5",
+            "to": "raft-1",
+            "request": {
+              "kind": "snapshot",
+              "term": 45,
+              "lastIncludedIndex": 453,
+              "lastIncludedTerm": 43
+            },
+            "reply": {
+              "kind": "snapshot",
+              "term": 45,
+              "success": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "caught-up node reads the snapshot value",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-33.265Z--d794f364",
+        "operationId": "7",
+        "engine": "raft",
+        "clientId": "snapshot-reader",
+        "operation": {
+          "type": "get",
+          "key": "E3B/2026-11-07T10-47-33.265Z--d794f364/base"
+        },
+        "invocationNs": "1278524122086700",
+        "responseNs": "1278524130312600",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": null
+        },
+        "consistency": "safe-follower",
+        "readIndex": 455,
+        "appliedIndex": 455,
+        "term": 45
+      }
+    },
+    {
+      "name": "caught-up node reads the retained suffix",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-33.265Z--d794f364",
+        "operationId": "8",
+        "engine": "raft",
+        "clientId": "snapshot-reader",
+        "operation": {
+          "type": "get",
+          "key": "E3B/2026-11-07T10-47-33.265Z--d794f364/tail"
+        },
+        "invocationNs": "1278524130716200",
+        "responseNs": "1278524135885800",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": "after snapshot"
+        },
+        "consistency": "safe-follower",
+        "readIndex": 455,
+        "appliedIndex": 455,
+        "term": 45
+      }
+    },
+    {
+      "name": "compacted leader has a durable snapshot and suffix",
+      "passed": true,
+      "details": {
+        "count": 2,
+        "firstIndex": 454,
+        "snapshotIndex": 453,
+        "snapshotTerm": 43
+      }
+    },
+    {
+      "name": "compacted leader killed by SIGKILL",
+      "passed": true,
+      "details": {
+        "exitCode": "137"
+      }
+    },
+    {
+      "name": "new leader reads the compacted prefix",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-33.265Z--d794f364",
+        "operationId": "9",
+        "engine": "raft",
+        "clientId": "snapshot-reader",
+        "operation": {
+          "type": "get",
+          "key": "E3B/2026-11-07T10-47-33.265Z--d794f364/base"
+        },
+        "invocationNs": "1278525481333500",
+        "responseNs": "1278525485472900",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": null
+        }
+      }
+    },
+    {
+      "name": "new leader reads the acknowledged suffix",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-33.265Z--d794f364",
+        "operationId": "10",
+        "engine": "raft",
+        "clientId": "snapshot-reader",
+        "operation": {
+          "type": "get",
+          "key": "E3B/2026-11-07T10-47-33.265Z--d794f364/tail"
+        },
+        "invocationNs": "1278525485856500",
+        "responseNs": "1278525489299000",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": "after snapshot"
+        }
+      }
+    },
+    {
+      "name": "restarted volume recovers its snapshot and absolute suffix",
+      "passed": true,
+      "details": {
+        "restarted": {
+          "nodeId": "raft-5",
+          "role": "follower",
+          "term": 48,
+          "leader": "raft-2",
+          "commitIndex": 457,
+          "lastApplied": 457,
+          "logLength": 457,
+          "snapshotIndex": 453,
+          "snapshotTerm": 43,
+          "retainedEntries": 4,
+          "committedTerm": 48,
+          "ready": false,
+          "committedDigest": "cf4d3355c43fac36476be399716f5ddc6f600e8c95a0c442698676ba1facb7e9",
+          "appliedDigest": "5a32325cefad6036c894eb9b76793a3c047a702611f6d3db04023ba00549f5a0"
+        },
+        "afterRestart": {
+          "count": 4,
+          "firstIndex": 454,
+          "snapshotIndex": 453,
+          "snapshotTerm": 43
+        }
+      }
+    },
+    {
+      "name": "restarted node reads the recovered snapshot",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-33.265Z--d794f364",
+        "operationId": "11",
+        "engine": "raft",
+        "clientId": "snapshot-reader",
+        "operation": {
+          "type": "get",
+          "key": "E3B/2026-11-07T10-47-33.265Z--d794f364/base"
+        },
+        "invocationNs": "1278528160612300",
+        "responseNs": "1278528167094400",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": null
+        },
+        "consistency": "safe-follower",
+        "readIndex": 457,
+        "appliedIndex": 457,
+        "term": 48
+      }
+    },
+    {
+      "name": "restarted node reads the replayed suffix",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-33.265Z--d794f364",
+        "operationId": "12",
+        "engine": "raft",
+        "clientId": "snapshot-reader",
+        "operation": {
+          "type": "get",
+          "key": "E3B/2026-11-07T10-47-33.265Z--d794f364/tail"
+        },
+        "invocationNs": "1278528167461600",
+        "responseNs": "1278528172109600",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": "after snapshot"
+        },
+        "consistency": "safe-follower",
+        "readIndex": 457,
+        "appliedIndex": 457,
+        "term": 48
+      }
+    },
+    {
+      "name": "deleted key stays absent",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T10-47-33.265Z--d794f364",
+        "operationId": "13",
+        "engine": "raft",
+        "clientId": "snapshot-reader",
+        "operation": {
+          "type": "get",
+          "key": "E3B/2026-11-07T10-47-33.265Z--d794f364/gone"
+        },
+        "invocationNs": "1278528172495400",
+        "responseNs": "1278528178124900",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": false
+        },
+        "consistency": "safe-follower",
+        "readIndex": 457,
+        "appliedIndex": 457,
+        "term": 48
+      }
+    },
+    {
+      "name": "different snapshot boundaries converge on the same applied state",
+      "passed": true,
+      "details": [
+        {
+          "nodeId": "raft-1",
+          "role": "follower",
+          "term": 48,
+          "leader": "raft-2",
+          "commitIndex": 457,
+          "lastApplied": 457,
+          "logLength": 457,
+          "snapshotIndex": 457,
+          "snapshotTerm": 48,
+          "retainedEntries": 0,
+          "committedTerm": 48,
+          "ready": false,
+          "committedDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "appliedDigest": "5a32325cefad6036c894eb9b76793a3c047a702611f6d3db04023ba00549f5a0"
+        },
+        {
+          "nodeId": "raft-2",
+          "role": "leader",
+          "term": 48,
+          "leader": "raft-2",
+          "commitIndex": 457,
+          "lastApplied": 457,
+          "logLength": 457,
+          "snapshotIndex": 453,
+          "snapshotTerm": 43,
+          "retainedEntries": 4,
+          "committedTerm": 48,
+          "ready": true,
+          "committedDigest": "cf4d3355c43fac36476be399716f5ddc6f600e8c95a0c442698676ba1facb7e9",
+          "appliedDigest": "5a32325cefad6036c894eb9b76793a3c047a702611f6d3db04023ba00549f5a0"
+        },
+        {
+          "nodeId": "raft-3",
+          "role": "follower",
+          "term": 48,
+          "leader": "raft-2",
+          "commitIndex": 457,
+          "lastApplied": 457,
+          "logLength": 457,
+          "snapshotIndex": 453,
+          "snapshotTerm": 43,
+          "retainedEntries": 4,
+          "committedTerm": 48,
+          "ready": false,
+          "committedDigest": "cf4d3355c43fac36476be399716f5ddc6f600e8c95a0c442698676ba1facb7e9",
+          "appliedDigest": "5a32325cefad6036c894eb9b76793a3c047a702611f6d3db04023ba00549f5a0"
+        },
+        {
+          "nodeId": "raft-4",
+          "role": "follower",
+          "term": 48,
+          "leader": "raft-2",
+          "commitIndex": 457,
+          "lastApplied": 457,
+          "logLength": 457,
+          "snapshotIndex": 453,
+          "snapshotTerm": 43,
+          "retainedEntries": 4,
+          "committedTerm": 48,
+          "ready": false,
+          "committedDigest": "cf4d3355c43fac36476be399716f5ddc6f600e8c95a0c442698676ba1facb7e9",
+          "appliedDigest": "5a32325cefad6036c894eb9b76793a3c047a702611f6d3db04023ba00549f5a0"
+        },
+        {
+          "nodeId": "raft-5",
+          "role": "follower",
+          "term": 48,
+          "leader": "raft-2",
+          "commitIndex": 457,
+          "lastApplied": 457,
+          "logLength": 457,
+          "snapshotIndex": 453,
+          "snapshotTerm": 43,
+          "retainedEntries": 4,
+          "committedTerm": 48,
+          "ready": false,
+          "committedDigest": "cf4d3355c43fac36476be399716f5ddc6f600e8c95a0c442698676ba1facb7e9",
+          "appliedDigest": "5a32325cefad6036c894eb9b76793a3c047a702611f6d3db04023ba00549f5a0"
+        }
+      ]
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

@@ -1,4 +1,5 @@
 /** Wire types for the console's read-only cluster observations. */
+import type { Membership } from '../raft/core/types.ts';
 
 export interface RaftStatus {
   nodeId: string;
@@ -10,6 +11,14 @@ export interface RaftStatus {
   logLength: number;
   ready: boolean;
   committedDigest: string;
+  appliedDigest?: string;
+  committedTerm?: number;
+  snapshotIndex?: number;
+  snapshotTerm?: number;
+  retainedEntries?: number;
+  voter?: boolean;
+  membership?: Membership;
+  appliedMembership?: Membership;
 }
 
 export type NodeFailure = 'unconfigured' | 'timeout' | 'unreachable' | 'http' | 'invalid-response';
@@ -25,7 +34,7 @@ export interface RpcObservation {
   at: string;
   from: string;
   to: string;
-  kind: 'vote' | 'append';
+  kind: 'vote' | 'append' | 'snapshot' | 'read-index';
   term: number;
   accepted: boolean;
 }

@@ -1,0 +1,167 @@
+> docker image inspect minidb-console-members-1107:local --format {{.Id}}
+sha256:f2fa68fdb7e767f29c07c6396a45db7e2f17b22026db8ef8d6e10408f24eeb68
+
+> docker compose --profile membership port raft-1 8080
+127.0.0.1:18691
+
+> docker compose --profile membership port raft-2 8080
+127.0.0.1:18692
+
+> docker compose --profile membership port raft-3 8080
+127.0.0.1:18693
+
+> docker compose --profile membership port raft-4 8080
+127.0.0.1:18694
+
+> docker compose --profile membership port raft-5 8080
+127.0.0.1:18695
+
+> docker compose --profile membership port raft-6 8080
+127.0.0.1:18696
+
+> docker compose --profile membership ps -q raft-1
+3262128a6f00b074acc5e364ad7815e38b91c6ac26f439a922123787fe7f9a08
+
+> docker compose --profile membership kill -s SIGKILL raft-1
+ Container minidb-console-members-1107-raft-1-1 Killing 
+ Container minidb-console-members-1107-raft-1-1 Killed 
+
+> docker inspect 3262128a6f00b074acc5e364ad7815e38b91c6ac26f439a922123787fe7f9a08 --format {{.State.ExitCode}}
+137
+
+> docker compose --profile membership start raft-1
+ Container minidb-console-members-1107-raft-1-1 Starting 
+ Container minidb-console-members-1107-raft-1-1 Started 
+
+> pnpm membership set raft-1 raft-2 raft-3 raft-4 raft-6
+file:///D:/Desktop/code/Distributed%20Database/scripts/cluster-lock.ts:31
+    if ((error                         ).code === 'EEXIST') throw new ProjectBusy(`Compose 项目 ${project} 已有操作执行或等待恢复`);
+                                                                  ^
+
+ProjectBusy [Error]: Compose 项目 minidb-console-members-1107 已有操作执行或等待恢复
+    at acquireProjectLock (file:///D:/Desktop/code/Distributed%20Database/scripts/cluster-lock.ts:31:67)
+    at file:///D:/Desktop/code/Distributed%20Database/scripts/membership.ts:18:17
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.21.0
+
+Error: command-line console accepted removal on the leader being removed
+    at Object.assert (file:///D:/Desktop/code/Distributed%20Database/scripts/evidence.ts:39:24)
+    at membershipExperiment (file:///D:/Desktop/code/Distributed%20Database/scripts/raft-membership-experiment.ts:89:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///D:/Desktop/code/Distributed%20Database/scripts/experiment.ts:46:25
+> docker compose --profile membership logs --no-color --since 2026-11-07T15:10:59.541Z
+raft-2-1  | {"kind":"fault.links","nodeId":"raft-2","blockedPeers":["raft-4","raft-5","raft-6"]}
+raft-6-1  | {"kind":"fault.links","nodeId":"raft-6","blockedPeers":["raft-1","raft-2","raft-3"]}
+raft-6-1  | {"kind":"fault.links","nodeId":"raft-6","blockedPeers":[]}
+raft-6-1  | {"kind":"raft.role","nodeId":"raft-6","role":"follower","term":6,"leader":null}
+raft-6-1  | {"kind":"raft.role","nodeId":"raft-6","role":"follower","term":6,"leader":"raft-2"}
+raft-4-1  | {"kind":"fault.links","nodeId":"raft-4","blockedPeers":["raft-1","raft-2","raft-3"]}
+raft-2-1  | {"kind":"raft.role","nodeId":"raft-2","role":"follower","term":3,"leader":null}
+raft-4-1  | {"kind":"raft.role","nodeId":"raft-4","role":"follower","term":3,"leader":null}
+raft-4-1  | {"kind":"raft.role","nodeId":"raft-4","role":"follower","term":4,"leader":null}
+raft-6-1  | {"kind":"raft.role","nodeId":"raft-6","role":"follower","term":7,"leader":null}
+raft-4-1  | {"kind":"fault.links","nodeId":"raft-4","blockedPeers":[]}
+raft-5-1  | {"kind":"fault.links","nodeId":"raft-5","blockedPeers":["raft-1","raft-2","raft-3"]}
+raft-1-1  | {"kind":"raft.write.batch","nodeId":"raft-1","term":2,"size":1,"firstIndex":2,"lastIndex":2}
+raft-5-1  | {"kind":"raft.role","nodeId":"raft-5","role":"candidate","term":3,"leader":null}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-2","request":{"kind":"append","term":2,"prevLogIndex":1,"prevLogTerm":2,"entries":[{"term":2,"command":{"type":"put","key":"E4B/2026-11-07T15-10-59.541Z--77d98c85","value":"committed"}}],"leaderCommit":1},"reply":{"kind":"append","term":2,"success":true}}
+raft-3-1  | {"kind":"fault.links","nodeId":"raft-3","blockedPeers":["raft-4","raft-5","raft-6"]}
+raft-4-1  | {"kind":"raft.role","nodeId":"raft-4","role":"candidate","term":5,"leader":null}
+raft-6-1  | {"kind":"raft.role","nodeId":"raft-6","role":"follower","term":8,"leader":null}
+raft-4-1  | {"kind":"raft.rpc","from":"raft-4","to":"raft-2","request":{"kind":"vote","term":5,"lastLogIndex":2,"lastLogTerm":2},"reply":{"kind":"vote","term":5,"granted":false}}
+raft-4-1  | {"kind":"raft.rpc","from":"raft-4","to":"raft-3","request":{"kind":"vote","term":5,"lastLogIndex":2,"lastLogTerm":2},"reply":{"kind":"vote","term":5,"granted":false}}
+raft-4-1  | {"kind":"raft.rpc","from":"raft-4","to":"raft-5","request":{"kind":"vote","term":5,"lastLogIndex":2,"lastLogTerm":2},"reply":{"kind":"vote","term":5,"granted":true}}
+raft-4-1  | {"kind":"raft.role","nodeId":"raft-4","role":"follower","term":6,"leader":null}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-4","request":{"kind":"append","term":2,"prevLogIndex":1,"prevLogTerm":2,"entries":[{"term":2,"command":{"type":"put","key":"E4B/2026-11-07T15-10-59.541Z--77d98c85","value":"committed"}}],"leaderCommit":1},"reply":{"kind":"append","term":2,"success":true}}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-3","request":{"kind":"append","term":2,"prevLogIndex":1,"prevLogTerm":2,"entries":[{"term":2,"command":{"type":"put","key":"E4B/2026-11-07T15-10-59.541Z--77d98c85","value":"committed"}}],"leaderCommit":1},"reply":{"kind":"append","term":2,"success":true}}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-6","request":{"kind":"append","term":2,"prevLogIndex":1,"prevLogTerm":2,"entries":[{"term":2,"command":{"type":"put","key":"E4B/2026-11-07T15-10-59.541Z--77d98c85","value":"committed"}}],"leaderCommit":1},"reply":{"kind":"append","term":2,"success":true}}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-5","request":{"kind":"append","term":2,"prevLogIndex":1,"prevLogTerm":2,"entries":[{"term":2,"command":{"type":"put","key":"E4B/2026-11-07T15-10-59.541Z--77d98c85","value":"committed"}}],"leaderCommit":1},"reply":{"kind":"append","term":2,"success":true}}
+raft-4-1  | {"kind":"raft.role","nodeId":"raft-4","role":"follower","term":6,"leader":"raft-2"}
+raft-5-1  | {"kind":"raft.rpc","from":"raft-5","to":"raft-4","request":{"kind":"vote","term":3,"lastLogIndex":2,"lastLogTerm":2},"reply":{"kind":"vote","term":3,"granted":true}}
+raft-5-1  | {"kind":"raft.role","nodeId":"raft-5","role":"candidate","term":4,"leader":null}
+raft-5-1  | {"kind":"raft.rpc","from":"raft-5","to":"raft-4","request":{"kind":"vote","term":4,"lastLogIndex":2,"lastLogTerm":2},"reply":{"kind":"vote","term":4,"granted":true}}
+raft-5-1  | {"kind":"fault.links","nodeId":"raft-5","blockedPeers":[]}
+raft-4-1  | {"kind":"raft.role","nodeId":"raft-4","role":"follower","term":7,"leader":null}
+raft-6-1  | {"kind":"raft.role","nodeId":"raft-6","role":"follower","term":8,"leader":"raft-5"}
+raft-4-1  | {"kind":"raft.role","nodeId":"raft-4","role":"follower","term":8,"leader":null}
+raft-4-1  | {"kind":"raft.role","nodeId":"raft-4","role":"follower","term":8,"leader":"raft-5"}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-3","request":{"kind":"append","term":2,"prevLogIndex":1,"prevLogTerm":2,"entries":[{"term":2,"command":{"type":"put","key":"E4B/2026-11-07T15-10-59.541Z--77d98c85","value":"committed"}}],"leaderCommit":2},"reply":{"kind":"append","term":2,"success":true}}
+raft-2-1  | {"kind":"fault.links","nodeId":"raft-2","blockedPeers":[]}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-6","request":{"kind":"append","term":2,"prevLogIndex":1,"prevLogTerm":2,"entries":[{"term":2,"command":{"type":"put","key":"E4B/2026-11-07T15-10-59.541Z--77d98c85","value":"committed"}}],"leaderCommit":2},"reply":{"kind":"append","term":2,"success":true}}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-5","request":{"kind":"append","term":2,"prevLogIndex":1,"prevLogTerm":2,"entries":[{"term":2,"command":{"type":"put","key":"E4B/2026-11-07T15-10-59.541Z--77d98c85","value":"committed"}}],"leaderCommit":2},"reply":{"kind":"append","term":2,"success":true}}
+raft-5-1  | {"kind":"raft.role","nodeId":"raft-5","role":"follower","term":5,"leader":null}
+raft-3-1  | {"kind":"raft.role","nodeId":"raft-3","role":"candidate","term":3,"leader":null}
+raft-1-1  | {"kind":"fault.links","nodeId":"raft-1","blockedPeers":["raft-4","raft-5","raft-6"]}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-2","request":{"kind":"append","term":2,"prevLogIndex":2,"prevLogTerm":2,"entries":[{"term":2,"command":{"type":"configure","configuration":{"voters":["raft-1","raft-2","raft-3","raft-4","raft-5"],"next":["raft-1","raft-2","raft-3","raft-4","raft-5","raft-6"]}}}],"leaderCommit":2},"reply":{"kind":"append","term":2,"success":true}}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-3","request":{"kind":"append","term":2,"prevLogIndex":2,"prevLogTerm":2,"entries":[{"term":2,"command":{"type":"configure","configuration":{"voters":["raft-1","raft-2","raft-3","raft-4","raft-5"],"next":["raft-1","raft-2","raft-3","raft-4","raft-5","raft-6"]}}}],"leaderCommit":2},"reply":{"kind":"append","term":2,"success":true}}
+raft-1-1  | {"kind":"raft.role","nodeId":"raft-1","role":"follower","term":2,"leader":null}
+raft-1-1  | {"kind":"raft.role","nodeId":"raft-1","role":"candidate","term":3,"leader":null}
+raft-2-1  | {"kind":"raft.role","nodeId":"raft-2","role":"follower","term":5,"leader":null}
+raft-5-1  | {"kind":"raft.role","nodeId":"raft-5","role":"follower","term":6,"leader":null}
+raft-2-1  | {"kind":"raft.role","nodeId":"raft-2","role":"candidate","term":6,"leader":null}
+raft-5-1  | {"kind":"raft.role","nodeId":"raft-5","role":"follower","term":6,"leader":"raft-2"}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-3","request":{"kind":"vote","term":6,"lastLogIndex":3,"lastLogTerm":2,"configurationIndex":3},"reply":{"kind":"vote","term":6,"granted":true}}
+raft-5-1  | {"kind":"raft.role","nodeId":"raft-5","role":"follower","term":7,"leader":null}
+raft-5-1  | {"kind":"raft.role","nodeId":"raft-5","role":"candidate","term":8,"leader":null}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-2","request":{"kind":"vote","term":3,"lastLogIndex":3,"lastLogTerm":2,"configurationIndex":3},"reply":{"kind":"vote","term":6,"granted":false}}
+raft-1-1  | {"kind":"raft.role","nodeId":"raft-1","role":"follower","term":6,"leader":null}
+raft-5-1  | {"kind":"raft.rpc","from":"raft-5","to":"raft-1","request":{"kind":"vote","term":8,"lastLogIndex":5,"lastLogTerm":6,"configurationIndex":5},"reply":{"kind":"vote","term":8,"granted":true}}
+raft-5-1  | {"kind":"raft.rpc","from":"raft-5","to":"raft-2","request":{"kind":"vote","term":8,"lastLogIndex":5,"lastLogTerm":6,"configurationIndex":5},"reply":{"kind":"vote","term":8,"granted":true}}
+raft-5-1  | {"kind":"raft.rpc","from":"raft-5","to":"raft-3","request":{"kind":"vote","term":8,"lastLogIndex":5,"lastLogTerm":6,"configurationIndex":5},"reply":{"kind":"vote","term":8,"granted":true}}
+raft-5-1  | {"kind":"raft.role","nodeId":"raft-5","role":"leader","term":8,"leader":"raft-5"}
+raft-5-1  | {"kind":"raft.rpc","from":"raft-5","to":"raft-1","request":{"kind":"append","term":8,"prevLogIndex":5,"prevLogTerm":6,"entries":[{"term":8,"command":{"type":"noop"}}],"leaderCommit":5},"reply":{"kind":"append","term":8,"success":false,"nextIndex":4}}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-4","request":{"kind":"vote","term":6,"lastLogIndex":3,"lastLogTerm":2,"configurationIndex":3},"reply":{"kind":"vote","term":6,"granted":true}}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-5","request":{"kind":"vote","term":6,"lastLogIndex":3,"lastLogTerm":2,"configurationIndex":3},"reply":{"kind":"vote","term":6,"granted":true}}
+raft-2-1  | {"kind":"raft.role","nodeId":"raft-2","role":"leader","term":6,"leader":"raft-2"}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-4","request":{"kind":"append","term":6,"prevLogIndex":3,"prevLogTerm":2,"entries":[{"term":6,"command":{"type":"noop"}}],"leaderCommit":2},"reply":{"kind":"append","term":6,"success":false,"nextIndex":3}}
+raft-5-1  | {"kind":"raft.rpc","from":"raft-5","to":"raft-4","request":{"kind":"vote","term":8,"lastLogIndex":5,"lastLogTerm":6,"configurationIndex":5},"reply":{"kind":"vote","term":8,"granted":true}}
+raft-5-1  | {"kind":"raft.rpc","from":"raft-5","to":"raft-2","request":{"kind":"append","term":8,"prevLogIndex":5,"prevLogTerm":6,"entries":[{"term":8,"command":{"type":"noop"}}],"leaderCommit":5},"reply":{"kind":"append","term":8,"success":true}}
+raft-5-1  | {"kind":"raft.rpc","from":"raft-5","to":"raft-3","request":{"kind":"append","term":8,"prevLogIndex":5,"prevLogTerm":6,"entries":[{"term":8,"command":{"type":"noop"}}],"leaderCommit":5},"reply":{"kind":"append","term":8,"success":true}}
+raft-5-1  | {"kind":"raft.rpc","from":"raft-5","to":"raft-6","request":{"kind":"vote","term":8,"lastLogIndex":5,"lastLogTerm":6,"configurationIndex":5},"reply":{"kind":"vote","term":8,"granted":true}}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-3","request":{"kind":"vote","term":3,"lastLogIndex":3,"lastLogTerm":2,"configurationIndex":3},"reply":{"kind":"vote","term":6,"granted":false}}
+raft-5-1  | {"kind":"raft.rpc","from":"raft-5","to":"raft-1","request":{"kind":"append","term":8,"prevLogIndex":3,"prevLogTerm":2,"entries":[{"term":6,"command":{"type":"noop"}},{"term":6,"command":{"type":"configure","configuration":{"voters":["raft-1","raft-2","raft-3","raft-4","raft-5","raft-6"]}}},{"term":8,"command":{"type":"noop"}}],"leaderCommit":5},"reply":{"kind":"append","term":8,"success":true}}
+raft-5-1  | {"kind":"raft.rpc","from":"raft-5","to":"raft-4","request":{"kind":"append","term":8,"prevLogIndex":5,"prevLogTerm":6,"entries":[{"term":8,"command":{"type":"noop"}}],"leaderCommit":5},"reply":{"kind":"append","term":8,"success":true}}
+raft-5-1  | {"kind":"raft.rpc","from":"raft-5","to":"raft-4","request":{"kind":"append","term":8,"prevLogIndex":5,"prevLogTerm":6,"entries":[{"term":8,"command":{"type":"noop"}}],"leaderCommit":6},"reply":{"kind":"append","term":8,"success":true}}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-5","request":{"kind":"append","term":6,"prevLogIndex":3,"prevLogTerm":2,"entries":[{"term":6,"command":{"type":"noop"}}],"leaderCommit":2},"reply":{"kind":"append","term":6,"success":false,"nextIndex":3}}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-4","request":{"kind":"vote","term":3,"lastLogIndex":3,"lastLogTerm":2,"configurationIndex":3},"reply":{"kind":"vote","term":6,"granted":false}}
+raft-5-1  | {"kind":"raft.rpc","from":"raft-5","to":"raft-6","request":{"kind":"append","term":8,"prevLogIndex":5,"prevLogTerm":6,"entries":[{"term":8,"command":{"type":"noop"}}],"leaderCommit":5},"reply":{"kind":"append","term":8,"success":true}}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-5","request":{"kind":"vote","term":3,"lastLogIndex":3,"lastLogTerm":2,"configurationIndex":3},"reply":{"kind":"vote","term":6,"granted":false}}
+raft-5-1  | {"kind":"raft.rpc","from":"raft-5","to":"raft-6","request":{"kind":"append","term":8,"prevLogIndex":5,"prevLogTerm":6,"entries":[{"term":8,"command":{"type":"noop"}}],"leaderCommit":6},"reply":{"kind":"append","term":8,"success":true}}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-6","request":{"kind":"vote","term":3,"lastLogIndex":3,"lastLogTerm":2,"configurationIndex":3},"reply":{"kind":"vote","term":6,"granted":false}}
+raft-3-1  | {"kind":"raft.rpc","from":"raft-3","to":"raft-2","request":{"kind":"vote","term":3,"lastLogIndex":3,"lastLogTerm":2,"configurationIndex":3},"reply":{"kind":"vote","term":3,"granted":true}}
+raft-3-1  | {"kind":"fault.links","nodeId":"raft-3","blockedPeers":[]}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-6","request":{"kind":"vote","term":6,"lastLogIndex":3,"lastLogTerm":2,"configurationIndex":3},"reply":{"kind":"vote","term":6,"granted":true}}
+raft-3-1  | {"kind":"raft.role","nodeId":"raft-3","role":"follower","term":5,"leader":null}
+raft-1-1  | {"kind":"raft.role","nodeId":"raft-1","role":"candidate","term":7,"leader":null}
+raft-3-1  | {"kind":"raft.role","nodeId":"raft-3","role":"follower","term":6,"leader":null}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-3","request":{"kind":"append","term":6,"prevLogIndex":3,"prevLogTerm":2,"entries":[{"term":6,"command":{"type":"noop"}}],"leaderCommit":2},"reply":{"kind":"append","term":6,"success":true}}
+raft-3-1  | {"kind":"raft.role","nodeId":"raft-3","role":"follower","term":6,"leader":"raft-2"}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-2","request":{"kind":"vote","term":7,"lastLogIndex":3,"lastLogTerm":2,"configurationIndex":3},"reply":{"kind":"vote","term":7,"granted":false}}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-5","request":{"kind":"append","term":6,"prevLogIndex":2,"prevLogTerm":2,"entries":[{"term":2,"command":{"type":"configure","configuration":{"voters":["raft-1","raft-2","raft-3","raft-4","raft-5"],"next":["raft-1","raft-2","raft-3","raft-4","raft-5","raft-6"]}}},{"term":6,"command":{"type":"noop"}}],"leaderCommit":2},"reply":{"kind":"append","term":6,"success":true}}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-4","request":{"kind":"append","term":6,"prevLogIndex":2,"prevLogTerm":2,"entries":[{"term":2,"command":{"type":"configure","configuration":{"voters":["raft-1","raft-2","raft-3","raft-4","raft-5"],"next":["raft-1","raft-2","raft-3","raft-4","raft-5","raft-6"]}}},{"term":6,"command":{"type":"noop"}}],"leaderCommit":2},"reply":{"kind":"append","term":6,"success":true}}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-6","request":{"kind":"append","term":6,"prevLogIndex":3,"prevLogTerm":2,"entries":[{"term":6,"command":{"type":"noop"}}],"leaderCommit":2},"reply":{"kind":"append","term":6,"success":false,"nextIndex":3}}
+raft-3-1  | {"kind":"raft.role","nodeId":"raft-3","role":"follower","term":7,"leader":null}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-4","request":{"kind":"vote","term":7,"lastLogIndex":3,"lastLogTerm":2,"configurationIndex":3},"reply":{"kind":"vote","term":7,"granted":false}}
+raft-3-1  | {"kind":"raft.role","nodeId":"raft-3","role":"follower","term":8,"leader":null}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-6","request":{"kind":"vote","term":7,"lastLogIndex":3,"lastLogTerm":2,"configurationIndex":3},"reply":{"kind":"vote","term":7,"granted":false}}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-3","request":{"kind":"vote","term":7,"lastLogIndex":3,"lastLogTerm":2,"configurationIndex":3},"reply":{"kind":"vote","term":7,"granted":false}}
+raft-3-1  | {"kind":"raft.role","nodeId":"raft-3","role":"follower","term":8,"leader":"raft-5"}
+raft-1-1  | {"kind":"raft.rpc","from":"raft-1","to":"raft-5","request":{"kind":"vote","term":7,"lastLogIndex":3,"lastLogTerm":2,"configurationIndex":3},"reply":{"kind":"vote","term":7,"granted":false}}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-3","request":{"kind":"append","term":6,"prevLogIndex":4,"prevLogTerm":6,"entries":[{"term":6,"command":{"type":"configure","configuration":{"voters":["raft-1","raft-2","raft-3","raft-4","raft-5","raft-6"]}}}],"leaderCommit":4},"reply":{"kind":"append","term":6,"success":true}}
+raft-1-1  | {"kind":"raft.role","nodeId":"raft-1","role":"follower","term":8,"leader":null}
+raft-1-1  | {"kind":"raft.role","nodeId":"raft-1","role":"follower","term":8,"leader":"raft-5"}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-5","request":{"kind":"append","term":6,"prevLogIndex":4,"prevLogTerm":6,"entries":[{"term":6,"command":{"type":"configure","configuration":{"voters":["raft-1","raft-2","raft-3","raft-4","raft-5","raft-6"]}}}],"leaderCommit":4},"reply":{"kind":"append","term":6,"success":true}}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-4","request":{"kind":"append","term":6,"prevLogIndex":4,"prevLogTerm":6,"entries":[{"term":6,"command":{"type":"configure","configuration":{"voters":["raft-1","raft-2","raft-3","raft-4","raft-5","raft-6"]}}}],"leaderCommit":4},"reply":{"kind":"append","term":6,"success":true}}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-6","request":{"kind":"append","term":6,"prevLogIndex":2,"prevLogTerm":2,"entries":[{"term":2,"command":{"type":"configure","configuration":{"voters":["raft-1","raft-2","raft-3","raft-4","raft-5"],"next":["raft-1","raft-2","raft-3","raft-4","raft-5","raft-6"]}}},{"term":6,"command":{"type":"noop"}},{"term":6,"command":{"type":"configure","configuration":{"voters":["raft-1","raft-2","raft-3","raft-4","raft-5","raft-6"]}}}],"leaderCommit":4},"reply":{"kind":"append","term":6,"success":true}}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-6","request":{"kind":"append","term":6,"prevLogIndex":2,"prevLogTerm":2,"entries":[{"term":2,"command":{"type":"configure","configuration":{"voters":["raft-1","raft-2","raft-3","raft-4","raft-5"],"next":["raft-1","raft-2","raft-3","raft-4","raft-5","raft-6"]}}},{"term":6,"command":{"type":"noop"}},{"term":6,"command":{"type":"configure","configuration":{"voters":["raft-1","raft-2","raft-3","raft-4","raft-5","raft-6"]}}}],"leaderCommit":5},"reply":{"kind":"append","term":6,"success":true}}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-3","request":{"kind":"append","term":6,"prevLogIndex":5,"prevLogTerm":6,"entries":[],"leaderCommit":5,"readId":1},"reply":{"kind":"append","term":6,"success":true}}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-4","request":{"kind":"append","term":6,"prevLogIndex":5,"prevLogTerm":6,"entries":[],"leaderCommit":5,"readId":1},"reply":{"kind":"append","term":6,"success":true}}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-6","request":{"kind":"append","term":6,"prevLogIndex":5,"prevLogTerm":6,"entries":[],"leaderCommit":5,"readId":1},"reply":{"kind":"append","term":6,"success":true}}
+raft-2-1  | {"kind":"raft.rpc","from":"raft-2","to":"raft-5","request":{"kind":"append","term":6,"prevLogIndex":5,"prevLogTerm":6,"entries":[],"leaderCommit":5,"readId":1},"reply":{"kind":"append","term":6,"success":true}}
+raft-2-1  | {"kind":"raft.role","nodeId":"raft-2","role":"follower","term":7,"leader":null}
+raft-2-1  | {"kind":"raft.role","nodeId":"raft-2","role":"follower","term":8,"leader":null}
+raft-2-1  | {"kind":"raft.role","nodeId":"raft-2","role":"follower","term":8,"leader":"raft-5"}
+

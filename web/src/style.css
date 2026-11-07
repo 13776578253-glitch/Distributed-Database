@@ -293,6 +293,13 @@ h3 { font-size: .875rem; }
 .service-facts dd { overflow-wrap: anywhere; }
 .service-table td { vertical-align: middle; }
 .preferences { padding-inline: 0; }
+.inline-filters { padding-inline: 0; }
+.inline-filters input[name="key"] { width: min(18rem, 68vw); }
+.verification-findings { display: grid; gap: 8px; }
+.verification-check { border-top: 1px solid var(--line); padding-top: 10px; overflow-wrap: anywhere; }
+.verification-check h3 { font-size: .875rem; }
+.verification-check p, .verification-findings p { font-size: .875rem; }
+.data-table caption { text-align: start; padding: 8px 12px; color: var(--muted); }
 
 @media (max-width: 900px) {
   .workspace { grid-template-columns: minmax(0, 1fr); }

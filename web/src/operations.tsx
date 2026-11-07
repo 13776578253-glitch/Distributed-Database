@@ -11,7 +11,7 @@ import { Experiments } from './timeline.tsx';
 const actionLabels = {
   R01: '终止当前 Leader，等待重新选举，随后恢复原节点。',
   R02: '暂时阻断 3–2 组之间的 RPC，验证后恢复链路。',
-  R03: '采集并发读写历史，判定留待 S4。',
+  R03: '采集并发读写历史，供验证器独立回放。',
 };
 const jobLabels = { running: '执行中', succeeded: '执行完成', failed: '执行失败' };
 
@@ -59,7 +59,7 @@ function JobList({ jobs }: { jobs: OperationJob[] }) {
   </div>;
 }
 
-export function ExperimentPage() {
+export function ExperimentPage({ activeRun }: { activeRun?: string }) {
   const operations = useOperations();
   const jobs = operations.data?.jobs.filter(job => job.action.kind === 'experiment') ?? [];
   const finished = jobs.find(job => job.status !== 'running' && job.verdict);
@@ -73,17 +73,19 @@ export function ExperimentPage() {
       <div className="activity-heading"><h2>实验调度</h2><span className="muted">{operations.data?.project}</span></div>
       <div className="activity-controls">
         {(['R01', 'R02', 'R03'] as const).map(experimentId => <button key={experimentId} type="button"
-          className="action" disabled={operations.disabled} onClick={() => void operations.submit({ kind: 'experiment', experimentId })}>
+          className="action" disabled={operations.disabled || operations.data?.membershipLab}
+          onClick={() => void operations.submit({ kind: 'experiment', experimentId })}>
           {experimentId} · {experimentNames[experimentId]}
         </button>)}
       </div>
+      {operations.data?.membershipLab && <p className="muted">R01–R03 使用固定五节点实验环境。</p>}
       {operations.data?.lock && <p className="muted">
         {operations.data.lock.recoveryRequired ? '上次故障恢复失败，项目等待人工恢复' : '项目操作锁已占用'} {operations.data.lock.runId ?? ''}
       </p>}
       {operations.feedback && <p className="muted" role="status">{operations.feedback}</p>}
       <JobList jobs={jobs} />
     </section>
-    <Experiments activeRun={finished?.runId} />
+    <Experiments key={activeRun} activeRun={activeRun ?? finished?.runId} />
   </main>;
 }
 

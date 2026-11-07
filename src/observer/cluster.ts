@@ -45,10 +45,12 @@ export function clusterReader(
         return null;
       });
       if (!isStatus(value, nodeId)) return failed('invalid-response');
-      const { role, term, leader, commitIndex, lastApplied, logLength, ready, committedDigest } = value;
+      const { role, term, leader, commitIndex, lastApplied, logLength, ready, committedDigest,
+        appliedDigest, committedTerm, snapshotIndex, snapshotTerm, retainedEntries, voter, membership, appliedMembership } = value;
       return {
         nodeId, ok: true, observedAt: new Date().toISOString(),
-        status: { nodeId, role, term, leader, commitIndex, lastApplied, logLength, ready, committedDigest },
+        status: { nodeId, role, term, leader, commitIndex, lastApplied, logLength, ready, committedDigest,
+          appliedDigest, committedTerm, snapshotIndex, snapshotTerm, retainedEntries, voter, membership, appliedMembership },
       };
     } catch {
       return failed(signal.aborted ? 'timeout' : 'unreachable');

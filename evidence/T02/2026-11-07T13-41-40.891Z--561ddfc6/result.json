@@ -1,0 +1,231 @@
+{
+  "experimentId": "T02",
+  "runId": "2026-11-07T13-41-40.891Z--561ddfc6",
+  "startedAt": "2026-11-07T13:41:40.891Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "transaction uses the dedicated project volume",
+      "passed": true,
+      "details": {
+        "container": "69d9857084a76cef77452e98556a4d6606fba2593f9473cb656c913c9fba7957",
+        "name": "txn-t02-561ddfc6-boot-1",
+        "volume": "txn-t02-561ddfc6_data",
+        "boot": 1
+      }
+    },
+    {
+      "name": "HTTP ABORT removes a private null version",
+      "passed": true,
+      "details": {
+        "own": {
+          "found": true,
+          "value": null
+        },
+        "aborted": {
+          "ok": true,
+          "history": {
+            "txnId": "txn-1",
+            "isolation": "SI",
+            "snapshotSeq": 0,
+            "accesses": [
+              {
+                "kind": "write",
+                "key": "draft",
+                "data": {
+                  "tombstone": false,
+                  "value": null
+                },
+                "createdVersionId": "txn-1:1"
+              },
+              {
+                "kind": "read",
+                "key": "draft",
+                "viewSeq": 0,
+                "source": "own",
+                "observedVersionId": "txn-1:1",
+                "result": {
+                  "found": true,
+                  "value": null
+                }
+              }
+            ],
+            "status": "aborted"
+          }
+        },
+        "clean": {
+          "commitSeq": 0,
+          "active": [],
+          "pending": 0,
+          "committed": 0,
+          "appliedLsn": 4,
+          "lastLsn": 4
+        }
+      }
+    },
+    {
+      "name": "SI write skew breaks coverage",
+      "passed": true,
+      "details": {
+        "bobAttempt": {
+          "status": 200,
+          "result": {
+            "ok": true,
+            "txnId": "txn-4"
+          }
+        },
+        "aliceHistory": {
+          "txnId": "txn-3",
+          "isolation": "SI",
+          "snapshotSeq": 1,
+          "accesses": [
+            {
+              "kind": "read",
+              "key": "bob",
+              "viewSeq": 1,
+              "source": "committed",
+              "observedVersionId": "txn-2:2",
+              "result": {
+                "found": true,
+                "value": true
+              }
+            },
+            {
+              "kind": "write",
+              "key": "alice",
+              "data": {
+                "tombstone": false,
+                "value": false
+              },
+              "createdVersionId": "txn-3:1"
+            }
+          ],
+          "status": "committed",
+          "commitSeq": 2
+        },
+        "bobHistory": {
+          "txnId": "txn-4",
+          "isolation": "SI",
+          "snapshotSeq": 1,
+          "accesses": [
+            {
+              "kind": "read",
+              "key": "alice",
+              "viewSeq": 1,
+              "source": "committed",
+              "observedVersionId": "txn-2:1",
+              "result": {
+                "found": true,
+                "value": true
+              }
+            },
+            {
+              "kind": "write",
+              "key": "bob",
+              "data": {
+                "tombstone": false,
+                "value": false
+              },
+              "createdVersionId": "txn-4:1"
+            }
+          ],
+          "status": "committed",
+          "commitSeq": 3
+        },
+        "values": [
+          {
+            "found": true,
+            "value": false
+          },
+          {
+            "found": true,
+            "value": false
+          }
+        ],
+        "onCall": 0
+      }
+    },
+    {
+      "name": "lock conflict retries with a fresh snapshot and preserves coverage",
+      "passed": true,
+      "details": {
+        "bobAttempt": {
+          "status": 409,
+          "result": {
+            "ok": false,
+            "error": "LOCK_CONFLICT"
+          }
+        },
+        "aliceHistory": {
+          "txnId": "txn-6",
+          "isolation": "SI",
+          "lock": "on-call",
+          "snapshotSeq": 4,
+          "accesses": [
+            {
+              "kind": "read",
+              "key": "bob",
+              "viewSeq": 4,
+              "source": "committed",
+              "observedVersionId": "txn-5:2",
+              "result": {
+                "found": true,
+                "value": true
+              }
+            },
+            {
+              "kind": "write",
+              "key": "alice",
+              "data": {
+                "tombstone": false,
+                "value": false
+              },
+              "createdVersionId": "txn-6:1"
+            }
+          ],
+          "status": "committed",
+          "commitSeq": 5
+        },
+        "bobHistory": {
+          "txnId": "txn-7",
+          "isolation": "SI",
+          "lock": "on-call",
+          "snapshotSeq": 5,
+          "accesses": [
+            {
+              "kind": "read",
+              "key": "alice",
+              "viewSeq": 5,
+              "source": "committed",
+              "observedVersionId": "txn-6:1",
+              "result": {
+                "found": true,
+                "value": false
+              }
+            }
+          ],
+          "status": "committed",
+          "commitSeq": 6
+        },
+        "values": [
+          {
+            "found": true,
+            "value": false
+          },
+          {
+            "found": true,
+            "value": true
+          }
+        ],
+        "onCall": 1
+      }
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

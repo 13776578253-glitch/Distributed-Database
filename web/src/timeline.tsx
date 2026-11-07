@@ -1,8 +1,8 @@
 /** Renders live protocol events and stepwise playback of immutable Evidence. */
 import { useContext, useEffect, useState } from 'react';
-import { nodeIds } from '../../src/raft/config.ts';
-import { experimentIds, experimentNames } from '../../src/contracts/console.ts';
-import type { RunDetail, RunSummary, TimelineEvent } from '../../src/contracts/console.ts';
+import type { ReactNode } from 'react';
+import { experimentNames, raftExperiments } from '../../src/contracts/console.ts';
+import type { ExperimentId, RunDetail, RunSummary, TimelineEvent } from '../../src/contracts/console.ts';
 import { getJson } from './console-api.ts';
 import { Icon } from './icons.tsx';
 import { Clock, PreferencesContext } from './preferences.tsx';
@@ -10,6 +10,7 @@ import { Clock, PreferencesContext } from './preferences.tsx';
 const kindLabels: Record<string, string> = {
   'raft.role': '角色变化', 'raft.status': '状态采样', 'observer.gap': '采集缺口',
   vote: 'RequestVote', append: 'AppendEntries', assertion: '实验断言',
+  snapshot: 'InstallSnapshot', 'read-index': 'ReadIndex',
   'fault.kill': '终止节点', 'fault.restart': '重启节点', 'fault.partition': 'RPC 分区',
   'fault.links': '链路配置', 'client.invoke': '调用发起', 'client.return': '调用返回',
   'verification.pending': '判定待接入',
@@ -21,7 +22,7 @@ function EventTable({ events, reverse = false }: { events: TimelineEvent[]; reve
   const [index, setIndex] = useState('');
   const [kind, setKind] = useState('');
   const [selection, select] = useState<string>();
-  const nodes = [...new Set([...nodeIds, ...events.flatMap(event => event.nodes)])];
+  const nodes = [...new Set([...events.flatMap(event => event.nodes)])];
   const kinds = [...new Set(events.map(event => event.kind))];
   const filtered = events.filter(event =>
     (!node || event.nodes.includes(node))
@@ -100,7 +101,7 @@ export function Timeline() {
   </main>;
 }
 
-function Playback({ run }: { run: RunDetail }) {
+function Playback({ run, findings }: { run: RunDetail; findings?: ReactNode }) {
   const [count, setCount] = useState(run.events.length);
   const [playing, setPlaying] = useState(false);
   useEffect(() => {
@@ -118,7 +119,7 @@ function Playback({ run }: { run: RunDetail }) {
           <p className="muted">{run.result.runId}</p></div>
         <span className={`badge verdict-${run.result.status.toLowerCase()}`}>{run.result.status}</span>
       </div>
-      {run.result.experimentId === 'R03' && <p className="muted">并发历史已采集，线性一致性判定留待 S4。</p>}
+      {run.result.experimentId === 'R03' && <p className="muted">并发历史已采集，线性一致性此记录为历史采集，验证结果可在一致性页面查看。</p>}
       {run.result.experimentId === 'R04' && <p className="muted">隔离探针历史 · 事件按证据文件顺序展示。</p>}
       <div className="evidence-links">{run.files.map(name => <a key={name} href={path + name} target="_blank" rel="noreferrer">{name}</a>)}</div>
       <details><summary>断言与运行元数据</summary>
@@ -127,6 +128,7 @@ function Playback({ run }: { run: RunDetail }) {
         <pre>{JSON.stringify(run.metadata, null, 2)}</pre>
       </details>
     </section>
+    {findings}
     {run.invalidLines > 0 && <p className="warning">{run.invalidLines} 行事件无法解析，原始记录仍可打开。</p>}
     <div className="activity-controls">
       <button className="action" type="button" disabled={!run.events.length} onClick={() => { setCount(0); setPlaying(true); }}>从头播放</button>
@@ -141,7 +143,11 @@ function Playback({ run }: { run: RunDetail }) {
   </>;
 }
 
-export function Experiments({ activeRun }: { activeRun?: string }) {
+export function Experiments({ activeRun, ids = raftExperiments, renderFindings }: {
+  activeRun?: string;
+  ids?: readonly ExperimentId[];
+  renderFindings?: (run: RunDetail) => ReactNode;
+}) {
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [category, setCategory] = useState('');
   const [selection, select] = useState('');
@@ -158,7 +164,7 @@ export function Experiments({ activeRun }: { activeRun?: string }) {
     return () => cancel.abort();
   }, [activeRun]);
 
-  const visible = runs.filter(item => !category || item.experimentId === category);
+  const visible = runs.filter(item => ids.includes(item.experimentId) && (!category || item.experimentId === category));
   const chosen = visible.find(item => item.runId === (selection || activeRun)) ?? visible[0];
   const experimentId = chosen?.experimentId;
   const runId = chosen?.runId;
@@ -179,14 +185,14 @@ export function Experiments({ activeRun }: { activeRun?: string }) {
     <section className="panel activity">
       <div className="filters">
         <label>实验<select aria-label="实验" value={category} onChange={event => { setCategory(event.target.value); select(''); }}>
-          <option value="">全部</option>{experimentIds.map(id => <option key={id} value={id}>{id} · {experimentNames[id]}</option>)}</select></label>
+          <option value="">全部</option>{ids.map(id => <option key={id} value={id}>{id} · {experimentNames[id]}</option>)}</select></label>
         <label>运行<select aria-label="运行" value={runId ?? ''} onChange={event => select(event.target.value)}>
           {!visible.length && <option value="">暂无记录</option>}
           {visible.map(item => <option key={item.runId} value={item.runId}>{item.experimentId} · {item.runId} · {item.status}</option>)}</select></label>
       </div>
     </section>
     {error && <p className="warning" role="alert">{error}</p>}
-    {run && run.result.runId === runId ? <Playback key={runId} run={run} />
+    {run && run.result.runId === runId ? <Playback key={runId} run={run} findings={renderFindings?.(run)} />
       : runId && !error ? <p className="muted" role="status">读取 Evidence 中…</p> : null}
   </>;
 }

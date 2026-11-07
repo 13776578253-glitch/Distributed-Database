@@ -11,7 +11,7 @@ export async function runExperiment(
   image: string, resolveAddress: (nodeId: string) => string,
   recovering: () => void, keepRecoveryLock: () => void,
 ) {
-  const client = raftClient(evidence, resolveAddress);
+  const client = raftClient(evidence, resolveAddress, nodeIds);
   const runDocker = (args: string[]) => docker(args, evidence.log);
   const key = `${id}/${evidence.runId}`;
   let imageId: string | undefined;
@@ -130,12 +130,12 @@ export async function runExperiment(
     if (id === 'R01') await killLeader();
     if (id === 'R02') await partition();
     if (id === 'R03') await captureHistory();
-    runDocker(['compose', 'logs', '--no-color', '--since', '2m']);
+    runDocker(['compose', 'logs', '--no-color', '--since', evidence.startedAt]);
     return evidence.finish(id === 'R03' ? 'INCONCLUSIVE' : 'PASS', { imageId, node: process.version });
   } catch (error) {
     evidence.log(error instanceof Error ? error.stack ?? error.message : String(error));
     try {
-      runDocker(['compose', 'logs', '--no-color', '--since', '2m']);
+      runDocker(['compose', 'logs', '--no-color', '--since', evidence.startedAt]);
     } catch (logError) {
       evidence.log(String(logError));
     }

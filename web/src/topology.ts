@@ -16,6 +16,9 @@ export function placeMembers(members: readonly string[], statuses: readonly Raft
   // 最高观测任期只有一个节点自报 Leader 时才占据顶部。
   const leader = leaders.length === 1 ? leaders[0] : undefined;
   const order = leader ? [leader.nodeId, ...members.filter(id => id !== leader.nodeId)] : members;
-  const layout = leader ? slots : waitingSlots;
+  const layout = members.length === 6
+    ? [leader ? slots[0] : { x: 50, y: 43 }, { x: 21, y: 43 }, { x: 79, y: 43 },
+      { x: 21, y: 78 }, { x: 50, y: 78 }, { x: 79, y: 78 }]
+    : leader ? slots : waitingSlots;
   return { leader, points: new Map(order.map((id, index) => [id, layout[index]])) };
 }

@@ -1,0 +1,203 @@
+{
+  "experimentId": "V02",
+  "runId": "2026-11-07T14-45-07.833Z--4a533f0f",
+  "startedAt": "2026-11-07T14:45:07.833Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "injected cycle identifies WW, WR and RW edges",
+      "passed": true,
+      "details": {
+        "status": "FAIL",
+        "nodes": [
+          "t1",
+          "t2",
+          "t3"
+        ],
+        "edges": [
+          {
+            "kind": "WW",
+            "from": "t2",
+            "to": "t3",
+            "key": "y",
+            "priorVersionId": "y2",
+            "nextVersionId": "y3"
+          },
+          {
+            "kind": "WR",
+            "from": "t1",
+            "to": "t2",
+            "key": "x",
+            "observedVersionId": "x1",
+            "accessIndex": 0
+          },
+          {
+            "kind": "RW",
+            "from": "t3",
+            "to": "t1",
+            "key": "z",
+            "observedVersionId": null,
+            "nextVersionId": "z1",
+            "accessIndex": 0
+          }
+        ],
+        "cycle": [
+          {
+            "kind": "WR",
+            "from": "t1",
+            "to": "t2",
+            "key": "x",
+            "observedVersionId": "x1",
+            "accessIndex": 0
+          },
+          {
+            "kind": "WW",
+            "from": "t2",
+            "to": "t3",
+            "key": "y",
+            "priorVersionId": "y2",
+            "nextVersionId": "y3"
+          },
+          {
+            "kind": "RW",
+            "from": "t3",
+            "to": "t1",
+            "key": "z",
+            "observedVersionId": null,
+            "nextVersionId": "z1",
+            "accessIndex": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "T02 unlocked schedule has two version-backed antidependencies",
+      "passed": true,
+      "details": {
+        "status": "FAIL",
+        "nodes": [
+          "txn-2",
+          "txn-3",
+          "txn-4"
+        ],
+        "edges": [
+          {
+            "kind": "WW",
+            "from": "txn-2",
+            "to": "txn-3",
+            "key": "alice",
+            "priorVersionId": "txn-2:1",
+            "nextVersionId": "txn-3:1"
+          },
+          {
+            "kind": "WW",
+            "from": "txn-2",
+            "to": "txn-4",
+            "key": "bob",
+            "priorVersionId": "txn-2:2",
+            "nextVersionId": "txn-4:1"
+          },
+          {
+            "kind": "WR",
+            "from": "txn-2",
+            "to": "txn-3",
+            "key": "bob",
+            "observedVersionId": "txn-2:2",
+            "accessIndex": 0
+          },
+          {
+            "kind": "RW",
+            "from": "txn-3",
+            "to": "txn-4",
+            "key": "bob",
+            "observedVersionId": "txn-2:2",
+            "nextVersionId": "txn-4:1",
+            "accessIndex": 0
+          },
+          {
+            "kind": "WR",
+            "from": "txn-2",
+            "to": "txn-4",
+            "key": "alice",
+            "observedVersionId": "txn-2:1",
+            "accessIndex": 0
+          },
+          {
+            "kind": "RW",
+            "from": "txn-4",
+            "to": "txn-3",
+            "key": "alice",
+            "observedVersionId": "txn-2:1",
+            "nextVersionId": "txn-3:1",
+            "accessIndex": 0
+          }
+        ],
+        "cycle": [
+          {
+            "kind": "RW",
+            "from": "txn-3",
+            "to": "txn-4",
+            "key": "bob",
+            "observedVersionId": "txn-2:2",
+            "nextVersionId": "txn-4:1",
+            "accessIndex": 0
+          },
+          {
+            "kind": "RW",
+            "from": "txn-4",
+            "to": "txn-3",
+            "key": "alice",
+            "observedVersionId": "txn-2:1",
+            "nextVersionId": "txn-3:1",
+            "accessIndex": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "T02 guarded subgraph is acyclic",
+      "passed": true,
+      "details": {
+        "nodes": [
+          "txn-5",
+          "txn-6",
+          "txn-7"
+        ],
+        "edges": [
+          {
+            "kind": "WW",
+            "from": "txn-5",
+            "to": "txn-6",
+            "key": "alice",
+            "priorVersionId": "txn-5:1",
+            "nextVersionId": "txn-6:1"
+          },
+          {
+            "kind": "WR",
+            "from": "txn-5",
+            "to": "txn-6",
+            "key": "bob",
+            "observedVersionId": "txn-5:2",
+            "accessIndex": 0
+          },
+          {
+            "kind": "WR",
+            "from": "txn-6",
+            "to": "txn-7",
+            "key": "alice",
+            "observedVersionId": "txn-6:1",
+            "accessIndex": 0
+          }
+        ],
+        "cycle": []
+      }
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

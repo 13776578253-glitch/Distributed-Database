@@ -1,0 +1,7 @@
+{"at":"2026-11-07T10:00:00.533Z","kind":"assertion","details":{"name":"pnpm test","passed":true,"details":{"exitCode":0}}}
+{"at":"2026-11-07T10:00:07.551Z","kind":"assertion","details":{"name":"pnpm typecheck","passed":true,"details":{"exitCode":0}}}
+{"at":"2026-11-07T10:00:07.767Z","kind":"assertion","details":{"name":"docker compose config --quiet","passed":true,"details":{"exitCode":0}}}
+{"at":"2026-11-07T10:00:07.779Z","kind":"baseline","details":{"path":"R01/2026-11-06T10-57-02.353Z--76c65d01","status":"PASS","gitSha":"90d642a3fc168b216478797725009d199b641c0e","image":"sha256:83d0ea5c40147c59b104c0099972a4d443ae1d1fbcb03c7cc7dc5a555e2d16a4"}}
+{"at":"2026-11-07T10:00:07.793Z","kind":"baseline","details":{"path":"R02/2026-11-06T10-57-06.906Z--77080c4c","status":"PASS","gitSha":"90d642a3fc168b216478797725009d199b641c0e","image":"sha256:83d0ea5c40147c59b104c0099972a4d443ae1d1fbcb03c7cc7dc5a555e2d16a4"}}
+{"at":"2026-11-07T10:00:07.809Z","kind":"baseline","details":{"path":"R03/2026-11-06T10-57-09.811Z--f77dfa23","status":"INCONCLUSIVE","gitSha":"90d642a3fc168b216478797725009d199b641c0e","image":"sha256:83d0ea5c40147c59b104c0099972a4d443ae1d1fbcb03c7cc7dc5a555e2d16a4"}}
+{"at":"2026-11-07T10:00:07.824Z","kind":"baseline","details":{"path":"R04/2026-11-06T11-15-26.546Z--b81c0076","status":"PASS","gitSha":"9a9971c442b305e43927f2f4640f971d14dc6eb5","image":"sha256:83d0ea5c40147c59b104c0099972a4d443ae1d1fbcb03c7cc7dc5a555e2d16a4"}}

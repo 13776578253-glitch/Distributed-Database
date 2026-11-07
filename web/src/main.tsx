@@ -1,7 +1,6 @@
 /** Renders the fixed cluster topology and details for one selected member. */
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { nodeIds } from '../../src/raft/config.ts';
 import type { NodeObservation, RpcObservation } from '../../src/contracts/observation.ts';
 import { Icon } from './icons.tsx';
 import { Navigation } from './navigation.tsx';
@@ -9,10 +8,13 @@ import { ExperimentPage, Services } from './operations.tsx';
 import { Clock, PreferencesContext, usePreferences } from './preferences.tsx';
 import { placeMembers } from './topology.ts';
 import { Timeline } from './timeline.tsx';
+import { TransactionPage } from './transaction.tsx';
 import { useCluster } from './use-cluster.ts';
+import { VerificationPage } from './verification.tsx';
 import './style.css';
 
 const roleLabels = { leader: 'Leader', candidate: 'Candidate', follower: 'Follower' };
+const rpcLabels = { vote: 'RequestVote', append: 'AppendEntries', snapshot: 'InstallSnapshot', 'read-index': 'ReadIndex' };
 
 function probeLabel(node: NodeObservation | undefined, observerOffline: boolean) {
   if (node?.ok) return '可达';
@@ -53,15 +55,30 @@ function NodeDetails({ nodeId, node, lastSeen, observerOffline, rpc }: {
       <div className="log-progress">
         <h3>日志进度</h3>
         <dl>
-          <div><dt>日志长度 <code>logLength</code></dt><dd>{status.logLength}</dd></div>
+          <div><dt>日志末尾索引 <code>logLength</code></dt><dd>{status.logLength}</dd></div>
           <div><dt>已提交 <code>commitIndex</code></dt><dd>{status.commitIndex}</dd></div>
           <div><dt>已应用 <code>lastApplied</code></dt><dd>{status.lastApplied}</dd></div>
+          {status.committedTerm !== undefined && <div><dt>提交位置任期</dt><dd>{status.committedTerm}</dd></div>}
+          {status.snapshotIndex !== undefined && <>
+            <div><dt>快照边界</dt><dd>{status.snapshotIndex} · 任期 {status.snapshotTerm}</dd></div>
+            <div><dt>保留日志条目</dt><dd>{status.retainedEntries}</dd></div>
+          </>}
         </dl>
       </div>
       <details className="digest">
         <summary>已提交前缀摘要</summary>
         <code>{status.committedDigest}</code>
       </details>
+      {status.appliedDigest && <details className="digest">
+        <summary>已应用状态摘要</summary><code>{status.appliedDigest}</code>
+      </details>}
+      {status.membership && <details className="digest">
+        <summary>投票配置 · {status.voter ? '投票成员' : '非投票成员'}</summary>
+        <p>当前配置索引 {status.membership.index} · {status.membership.configuration.voters.join('、')}</p>
+        {status.membership.configuration.next && <p>联合配置新组 · {status.membership.configuration.next.join('、')}</p>}
+        {status.appliedMembership && <p>已应用配置索引 {status.appliedMembership.index} · {
+          status.appliedMembership.configuration.voters.join('、')}</p>}
+      </details>}
     </> : <div className="missing">
       <strong>{probeLabel(node, observerOffline)}</strong>
       <p>等待下一轮采样取得节点状态。</p>
@@ -71,7 +88,7 @@ function NodeDetails({ nodeId, node, lastSeen, observerOffline, rpc }: {
       {replies.length ? <ul>{replies.map(event =>
         <li key={`${event.from}/${event.to}`}>
           <span>{event.from} → {event.to}</span>
-          <small>{event.kind === 'vote' ? 'RequestVote' : 'AppendEntries'} · {event.accepted ? '接受' : '拒绝'}</small>
+          <small>{rpcLabels[event.kind]} · {event.accepted ? '接受' : '拒绝'}</small>
           <Clock at={event.at} />
         </li>)}</ul>
         : <p>{rpc ? '近 8 秒无该节点的 RPC 日志，常规心跳省略。' : '暂无可用的 RPC 日志。'}</p>}
@@ -87,10 +104,14 @@ function App() {
   const [preferences, changePreferences] = usePreferences();
   const [revision, refresh] = useState(0);
   const { snapshot, lastSeen, error } = useCluster(preferences.interval, revision);
-  const [selected, setSelected] = useState(nodeIds[0]);
-  const [view, setView] = useState(location.hash.slice(1));
+  const [selection, setSelected] = useState<string>();
+  const nodeIds = snapshot?.nodes.map(node => node.nodeId) ?? [];
+  const selected = selection ?? nodeIds[0];
+  const [route, setRoute] = useState(location.hash.slice(1));
+  const [view, search] = route.split('?', 2);
+  const activeRun = new URLSearchParams(search).get('run') ?? undefined;
   useEffect(() => {
-    const navigate = () => setView(location.hash.slice(1));
+    const navigate = () => setRoute(location.hash.slice(1));
     window.addEventListener('hashchange', navigate);
     return () => window.removeEventListener('hashchange', navigate);
   }, []);
@@ -120,13 +141,14 @@ function App() {
 
   return <PreferencesContext.Provider value={preferences}>
     <Navigation connection={connection} view={view.startsWith('/') ? view : 'cluster-heading'} />
-    {view === '/timeline' ? <Timeline /> : view === '/runs' ? <ExperimentPage />
+    {view === '/timeline' ? <Timeline /> : view === '/runs' ? <ExperimentPage activeRun={activeRun} />
+      : view === '/transaction' ? <TransactionPage activeRun={activeRun} /> : view === '/verification' ? <VerificationPage />
       : view === '/settings' ? <Services change={changePreferences} /> : <main aria-labelledby="cluster-heading">
       <header className="overview-banner">
         <span className="overview-icon"><Icon name="topology" /></span>
         <div>
           <h1 id="cluster-heading" tabIndex={-1}>Raft Cluster</h1>
-          <p>五节点集群 · {preferences.interval ? `每 ${preferences.interval / 1000} 秒采样` : '自动采样已暂停'}</p>
+          <p>Raft 集群 · {preferences.interval ? `每 ${preferences.interval / 1000} 秒采样` : '自动采样已暂停'}</p>
         </div>
         {preferences.interval ? <small>协议多数派待观测</small>
           : <button type="button" className="action" onClick={() => refresh(revision + 1)}>刷新状态</button>}
@@ -135,8 +157,8 @@ function App() {
       {snapshot?.startupWarning && <p className="warning" role="status">Compose 初始化提示 · {snapshot.startupWarning}</p>}
       <dl className="metrics">
         <div className="panel metric"><dt><span className="metric-icon"><Icon name="reachability" /></span>HTTP 可达</dt>
-          <dd><span id="reachable">{snapshot ? statuses.length : '—'}</span><small> / {nodeIds.length}</small>
-            <span className="metric-note">多数派门槛 3 / 5</span></dd></div>
+          <dd><span id="reachable">{snapshot ? statuses.length : '—'}</span><small> / {nodeIds.length || '—'}</small>
+            <span className="metric-note">节点 HTTP 状态采样</span></dd></div>
         <div className="panel metric"><dt><span className="metric-icon"><Icon name="leader" /></span>自报 Leader</dt>
           <dd className="leader-text"><span id="leaders">{leaderLabel}</span>
             <span className="metric-note">{leaders.length === 1 ? `任期 ${leaders[0].term}` : leaders.length > 1
@@ -199,8 +221,8 @@ function App() {
             <span><i className="legend-rejected" aria-hidden="true" />RPC 拒绝</span>
           </div>
         </section>
-        <NodeDetails nodeId={selected} node={observations.get(selected)}
-          lastSeen={lastSeen[selected]} observerOffline={error} rpc={rpc} />
+        {selected && <NodeDetails nodeId={selected} node={observations.get(selected)}
+          lastSeen={lastSeen[selected]} observerOffline={error} rpc={rpc} />}
       </div>
     </main>}
   </PreferencesContext.Provider>;

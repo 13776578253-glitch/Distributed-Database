@@ -1,0 +1,36 @@
+{
+  "experimentId": "E0",
+  "runId": "2026-11-07T09-59-55.591Z--9ed8ab8e",
+  "startedAt": "2026-11-07T09:59:55.591Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "pnpm test",
+      "passed": true,
+      "details": {
+        "exitCode": 0
+      }
+    },
+    {
+      "name": "pnpm typecheck",
+      "passed": true,
+      "details": {
+        "exitCode": 0
+      }
+    },
+    {
+      "name": "docker compose config --quiet",
+      "passed": true,
+      "details": {
+        "exitCode": 0
+      }
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

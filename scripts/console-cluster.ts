@@ -1,5 +1,5 @@
 /** Attaches to the configured Compose cluster or initializes an empty project. */
-import { docker, nodeIds } from './docker.ts';
+import { docker, labNodeIds, membershipLab, nodeIds } from './docker.ts';
 import { acquireProjectLock } from './cluster-lock.ts';
 import type { NodeTarget } from '../src/observer/cluster.ts';
 
@@ -21,8 +21,8 @@ export function readComposeConfig(runDocker = docker): ComposeConfig {
   return config;
 }
 
-export function configuredTargets(config: ComposeConfig) {
-  return nodeIds.map(nodeId => {
+export function configuredTargets(config: ComposeConfig, members = nodeIds) {
+  return members.map(nodeId => {
     const ports = config.services[nodeId]?.ports?.filter(port =>
       port.target === 8080 && port.host_ip === '127.0.0.1' && port.protocol === 'tcp') ?? [];
     const port = Number(ports[0]?.published);
@@ -33,8 +33,8 @@ export function configuredTargets(config: ComposeConfig) {
   });
 }
 
-export function configuredVolumes(config: ComposeConfig) {
-  const volumes = nodeIds.map(nodeId => {
+export function configuredVolumes(config: ComposeConfig, members = nodeIds) {
+  const volumes = members.map(nodeId => {
     const mount = config.services[nodeId]?.volumes?.find(volume =>
       volume.type === 'volume' && volume.target === '/data');
     const volume = mount && config.volumes[mount.source];
@@ -43,7 +43,7 @@ export function configuredVolumes(config: ComposeConfig) {
     }
     return volume.name;
   });
-  if (new Set(volumes).size !== nodeIds.length) throw new Error('Raft members require separate data volumes');
+  if (new Set(volumes).size !== members.length) throw new Error('Raft members require separate data volumes');
   return volumes;
 }
 
@@ -55,23 +55,24 @@ export function prepareConsoleCluster(runDocker = docker, {
   mode: 'attached' | 'initialized' | 'degraded';
   warning?: string;
 } {
-  let targets: NodeTarget[] = nodeIds.map(nodeId => ({ nodeId }));
+  let targets: NodeTarget[] = labNodeIds.map(nodeId => ({ nodeId }));
   let project: string | undefined;
   try {
     const config = readComposeConfig(runDocker);
     project = config.name;
-    targets = configuredTargets(config);
+    if (membershipLab && config.name === 'minidb-lab') throw new Error('成员实验需要隔离的 Compose 项目');
+    targets = configuredTargets(config, labNodeIds);
 
     // 已有任何成员（含停止状态）都只挂接，保留实验现场。
-    if (runDocker(['compose', 'ps', '--all', '--quiet', ...nodeIds])) return { targets, project, mode: 'attached' };
+    if (runDocker(['compose', 'ps', '--all', '--quiet', ...labNodeIds])) return { targets, project, mode: 'attached' };
     if (!initialize) return { targets, project, mode: 'degraded', warning: '当前 Compose 项目没有 Raft 容器' };
 
     const lease = lock(project, 'initialize');
     try {
-      if (runDocker(['compose', 'ps', '--all', '--quiet', ...nodeIds])) return { targets, project, mode: 'attached' };
-      for (const volume of configuredVolumes(config)) runDocker(['volume', 'create', volume]);
+      if (runDocker(['compose', 'ps', '--all', '--quiet', ...labNodeIds])) return { targets, project, mode: 'attached' };
+      for (const volume of configuredVolumes(config, labNodeIds)) runDocker(['volume', 'create', volume]);
       runDocker(['compose', 'build', '--provenance=false', nodeIds[0]]);
-      runDocker(['compose', 'up', '--detach', '--no-build', '--no-recreate', '--wait', '--wait-timeout', '60', ...nodeIds]);
+      runDocker(['compose', 'up', '--detach', '--no-build', '--no-recreate', '--wait', '--wait-timeout', '60', ...labNodeIds]);
       return { targets, project, mode: 'initialized' };
     } finally { lease.release(); }
   } catch (error) {

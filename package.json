@@ -14,6 +14,9 @@
     "build:web": "vite build --config web/vite.config.ts",
     "demo": "node scripts/demo.ts",
     "experiment": "node scripts/experiment.ts",
+    "txn:experiment": "node scripts/transaction-experiment.ts",
+    "verify": "node scripts/verification-experiment.ts",
+    "membership": "node scripts/membership.ts",
     "reset:destructive": "node scripts/reset.ts"
   },
   "devDependencies": {

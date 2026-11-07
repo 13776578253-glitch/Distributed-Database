@@ -29,3 +29,15 @@ it('does not choose a Leader from stale or ambiguous claims', () => {
   expect(placeMembers(nodeIds, [status('raft-5', 2, 'leader'), status('raft-2', 2, 'leader')]).leader)
     .toBeUndefined();
 });
+
+it('allocates distinct slots to all six membership lab nodes before and after an election', () => {
+  const members = [...nodeIds, 'raft-6'];
+  const waiting = placeMembers(members, []);
+  const elected = placeMembers(members, [status('raft-6', 3, 'leader')]);
+  for (const layout of [waiting, elected]) {
+    const points = [...layout.points.values()];
+    expect(points).toHaveLength(6);
+    expect(new Set(points.map(point => `${point.x}/${point.y}`)).size).toBe(6);
+  }
+  expect(elected.points.get('raft-6')?.y).toBe(15);
+});

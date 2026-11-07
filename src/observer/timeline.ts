@@ -25,20 +25,33 @@ export function containerEvent(line: string): { event: Omit<TimelineEvent, 'id'>
     const peers = Array.isArray(raw.blockedPeers) ? strings(raw.blockedPeers) : [];
     return { event: { at, kind, nodes: [nodeId, ...peers], label: peers.length ? `阻断 ${peers.join('、')}` : '恢复 RPC 链路', raw } };
   }
-  if (kind !== 'raft.rpc' || typeof from !== 'string' || typeof to !== 'string' || from === to) return;
-  const request = object(raw.request);
+  if (typeof from !== 'string' || typeof to !== 'string' || from === to) return;
   const reply = object(raw.reply);
+  if (kind === 'raft.read-index' && reply.ok === true) {
+    const term = number(reply.term);
+    const readIndex = number(reply.readIndex);
+    if (term === undefined || readIndex === undefined) return;
+    return {
+      event: { at, kind: 'read-index', nodes: [from, to], term, indexSamples: [readIndex], label: 'ReadIndex · 接受', raw },
+      rpc: { at, from, to, term, kind: 'read-index', accepted: true },
+    };
+  }
+  if (kind !== 'raft.rpc') return;
+  const request = object(raw.request);
   const term = number(request.term);
-  if (term === undefined || (request.kind !== 'vote' && request.kind !== 'append') || reply.kind !== request.kind) return;
+  if (term === undefined || (request.kind !== 'vote' && request.kind !== 'append' && request.kind !== 'snapshot')
+    || reply.kind !== request.kind) return;
   const accepted = request.kind === 'vote' ? reply.granted : reply.success;
   if (typeof accepted !== 'boolean') return;
   const count = Array.isArray(request.entries) ? request.entries.length : 0;
   const previous = number(request.prevLogIndex);
   const indexes: [number, number] | undefined = count && previous !== undefined
     ? [previous + 1, previous + count] : undefined;
-  const label = request.kind === 'vote' ? 'RequestVote' : 'AppendEntries';
+  const label = request.kind === 'vote' ? 'RequestVote' : request.kind === 'snapshot' ? 'InstallSnapshot' : 'AppendEntries';
+  const snapshotIndex = number(request.lastIncludedIndex);
   return {
-    event: { at, kind: request.kind, nodes: [from, to], term, indexes, label: `${label} · ${accepted ? '接受' : '拒绝'}`, raw },
+    event: { at, kind: request.kind, nodes: [from, to], term, indexes,
+      indexSamples: snapshotIndex === undefined ? undefined : [snapshotIndex], label: `${label} · ${accepted ? '接受' : '拒绝'}`, raw },
     rpc: { at, from, to, term, kind: request.kind, accepted },
   };
 }
@@ -54,7 +67,7 @@ export function evidenceEvent(line: string, lineNumber: number): TimelineEvent |
     ...statuses.map(status => status.nodeId),
     ...(Array.isArray(details.majority) ? details.majority : []),
     ...(Array.isArray(details.minority) ? details.minority : [])]);
-  const indexes = [...statuses.map(status => status.commitIndex), details.index, details.commitIndex]
+  const indexes = [...statuses.map(status => status.commitIndex), details.index, details.commitIndex, details.snapshotIndex]
     .map(number).filter(value => value !== undefined);
   const terms = [...new Set(statuses.map(status => number(status.term)).filter(value => value !== undefined))];
   return {

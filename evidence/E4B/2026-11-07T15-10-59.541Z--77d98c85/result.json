@@ -1,0 +1,539 @@
+{
+  "experimentId": "E4B",
+  "runId": "2026-11-07T15-10-59.541Z--77d98c85",
+  "startedAt": "2026-11-07T15:10:59.541Z",
+  "status": "FAIL",
+  "assertionResults": [
+    {
+      "name": "raft-1 belongs to the selected lab",
+      "passed": true,
+      "details": {
+        "published": "127.0.0.1:18691"
+      }
+    },
+    {
+      "name": "raft-2 belongs to the selected lab",
+      "passed": true,
+      "details": {
+        "published": "127.0.0.1:18692"
+      }
+    },
+    {
+      "name": "raft-3 belongs to the selected lab",
+      "passed": true,
+      "details": {
+        "published": "127.0.0.1:18693"
+      }
+    },
+    {
+      "name": "raft-4 belongs to the selected lab",
+      "passed": true,
+      "details": {
+        "published": "127.0.0.1:18694"
+      }
+    },
+    {
+      "name": "raft-5 belongs to the selected lab",
+      "passed": true,
+      "details": {
+        "published": "127.0.0.1:18695"
+      }
+    },
+    {
+      "name": "raft-6 belongs to the selected lab",
+      "passed": true,
+      "details": {
+        "published": "127.0.0.1:18696"
+      }
+    },
+    {
+      "name": "standby is caught up and is not a voter",
+      "passed": true,
+      "details": {
+        "standby": {
+          "nodeId": "raft-6",
+          "role": "follower",
+          "term": 2,
+          "leader": "raft-1",
+          "commitIndex": 1,
+          "lastApplied": 1,
+          "logLength": 1,
+          "snapshotIndex": 0,
+          "snapshotTerm": 0,
+          "retainedEntries": 1,
+          "committedTerm": 2,
+          "membership": {
+            "index": 0,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5"
+              ]
+            }
+          },
+          "appliedMembership": {
+            "index": 0,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5"
+              ]
+            }
+          },
+          "voter": false,
+          "ready": false,
+          "committedDigest": "18b6788f0cb6117544154e867ca8d627fd2910d675bb3b32a4e193b3c2e0cf98",
+          "appliedDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "old": {
+          "nodeId": "raft-1",
+          "role": "leader",
+          "term": 2,
+          "leader": "raft-1",
+          "commitIndex": 1,
+          "lastApplied": 1,
+          "logLength": 1,
+          "snapshotIndex": 0,
+          "snapshotTerm": 0,
+          "retainedEntries": 1,
+          "committedTerm": 2,
+          "membership": {
+            "index": 0,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5"
+              ]
+            }
+          },
+          "appliedMembership": {
+            "index": 0,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5"
+              ]
+            }
+          },
+          "voter": true,
+          "ready": true,
+          "committedDigest": "18b6788f0cb6117544154e867ca8d627fd2910d675bb3b32a4e193b3c2e0cf98",
+          "appliedDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        }
+      }
+    },
+    {
+      "name": "baseline write acknowledged",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T15-10-59.541Z--77d98c85",
+        "operationId": "1",
+        "engine": "raft",
+        "clientId": "before-change",
+        "operation": {
+          "type": "put",
+          "key": "E4B/2026-11-07T15-10-59.541Z--77d98c85",
+          "value": "committed"
+        },
+        "invocationNs": "1294324814311600",
+        "responseNs": "1294324837868900",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "stored": true
+        }
+      }
+    },
+    {
+      "name": "join proposal accepted",
+      "passed": true,
+      "details": {
+        "httpStatus": 202,
+        "reply": {
+          "ok": true,
+          "jointIndex": 3
+        }
+      }
+    },
+    {
+      "name": "leader killed before joint commit",
+      "passed": true,
+      "details": {
+        "exit": "137",
+        "jointIndex": 3,
+        "side": [
+          "raft-1",
+          "raft-2",
+          "raft-3"
+        ],
+        "other": [
+          "raft-4",
+          "raft-5",
+          "raft-6"
+        ]
+      }
+    },
+    {
+      "name": "join committed without restarting the killed leader",
+      "passed": true,
+      "details": {
+        "jointIndex": 3,
+        "newLeader": {
+          "nodeId": "raft-2",
+          "role": "leader",
+          "term": 6,
+          "leader": "raft-2",
+          "commitIndex": 5,
+          "lastApplied": 5,
+          "logLength": 5,
+          "snapshotIndex": 0,
+          "snapshotTerm": 0,
+          "retainedEntries": 5,
+          "committedTerm": 6,
+          "membership": {
+            "index": 5,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5",
+                "raft-6"
+              ]
+            }
+          },
+          "appliedMembership": {
+            "index": 5,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5",
+                "raft-6"
+              ]
+            }
+          },
+          "voter": true,
+          "ready": true,
+          "committedDigest": "7003484d2c188c994a43b90c96b4d9787e5d85b6417def4f59cc180750a487c8",
+          "appliedDigest": "3eb99c1ca3d16c4a0780997f75fce060eb60367cdc05062b0dda9183a0c6386d"
+        }
+      }
+    },
+    {
+      "name": "new leader retains acknowledged value",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-07T15-10-59.541Z--77d98c85",
+        "operationId": "2",
+        "engine": "raft",
+        "clientId": "after-change-crash",
+        "operation": {
+          "type": "get",
+          "key": "E4B/2026-11-07T15-10-59.541Z--77d98c85"
+        },
+        "invocationNs": "1294326719074800",
+        "responseNs": "1294326727434500",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": "committed"
+        }
+      }
+    },
+    {
+      "name": "six voters agree after join and restart",
+      "passed": true,
+      "details": [
+        {
+          "nodeId": "raft-1",
+          "role": "follower",
+          "term": 8,
+          "leader": "raft-5",
+          "commitIndex": 6,
+          "lastApplied": 6,
+          "logLength": 6,
+          "snapshotIndex": 0,
+          "snapshotTerm": 0,
+          "retainedEntries": 6,
+          "committedTerm": 8,
+          "membership": {
+            "index": 5,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5",
+                "raft-6"
+              ]
+            }
+          },
+          "appliedMembership": {
+            "index": 5,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5",
+                "raft-6"
+              ]
+            }
+          },
+          "voter": true,
+          "ready": false,
+          "committedDigest": "d4bebd1e8c14366d7c06f9ca7d9d43c3a4ec478c476dab0ea5acb2208b6ea64e",
+          "appliedDigest": "3eb99c1ca3d16c4a0780997f75fce060eb60367cdc05062b0dda9183a0c6386d"
+        },
+        {
+          "nodeId": "raft-2",
+          "role": "follower",
+          "term": 8,
+          "leader": "raft-5",
+          "commitIndex": 6,
+          "lastApplied": 6,
+          "logLength": 6,
+          "snapshotIndex": 0,
+          "snapshotTerm": 0,
+          "retainedEntries": 6,
+          "committedTerm": 8,
+          "membership": {
+            "index": 5,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5",
+                "raft-6"
+              ]
+            }
+          },
+          "appliedMembership": {
+            "index": 5,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5",
+                "raft-6"
+              ]
+            }
+          },
+          "voter": true,
+          "ready": false,
+          "committedDigest": "d4bebd1e8c14366d7c06f9ca7d9d43c3a4ec478c476dab0ea5acb2208b6ea64e",
+          "appliedDigest": "3eb99c1ca3d16c4a0780997f75fce060eb60367cdc05062b0dda9183a0c6386d"
+        },
+        {
+          "nodeId": "raft-3",
+          "role": "follower",
+          "term": 8,
+          "leader": "raft-5",
+          "commitIndex": 6,
+          "lastApplied": 6,
+          "logLength": 6,
+          "snapshotIndex": 0,
+          "snapshotTerm": 0,
+          "retainedEntries": 6,
+          "committedTerm": 8,
+          "membership": {
+            "index": 5,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5",
+                "raft-6"
+              ]
+            }
+          },
+          "appliedMembership": {
+            "index": 5,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5",
+                "raft-6"
+              ]
+            }
+          },
+          "voter": true,
+          "ready": false,
+          "committedDigest": "d4bebd1e8c14366d7c06f9ca7d9d43c3a4ec478c476dab0ea5acb2208b6ea64e",
+          "appliedDigest": "3eb99c1ca3d16c4a0780997f75fce060eb60367cdc05062b0dda9183a0c6386d"
+        },
+        {
+          "nodeId": "raft-4",
+          "role": "follower",
+          "term": 8,
+          "leader": "raft-5",
+          "commitIndex": 6,
+          "lastApplied": 6,
+          "logLength": 6,
+          "snapshotIndex": 0,
+          "snapshotTerm": 0,
+          "retainedEntries": 6,
+          "committedTerm": 8,
+          "membership": {
+            "index": 5,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5",
+                "raft-6"
+              ]
+            }
+          },
+          "appliedMembership": {
+            "index": 5,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5",
+                "raft-6"
+              ]
+            }
+          },
+          "voter": true,
+          "ready": false,
+          "committedDigest": "d4bebd1e8c14366d7c06f9ca7d9d43c3a4ec478c476dab0ea5acb2208b6ea64e",
+          "appliedDigest": "3eb99c1ca3d16c4a0780997f75fce060eb60367cdc05062b0dda9183a0c6386d"
+        },
+        {
+          "nodeId": "raft-5",
+          "role": "leader",
+          "term": 8,
+          "leader": "raft-5",
+          "commitIndex": 6,
+          "lastApplied": 6,
+          "logLength": 6,
+          "snapshotIndex": 0,
+          "snapshotTerm": 0,
+          "retainedEntries": 6,
+          "committedTerm": 8,
+          "membership": {
+            "index": 5,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5",
+                "raft-6"
+              ]
+            }
+          },
+          "appliedMembership": {
+            "index": 5,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5",
+                "raft-6"
+              ]
+            }
+          },
+          "voter": true,
+          "ready": true,
+          "committedDigest": "d4bebd1e8c14366d7c06f9ca7d9d43c3a4ec478c476dab0ea5acb2208b6ea64e",
+          "appliedDigest": "3eb99c1ca3d16c4a0780997f75fce060eb60367cdc05062b0dda9183a0c6386d"
+        },
+        {
+          "nodeId": "raft-6",
+          "role": "follower",
+          "term": 8,
+          "leader": "raft-5",
+          "commitIndex": 6,
+          "lastApplied": 6,
+          "logLength": 6,
+          "snapshotIndex": 0,
+          "snapshotTerm": 0,
+          "retainedEntries": 6,
+          "committedTerm": 8,
+          "membership": {
+            "index": 5,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5",
+                "raft-6"
+              ]
+            }
+          },
+          "appliedMembership": {
+            "index": 5,
+            "configuration": {
+              "voters": [
+                "raft-1",
+                "raft-2",
+                "raft-3",
+                "raft-4",
+                "raft-5",
+                "raft-6"
+              ]
+            }
+          },
+          "voter": true,
+          "ready": false,
+          "committedDigest": "d4bebd1e8c14366d7c06f9ca7d9d43c3a4ec478c476dab0ea5acb2208b6ea64e",
+          "appliedDigest": "3eb99c1ca3d16c4a0780997f75fce060eb60367cdc05062b0dda9183a0c6386d"
+        }
+      ]
+    },
+    {
+      "name": "command-line console accepted removal on the leader being removed",
+      "passed": false,
+      "details": {
+        "removed": "raft-5"
+      }
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}
