@@ -109,6 +109,10 @@ export function Swimlane({ events, lanes, history, extent, windowMs, follow, see
               markerWidth="5" markerHeight="5" orient="auto">
               <path className="rpc-arrow rejected" d="M0 0 6 3 0 6Z" />
             </marker>
+            <marker id={`${identifier}-unknown`} viewBox="0 0 6 6" refX="5.5" refY="3"
+              markerWidth="5" markerHeight="5" orient="auto">
+              <path className="rpc-arrow unknown" d="M0 0 6 3 0 6Z" />
+            </marker>
           </defs>
           {nodeIds.map((node, index) => <g key={node}>
             <rect className="lane-bg" x={plotLeft} y={laneTop(index)} width={plotWidth}
@@ -171,11 +175,12 @@ export function Swimlane({ events, lanes, history, extent, windowMs, follow, see
             const x = scale(group.at);
             const selected = group.key === focusGroup?.key;
             const rejected = group.rejected.length > 0;
+            const unknown = group.replies.filter(reply => reply.accepted === undefined).length;
             const firstKey = group.entries?.find(entry => entry.key)?.key;
             return <g key={group.key} className="replication-group" onClick={() => onSelect?.(group.events[0].id)}>
-              <rect className={`group-tick${rejected ? ' rejected' : ''}${selected ? ' selected' : ''}`}
+              <rect className={`group-tick${rejected ? ' rejected' : ''}${!group.accepted.length && !rejected ? ' unknown' : ''}${selected ? ' selected' : ''}`}
                 x={x - 1.5} y={laneTop(lane) + 1} width={3} height={8} rx={1.5}>
-                <title>{`任期 ${group.term ?? '—'} · 索引 ${group.indexes?.join('–') ?? '—'}${firstKey ? ` · ${firstKey}` : ''} · 接受 ${group.accepted.length}/${group.replies.length}${rejected ? ` · 拒绝 ${group.rejected.join('、')}` : ''}`}</title>
+                <title>{`任期 ${group.term ?? '—'} · 索引 ${group.indexes?.join('–') ?? '—'}${firstKey ? ` · ${firstKey}` : ''} · 接受 ${group.accepted.length}/${group.replies.length}${rejected ? ` · 拒绝 ${group.rejected.join('、')}` : ''}${unknown ? ` · 未确认 ${unknown}` : ''}`}</title>
               </rect>
             </g>;
           })}
@@ -192,11 +197,12 @@ export function Swimlane({ events, lanes, history, extent, windowMs, follow, see
               const bulge = Math.min(48, room, 16 + Math.abs(y2 - y1) * 0.18);
               const path = `M ${x} ${y1} C ${x + bulge} ${y1}, ${x + bulge} ${y2}, ${x} ${y2}`;
               const event = focusGroup.events.find(item => item.nodes[1] === reply.nodeId);
+              const tone = reply.accepted === true ? 'accepted' : reply.accepted === false ? 'rejected' : 'unknown';
               return <g key={`${focusGroup.key}/${reply.nodeId}`} className="rpc-group focused"
                 onClick={() => event && onSelect?.(event.id)}>
-                <path className={`rpc-arc focused${reply.accepted ? '' : ' rejected'}`} d={path}
-                  markerEnd={`url(#${identifier}-${reply.accepted ? 'accepted' : 'rejected'})`} />
-                <title>{`${focusGroup.from} → ${reply.nodeId} · ${reply.accepted ? '接受' : '拒绝'} · ${format(focusGroup.at)}`}</title>
+                <path className={`rpc-arc focused ${tone}`} d={path}
+                  markerEnd={`url(#${identifier}-${tone})`} />
+                <title>{`${focusGroup.from} → ${reply.nodeId} · ${reply.accepted === true ? '接受' : reply.accepted === false ? '拒绝' : '未确认'} · ${format(focusGroup.at)}`}</title>
               </g>;
             });
           })()}
@@ -211,12 +217,13 @@ export function Swimlane({ events, lanes, history, extent, windowMs, follow, see
             const y2 = laneMiddle(to);
             const room = Math.max(8, plotRight - x);
             const bulge = Math.min(48, room, 16 + Math.abs(y2 - y1) * 0.18);
-            const rejected = rpcAccepted(event) === false;
+            const accepted = rpcAccepted(event);
+            const tone = accepted === true ? 'accepted' : accepted === false ? 'rejected' : 'unknown';
             const selected = event.id === selectedId;
             const path = `M ${x} ${y1} C ${x + bulge} ${y1}, ${x + bulge} ${y2}, ${x} ${y2}`;
             return <g key={event.id} className="rpc-group" onClick={() => onSelect?.(event.id)}>
-              <path className={`rpc-arc${rejected ? ' rejected' : ''}${selected ? ' selected' : ''}`}
-                d={path} markerEnd={`url(#${identifier}-${rejected ? 'rejected' : 'accepted'})`} />
+              <path className={`rpc-arc ${tone}${selected ? ' selected' : ''}`}
+                d={path} markerEnd={`url(#${identifier}-${tone})`} />
               <title>{event.nodes[0]} → {event.nodes[1]} · {event.label} · {format(at)}</title>
             </g>;
           })}
@@ -255,6 +262,7 @@ export function Swimlane({ events, lanes, history, extent, windowMs, follow, see
       <span><i className="legend-role candidate" />Candidate</span>
       <span><i className="legend-rpc" />RPC 接受</span>
       <span><i className="legend-rpc rejected" />RPC 拒绝</span>
+      <span><i className="legend-rpc unknown" />RPC 未确认</span>
       <span><i className="legend-fault" />终止 / 隔离</span>
       <span><i className="legend-gap" />采集缺口</span>
     </div>

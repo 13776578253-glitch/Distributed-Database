@@ -46,6 +46,26 @@ describe('timeline swimlanes', () => {
     ]);
   });
 
+  it('turns a failed sample into an unknown role at that sample time', () => {
+    const segments = roleSegments([], ['raft-1'], [Date.parse(t0), Date.parse(t3)], [
+      { nodeId: 'raft-1', role: 'follower', term: 2, at: Date.parse(t0) },
+      { nodeId: 'raft-1', role: 'unknown', at: Date.parse(t2) },
+    ]);
+    expect(segments).toMatchObject([
+      { nodeId: 'raft-1', start: Date.parse(t0), end: Date.parse(t2), role: 'follower', term: 2 },
+      { nodeId: 'raft-1', start: Date.parse(t2), end: Date.parse(t3), role: 'unknown' },
+    ]);
+  });
+
+  it('does not backfill a role seed before its sample time', () => {
+    const segments = roleSegments([], ['raft-1'], [Date.parse(t0), Date.parse(t3)],
+      [{ nodeId: 'raft-1', role: 'leader', term: 2, at: Date.parse(t2) }]);
+    expect(segments).toMatchObject([
+      { nodeId: 'raft-1', start: Date.parse(t0), end: Date.parse(t2), role: 'unknown' },
+      { nodeId: 'raft-1', start: Date.parse(t2), end: Date.parse(t3), role: 'leader', term: 2 },
+    ]);
+  });
+
   it('merges repeated status samples with the same role and term', () => {
     const sample = (id: string, at: string) => event(id, at, 'raft.status', ['raft-1'], {
       raw: { details: { nodes: [{ nodeId: 'raft-1', role: 'follower', term: 2 }] } },
@@ -102,7 +122,8 @@ describe('timeline swimlanes', () => {
     ]);
   });
 
-  it('groups append events into one logical replication and keeps the latest reply per follower', () => {
+  it('groups distinct follower replies from one replication attempt', () => {
+    const near = (ms: number) => new Date(Date.parse(t0) + ms).toISOString();
     const append = (id: string, at: string, to: string, accepted: boolean) => event(id, at, 'append', ['raft-1', to], {
       term: 4,
       indexes: [9, 9],
@@ -110,31 +131,81 @@ describe('timeline swimlanes', () => {
       entries: [{ index: 9, key: 'demo/s/k1', value: 7 }],
     });
     const groups = groupReplication([
-      append('1', t0, 'raft-2', true),
-      append('2', t1, 'raft-3', false),
-      append('3', t2, 'raft-2', true),
+      append('1', near(0), 'raft-2', true),
+      append('2', near(100), 'raft-3', false),
     ]);
 
     expect(groups).toHaveLength(1);
     expect(groups[0]).toMatchObject({
       from: 'raft-1', term: 4, indexes: [9, 9], accepted: ['raft-2'], rejected: ['raft-3'],
     });
-    expect(groups[0].events).toHaveLength(3);
+    expect(groups[0].events).toHaveLength(2);
     expect(groups[0].replies).toEqual([
-      { nodeId: 'raft-2', accepted: true, at: t2 },
-      { nodeId: 'raft-3', accepted: false, at: t1 },
+      { nodeId: 'raft-2', accepted: true, at: near(0) },
+      { nodeId: 'raft-3', accepted: false, at: near(100) },
     ]);
   });
 
-  it('classifies RPC direction and reply outcome', () => {
+  it('does not merge a repeated follower reply into the same attempt', () => {
+    const near = (ms: number) => new Date(Date.parse(t0) + ms).toISOString();
+    const append = (id: string, at: string, to: string, accepted: boolean) => event(id, at, 'append', ['raft-1', to], {
+      term: 4,
+      indexes: [9, 9],
+      label: `AppendEntries · demo/s/k1 · ${accepted ? '接受' : '拒绝'}`,
+      entries: [{ index: 9, key: 'demo/s/k1', value: 7 }],
+    });
+    const groups = groupReplication([
+      append('1', near(0), 'raft-2', true),
+      append('2', near(100), 'raft-2', false),
+    ]);
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0]).toMatchObject({ accepted: ['raft-2'], rejected: [] });
+    expect(groups[1]).toMatchObject({ accepted: [], rejected: ['raft-2'] });
+  });
+
+  it('keeps retries outside the attempt window as separate replication groups', () => {
+    const near = (ms: number) => new Date(Date.parse(t0) + ms).toISOString();
+    const append = (id: string, at: string, to: string, accepted: boolean) => event(id, at, 'append', ['raft-1', to], {
+      term: 4,
+      indexes: [9, 9],
+      label: `AppendEntries · demo/s/k1 · ${accepted ? '接受' : '拒绝'}`,
+      entries: [{ index: 9, key: 'demo/s/k1', value: 7 }],
+    });
+    const groups = groupReplication([
+      append('1', near(0), 'raft-2', true),
+      append('2', near(100), 'raft-3', true),
+      append('3', near(1500), 'raft-2', false),
+    ]);
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0]).toMatchObject({ accepted: ['raft-2', 'raft-3'], rejected: [] });
+    expect(groups[1]).toMatchObject({ from: 'raft-1', accepted: [], rejected: ['raft-2'] });
+    expect(groups[1].events.map(event => event.id)).toEqual(['3']);
+  });
+
+  it('classifies RPC direction and reply outcome, including missing evidence', () => {
     const accepted = event('1', t0, 'append', ['raft-1', 'raft-2'], { label: 'AppendEntries · 接受' });
     const rejected = event('2', t1, 'vote', ['raft-2', 'raft-1'], {
       label: 'RequestVote', raw: { reply: { granted: false } },
     });
+    const unknown = event('3', t2, 'append', ['raft-1', 'raft-2'], { label: 'AppendEntries' });
     expect(isRpcEvent(accepted)).toBe(true);
     expect(rpcAccepted(accepted)).toBe(true);
     expect(rpcAccepted(rejected)).toBe(false);
-    expect(isRpcEvent(event('3', t2, 'append', ['raft-1']))).toBe(false);
+    expect(rpcAccepted(unknown)).toBeUndefined();
+    expect(isRpcEvent(event('4', t3, 'append', ['raft-1']))).toBe(false);
+  });
+
+  it('does not turn a missing RPC reply into a rejection', () => {
+    const unknown = event('1', t0, 'append', ['raft-1', 'raft-2'], {
+      term: 4, indexes: [9, 9], label: 'AppendEntries',
+      entries: [{ index: 9, key: 'demo/s/k1', value: 7 }],
+    });
+    const groups = groupReplication([unknown]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toMatchObject({ accepted: [], rejected: [] });
+    expect(groups[0].replies).toEqual([{ nodeId: 'raft-2', accepted: undefined, at: t0 }]);
   });
 
   it('scales a live window and emits aligned ticks', () => {

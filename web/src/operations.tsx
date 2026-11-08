@@ -88,7 +88,8 @@ export function ExperimentPage({ activeRun, cluster }: { activeRun?: string; clu
       <div className={`cluster-context${cluster.offline ? ' offline' : ''}`}>
         <span className="cluster-state">
           <span className={`dot ${cluster.offline ? 'offline' : cluster.total === 0 ? 'unknown' : cluster.leader ? 'online' : 'unknown'}`} />
-          {cluster.offline ? '观测离线' : cluster.total === 0 ? '等待集群采样'
+          <span className="cluster-scope">当前集群</span>
+          {cluster.offline ? '观测离线' : cluster.total === 0 ? '等待采样'
             : cluster.leader ? `Leader ${cluster.leader}${cluster.term ? ` · T${cluster.term}` : ''}` : 'Leader 未确认'}
           <span className="muted">{cluster.total ? `${cluster.reachable}/${cluster.total} 可达` : '—'}</span>
         </span>

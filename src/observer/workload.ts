@@ -43,6 +43,14 @@ export interface WorkloadDependencies {
   clearTimer?: (handle: unknown) => void;
 }
 
+/** 对 Raft ClientReply 的确认成功、拒绝和结果未知做统一分类。 */
+export interface ClassifiedReply {
+  ok: boolean;
+  outcome: string;
+  retry: boolean;
+  uncertain?: boolean;
+}
+
 export function parseWorkloadAction(value: unknown): WorkloadAction | undefined {
   if (!value || typeof value !== 'object') return;
   const action = value as Record<string, unknown>;
@@ -65,13 +73,40 @@ export function latencyPercentile(samples: readonly number[], percentile: number
   return sorted[index];
 }
 
-/** 同一最高观测任期只有一个 Leader 时才返回，和拓扑视图的判定保持一致。 */
+/** 全部有效节点先取最高观测任期，再要求该任期只有一个自报 Leader。 */
 export function pickLeader(nodes: readonly NodeObservation[]): string | undefined {
-  const leaders = nodes.flatMap(node => node.ok && node.status.role === 'leader' ? [node.status] : []);
-  if (!leaders.length) return;
-  const term = Math.max(...leaders.map(status => status.term));
-  const top = leaders.filter(status => status.term === term);
-  return top.length === 1 ? top[0].nodeId : undefined;
+  const valid = nodes.filter((node): node is Extract<NodeObservation, { ok: true }> => node.ok);
+  if (!valid.length) return;
+  const term = Math.max(...valid.map(node => node.status.term));
+  const leaders = valid.filter(node => node.status.term === term && node.status.role === 'leader');
+  return leaders.length === 1 ? leaders[0].nodeId : undefined;
+}
+
+/**
+ * Raft HTTP 直接返回 ClientReply：成功结果位于 `result`，失败为 409/503/504 加 error。
+ * DELETE 的 false 仍是 HTTP 成功（键此前不存在），不能算请求失败。
+ */
+export function classifyReply(plan: DemoPlan, response: WorkloadResponse, body: unknown): ClassifiedReply {
+  const record = isRecord(body) ? body : {};
+  if (!response.ok) {
+    const outcome = typeof record.error === 'string' ? record.error : `HTTP ${response.status}`;
+    return {
+      ok: false,
+      outcome,
+      retry: response.status === 409 && outcome === 'NOT_LEADER',
+      ...(outcome === 'UNKNOWN_OUTCOME' ? { uncertain: true } : {}),
+    };
+  }
+  const result = isRecord(record.result) ? record.result : undefined;
+  if (plan.op === 'get') {
+    if (result?.found === true) return { ok: true, outcome: 'found', retry: false };
+    if (result?.found === false) return { ok: true, outcome: 'absent', retry: false };
+  } else if (plan.op === 'put') {
+    if (result?.stored === true) return { ok: true, outcome: 'stored', retry: false };
+  } else if (typeof result?.deleted === 'boolean') {
+    return { ok: true, outcome: result.deleted ? 'deleted' : 'absent', retry: false };
+  }
+  return { ok: false, outcome: 'INVALID_RESULT', retry: false };
 }
 
 const opLabel = (op: DemoOperation) => op === 'put' ? 'PUT' : op === 'delete' ? 'DELETE' : 'GET';
@@ -92,6 +127,7 @@ export function createWorkload(deps: WorkloadDependencies) {
   let operations = 0;
   let successes = 0;
   let failures = 0;
+  let unknown = 0;
   let latencies: number[] = [];
   let lastLatencyMs: number | undefined;
   let lastKey: string | undefined;
@@ -109,6 +145,14 @@ export function createWorkload(deps: WorkloadDependencies) {
     try { deps.publish(event); } catch { /* SSE 关闭时保持负载循环，事件只用于观测。 */ }
   }
 
+  function emitNoLeader(plan: DemoPlan) {
+    emit({
+      at: new Date(now()).toISOString(), kind: 'demo.error', nodes: [],
+      label: `${opLabel(plan.op)} 失败 · NO_LEADER`,
+      raw: { session, seq: plan.seq, op: plan.op, key: plan.key, error: 'NO_LEADER' },
+    });
+  }
+
   function status(): WorkloadStatus {
     const blocked = deps.shouldPause();
     return {
@@ -121,6 +165,7 @@ export function createWorkload(deps: WorkloadDependencies) {
       operations,
       successes,
       failures,
+      unknown,
       p50LatencyMs: latencyPercentile(latencies, 50),
       p95LatencyMs: latencyPercentile(latencies, 95),
       lastLatencyMs,
@@ -164,22 +209,16 @@ export function createWorkload(deps: WorkloadDependencies) {
     });
     const latencyMs = Math.max(0, now() - started);
     const body: unknown = await response.json().catch(() => null);
-    const record = isRecord(body) ? body : {};
-    const outcome = response.ok
-      ? (plan.op === 'get' ? (record.found === true ? 'found' : 'absent')
-        : plan.op === 'delete' ? 'deleted' : 'stored')
-      : (typeof record.error === 'string' ? record.error : `HTTP ${response.status}`);
+    const result = classifyReply(plan, response, body);
     emit({
       at: new Date(now()).toISOString(), kind: 'demo.response', nodes: [node.nodeId],
       label: `${label} ${response.status} · ${latencyMs}ms`,
-      raw: { session, seq: plan.seq, op: plan.op, key: plan.key, latencyMs, status: response.status, outcome },
+      raw: {
+        session, seq: plan.seq, op: plan.op, key: plan.key,
+        latencyMs, status: response.status, outcome: result.outcome,
+      },
     });
-    return {
-      ok: response.ok,
-      outcome,
-      latencyMs,
-      retry: response.status === 409 && record.error === 'NOT_LEADER',
-    };
+    return { ...result, latencyMs };
   }
 
   async function runOnce(): Promise<WorkloadStatus> {
@@ -195,15 +234,25 @@ export function createWorkload(deps: WorkloadDependencies) {
         failures++;
         lastKey = plan.key;
         lastOutcome = 'NO_LEADER';
+        emitNoLeader(plan);
         return status();
       }
       let result = await perform(node, plan);
       if (result.retry) {
         node = await resolveLeader(true);
-        if (node) result = await perform(node, plan);
+        if (!node) {
+          operations++;
+          failures++;
+          lastKey = plan.key;
+          lastOutcome = 'NO_LEADER';
+          emitNoLeader(plan);
+          return status();
+        }
+        result = await perform(node, plan);
       }
       operations++;
       if (result.ok) successes++;
+      else if (result.uncertain) unknown++;
       else failures++;
       latencies.push(result.latencyMs);
       if (latencies.length > latencyWindow) latencies = latencies.slice(-latencyWindow);
@@ -215,6 +264,9 @@ export function createWorkload(deps: WorkloadDependencies) {
       failures++;
       lastKey = plan.key;
       lastOutcome = failure instanceof Error ? failure.message : String(failure);
+      // 连接异常时下一次立即重新解析 Leader，避免继续用旧地址。
+      leader = undefined;
+      leaderAt = 0;
       emit({
         at: new Date(now()).toISOString(), kind: 'demo.error', nodes: node ? [node.nodeId] : [],
         label: `${opLabel(plan.op)} 失败 · ${lastOutcome}`,
@@ -239,20 +291,41 @@ export function createWorkload(deps: WorkloadDependencies) {
     });
   }
 
-  async function cleanup() {
-    if (!session) return;
-    const node = await resolveLeader(true).catch(() => undefined);
-    if (!node?.address) return;
-    for (let index = 0; index < keyCount; index++) {
-      try {
-        await request(`${node.address}/kv/delete`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ key: `demo/${session}/k${index}` }),
-          signal: AbortSignal.timeout(1500),
+  async function cleanup(cleanupSession: string) {
+    if (!cleanupSession) return;
+    let node: WorkloadTarget | undefined;
+    let cleaned = 0;
+    let failed = 0;
+    try {
+      node = await resolveLeader(true);
+      if (!node?.address) {
+        emit({
+          at: new Date(now()).toISOString(), kind: 'demo.cleanup', nodes: [],
+          label: '清理跳过 · NO_LEADER',
+          raw: { session: cleanupSession, attempted: 0, cleaned: 0, failed: 0, outcome: 'NO_LEADER' },
         });
-      } catch { /* 演示键使用独立前缀，清理失败不影响主流程。 */ }
+        return;
+      }
+      for (let index = 0; index < keyCount; index++) {
+        try {
+          const response = await request(`${node.address}/kv/delete`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ key: `demo/${cleanupSession}/k${index}` }),
+            signal: AbortSignal.timeout(1500),
+          });
+          if (response.ok) cleaned++;
+          else failed++;
+        } catch { failed++; }
+      }
+    } catch {
+      failed = keyCount;
     }
+    emit({
+      at: new Date(now()).toISOString(), kind: 'demo.cleanup', nodes: node ? [node.nodeId] : [],
+      label: `清理演示键 · ${cleaned}/${keyCount} 成功`,
+      raw: { session: cleanupSession, attempted: keyCount, cleaned, failed },
+    });
   }
 
   function start(nextRate: number): WorkloadStatus {
@@ -266,6 +339,7 @@ export function createWorkload(deps: WorkloadDependencies) {
     operations = 0;
     successes = 0;
     failures = 0;
+    unknown = 0;
     latencies = [];
     lastLatencyMs = undefined;
     lastKey = undefined;
@@ -284,6 +358,7 @@ export function createWorkload(deps: WorkloadDependencies) {
 
   function stop(): WorkloadStatus {
     if (!running) return status();
+    const stoppedSession = session;
     running = false;
     paused = false;
     if (timerHandle !== undefined) {
@@ -293,9 +368,9 @@ export function createWorkload(deps: WorkloadDependencies) {
     emit({
       at: new Date(now()).toISOString(), kind: 'demo.stop', nodes: [],
       label: '演示负载停止',
-      raw: { session, operations, successes, failures },
+      raw: { session: stoppedSession, operations, successes, failures, unknown },
     });
-    void cleanup();
+    void cleanup(stoppedSession);
     return status();
   }
 

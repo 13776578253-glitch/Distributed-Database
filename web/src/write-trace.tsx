@@ -23,6 +23,7 @@ export const WriteTrace = memo(function WriteTrace({ trace }: { trace: WriteTrac
         <p className="muted">
           {trace.key}{trace.seq !== undefined ? ` · seq ${trace.seq}` : ''}
           {trace.index !== undefined ? ` · index ${trace.index}` : ''}
+          {trace.index !== undefined ? ` · ${trace.entryIdentity === 'entries' ? '条目：RPC 载荷' : '条目：仅索引关联'}` : ''}
         </p>
       </div>
       <span className={`badge ${statusBadge[0]}`}>{statusBadge[1]}</span>
@@ -50,12 +51,12 @@ export const WriteTrace = memo(function WriteTrace({ trace }: { trace: WriteTrac
             {' · '}<Clock at={trace.group.events[0].at} /></>
           : '未观测到 AppendEntries 证据'}</span></li>
       <li className={commitStatus}><span className="step-dot" aria-hidden="true" />
-        <strong>提交</strong>
+        <strong>提交水位</strong>
         <span>{trace.commit
           ? <>commitIndex ≥ {trace.commit.index} · {trace.commit.nodeId} · 采样 <Clock at={trace.commit.at} /></>
           : trace.index === undefined ? '未观测到条目索引' : '未观测到提交采样'}</span></li>
       <li className={applyStatus}><span className="step-dot" aria-hidden="true" />
-        <strong>状态机应用</strong>
+        <strong>应用水位</strong>
         <span>{trace.apply
           ? <>lastApplied ≥ {trace.apply.index} · {trace.apply.nodeId} · 采样 <Clock at={trace.apply.at} /></>
           : trace.index === undefined ? '未观测到条目索引' : '未观测到应用采样'}</span></li>
@@ -63,11 +64,11 @@ export const WriteTrace = memo(function WriteTrace({ trace }: { trace: WriteTrac
     {(trace.group || trace.isEvidence) && trace.nodes.length > 0 && <div className="table-scroll trace-table">
       <table className="data-table">
         <caption>按节点观测</caption>
-        <thead><tr><th>节点</th><th>复制</th><th>应用</th><th>lastApplied</th></tr></thead>
+        <thead><tr><th>节点</th><th>复制</th><th>应用水位</th><th>lastApplied</th></tr></thead>
         <tbody>{trace.nodes.map(node => <tr key={node.nodeId}>
           <td><strong>{node.nodeId}</strong>{node.role === 'leader' ? ' · Leader' : ''}</td>
           <td>{node.replicated === 'source' ? '源' : node.replicated === 'accepted' ? '接受' : node.replicated === 'rejected' ? '拒绝' : '未观测'}</td>
-          <td>{node.applied === 'applied' ? '已应用' : node.applied === 'pending' ? '未应用' : '未观测'}</td>
+          <td>{node.applied === 'applied' ? '水位覆盖' : node.applied === 'pending' ? '水位未覆盖' : '未观测'}</td>
           <td>{node.lastApplied ?? '—'}</td>
         </tr>)}</tbody>
       </table>

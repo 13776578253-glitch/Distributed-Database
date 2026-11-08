@@ -3,11 +3,13 @@ import type { TimelineEntry, TimelineEvent } from '../../src/contracts/console.t
 
 export type Role = 'leader' | 'candidate' | 'follower' | 'unknown';
 
-/** 实时模式用最近一次集群采样补齐窗口左端的角色，回放不提供。 */
+/** 实时模式的角色 seed 必须带采样时间，只影响采样之后的区间；回放不提供。 */
 export interface RoleSeed {
   nodeId: string;
   role: Role;
   term?: number;
+  /** 采样时间；用于避免把采样当时的角色倒填到整个历史窗口。 */
+  at?: number;
 }
 
 export interface RoleSegment {
@@ -43,7 +45,7 @@ export interface RpcGroup {
   term?: number;
   indexes?: [number, number];
   entries?: TimelineEntry[];
-  replies: { nodeId: string; accepted: boolean; at: string }[];
+  replies: { nodeId: string; accepted?: boolean; at: string }[];
   accepted: string[];
   rejected: string[];
   events: TimelineEvent[];
@@ -54,6 +56,7 @@ type Extent = readonly [number, number];
 
 const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 const rpcKinds = new Set(['vote', 'append', 'snapshot', 'read-index', 'rpc.error']);
+const replicationAttemptWindowMs = 500;
 const tickSteps = [1000, 2000, 5000, 10000, 15000, 30000, 60000, 120000, 300000, 600000, 900000, 1800000, 3600000];
 
 const object = (value: unknown): Record<string, unknown> =>
@@ -113,8 +116,10 @@ export function roleSegments(
     else changes.set(nodeId, [change]);
   };
   for (const seed of seeds) {
-    if (seed.role === 'unknown') continue;
-    add(seed.nodeId, { at: start, role: seed.role, term: seed.term });
+    const at = seed.at !== undefined && Number.isFinite(seed.at)
+      ? Math.max(start, seed.at) : start;
+    if (at > end) continue;
+    add(seed.nodeId, { at, role: seed.role, term: seed.term });
   }
   for (const event of events) {
     const at = time(event);
@@ -265,35 +270,45 @@ export function faultMarkers(events: readonly TimelineEvent[], extent: Extent): 
   return markers;
 }
 
+/**
+ * 聚合一次逻辑复制的 follower 应答。事件没有 RPC attempt id，因此用
+ * leader+term+索引+完整条目载荷作为身份，并用 500ms 的连续窗口隔离重试。
+ * 超过窗口的同载荷事件属于新的 RPC 尝试，不能覆盖上一轮 reply。
+ */
 export function groupReplication(events: readonly TimelineEvent[]): RpcGroup[] {
-  const groups = new Map<string, RpcGroup>();
-  for (const event of events) {
-    if (event.kind !== 'append' || event.nodes.length < 2 || event.nodes[0] === event.nodes[1]) continue;
+  const groups = new Map<string, RpcGroup[]>();
+  const ordered = events
+    .filter(event => event.kind === 'append' && event.nodes.length >= 2 && event.nodes[0] !== event.nodes[1])
+    .sort((left, right) => time(left) - time(right));
+  for (const event of ordered) {
     const at = time(event);
     if (!Number.isFinite(at)) continue;
-    const signature = event.entries?.map(entry => `${entry.key ?? ''}:${String(entry.value ?? '')}`).join('|') ?? '';
-    const key = `${event.nodes[0]}|${event.term ?? ''}|${event.indexes?.[0] ?? ''}|${event.indexes?.[1] ?? ''}|${signature}`;
-    let group = groups.get(key);
+    const signature = JSON.stringify((event.entries ?? []).map(entry =>
+      [entry.index, entry.type ?? null, entry.key ?? null, entry.value ?? null]));
+    const identity = `${event.nodes[0]}|${event.term ?? ''}|${event.indexes?.[0] ?? ''}|${event.indexes?.[1] ?? ''}|${signature}`;
+    const target = event.nodes[1];
+    const attempts = groups.get(identity) ?? [];
+    // 同一 follower 在同一载荷上再次出现意味着新的 RPC 尝试，即使仍在时间窗口内。
+    let group = attempts.find(candidate => at >= candidate.at && at - candidate.at <= replicationAttemptWindowMs
+      && !candidate.replies.some(reply => reply.nodeId === target));
     if (!group) {
       group = {
-        key, at, from: event.nodes[0], term: event.term, indexes: event.indexes,
+        key: `${identity}@${attempts.length}`, at, from: event.nodes[0], term: event.term, indexes: event.indexes,
         entries: event.entries, replies: [], accepted: [], rejected: [], events: [],
       };
-      groups.set(key, group);
+      attempts.push(group);
+      groups.set(identity, attempts);
     }
     group.events.push(event);
-    const target = event.nodes[1];
-    const accepted = rpcAccepted(event) === true;
-    const reply = { nodeId: target, accepted, at: event.at };
-    const previous = group.replies.findIndex(item => item.nodeId === target);
-    if (previous === -1) group.replies.push(reply);
-    else group.replies[previous] = reply;
+    group.replies.push({ nodeId: target, accepted: rpcAccepted(event), at: event.at });
   }
-  for (const group of groups.values()) {
-    group.accepted = group.replies.filter(reply => reply.accepted).map(reply => reply.nodeId);
-    group.rejected = group.replies.filter(reply => !reply.accepted).map(reply => reply.nodeId);
+  for (const attempts of groups.values()) {
+    for (const group of attempts) {
+      group.accepted = group.replies.filter(reply => reply.accepted === true).map(reply => reply.nodeId);
+      group.rejected = group.replies.filter(reply => reply.accepted === false).map(reply => reply.nodeId);
+    }
   }
-  return [...groups.values()].sort((a, b) => a.at - b.at);
+  return [...groups.values()].flat().sort((a, b) => a.at - b.at);
 }
 
 export function isRpcEvent(event: TimelineEvent): boolean {

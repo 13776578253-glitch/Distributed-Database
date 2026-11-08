@@ -619,6 +619,7 @@ h3 {
   border-radius: var(--r-md); background: var(--panel-soft); font-size: var(--text-sm);
 }
 .cluster-state { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); font-weight: 500; }
+.cluster-scope { color: var(--muted); font-size: var(--text-xs); font-weight: 400; }
 .cluster-state .dot { width: 7px; height: 7px; background: var(--success); }
 .cluster-state .dot.offline { background: var(--danger); }
 .cluster-state .dot.unknown { background: var(--warning-fill); }
@@ -702,6 +703,7 @@ h3 {
 .swimlane-legend .legend-role.candidate { background: var(--warning-bg); border: 1px solid var(--warning-line); }
 .swimlane-legend .legend-rpc { height: 0; border-top: 2px solid var(--accent); border-radius: 0; }
 .swimlane-legend .legend-rpc.rejected { border-top-color: var(--warning-fill); border-top-style: dashed; }
+.swimlane-legend .legend-rpc.unknown { border-top-color: var(--muted); border-top-style: dotted; }
 .swimlane-legend .legend-fault { background: var(--danger-bg); border: 1px solid var(--danger-line); opacity: .8; }
 .swimlane-legend .legend-gap { background: var(--warning-fill); opacity: .55; }
 .swimlane-axis { fill: var(--muted); font: 8.5px var(--font-mono); pointer-events: none; }
@@ -721,9 +723,12 @@ h3 {
 .replication-group { cursor: pointer; }
 .group-tick { fill: var(--accent); opacity: .58; }
 .group-tick.rejected { fill: var(--warning-fill); opacity: .9; }
+.group-tick.unknown { opacity: .32; }
 .group-tick.selected { opacity: 1; stroke: var(--selection); stroke-width: 1.5; }
 .rpc-arc { fill: none; stroke: var(--accent); stroke-width: 1.4; opacity: .5; }
 .rpc-arc.rejected { stroke: var(--warning-fill); stroke-dasharray: 3 2; }
+.rpc-arc.unknown { stroke: var(--muted); stroke-dasharray: 2 2; }
+.rpc-arrow.unknown { fill: var(--muted); }
 .rpc-arc.focused { stroke-width: 2; opacity: .9; }
 .rpc-arc.selected { stroke-width: 2.6; opacity: 1; }
 .rpc-group { cursor: pointer; }

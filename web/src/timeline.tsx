@@ -22,7 +22,7 @@ const kindLabels: Record<string, string> = {
   'fault.kill': '终止节点', 'fault.restart': '重启节点', 'fault.partition': 'RPC 分区',
   'fault.links': '链路配置', 'client.invoke': '调用发起', 'client.return': '调用返回',
   'verification.pending': '判定待接入', 'rpc.error': 'RPC 失败',
-  'demo.start': '演示开始', 'demo.stop': '演示停止',
+  'demo.start': '演示开始', 'demo.stop': '演示停止', 'demo.cleanup': '演示清理',
   'demo.request': '演示请求', 'demo.response': '演示响应', 'demo.error': '演示异常',
 };
 
@@ -172,9 +172,17 @@ export function Timeline() {
 
   const live = frozen ?? entries;
   const lanes = useMemo(() => cluster?.nodes.map(node => node.nodeId), [cluster]);
-  const seeds = useMemo<RoleSeed[]>(() => cluster?.nodes.flatMap(node => node.ok
-    ? [{ nodeId: node.nodeId, role: node.status.role, term: node.status.term }]
-    : []) ?? [], [cluster]);
+  const seeds = useMemo<RoleSeed[]>(() => samples.flatMap(sample => {
+    const sampledAt = Date.parse(sample.sampledAt);
+    return sample.nodes.flatMap((node): RoleSeed[] => {
+      const observedAt = Date.parse(node.observedAt);
+      const at = Number.isFinite(observedAt) ? observedAt : sampledAt;
+      if (!Number.isFinite(at)) return [];
+      return node.ok
+        ? [{ nodeId: node.nodeId, role: node.status.role, term: node.status.term, at }]
+        : [{ nodeId: node.nodeId, role: 'unknown', at }];
+    });
+  }), [samples]);
 
   return <>
     <header className="overview-banner">

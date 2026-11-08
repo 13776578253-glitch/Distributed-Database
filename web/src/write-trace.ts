@@ -9,6 +9,8 @@ export interface TraceObservation {
   nodeId: string;
   index: number;
   label: string;
+  /** 状态采样只能证明水位覆盖索引，不能还原精确事件时间或条目载荷。 */
+  watermark: true;
 }
 
 export interface TraceNode {
@@ -40,6 +42,7 @@ export interface WriteTraceResult {
   nodes: TraceNode[];
   notes: string[];
   isEvidence: boolean;
+  entryIdentity: 'entries' | 'unknown';
 }
 
 const record = (value: unknown): Record<string, unknown> =>
@@ -71,6 +74,7 @@ export function deriveWriteTrace(
   let index: number | undefined;
   let batchSize = 0;
   let isEvidence = false;
+  let entryIdentity: WriteTraceResult['entryIdentity'] = 'unknown';
 
   if (selected.kind === 'append') {
     group = groups.find(item => item.events.some(event => event.id === selected.id));
@@ -173,7 +177,7 @@ export function deriveWriteTrace(
       const observer = nodes.find(node => node.nodeId === leader && node.status.commitIndex >= index)
         ?? nodes.find(node => node.status.commitIndex >= index);
       if (observer) {
-        commit = { at: sample.sampledAt, nodeId: observer.nodeId, index, label: 'commitIndex' };
+        commit = { at: sample.sampledAt, nodeId: observer.nodeId, index, label: 'commitIndex', watermark: true };
         break;
       }
     }
@@ -182,7 +186,7 @@ export function deriveWriteTrace(
       const observer = nodes.find(node => node.nodeId === leader && node.status.lastApplied >= index)
         ?? nodes.find(node => node.status.lastApplied >= index);
       if (observer) {
-        apply = { at: sample.sampledAt, nodeId: observer.nodeId, index, label: 'lastApplied' };
+        apply = { at: sample.sampledAt, nodeId: observer.nodeId, index, label: 'lastApplied', watermark: true };
         break;
       }
     }
@@ -220,13 +224,19 @@ export function deriveWriteTrace(
     };
   });
 
+  if (index !== undefined && group?.entries?.some(entry => entry.index === index && entry.key === key)) {
+    entryIdentity = 'entries';
+  }
   const notes: string[] = [];
   if (isEvidence) notes.push('该 Evidence 未记录 RPC 条目与绝对索引，复制、提交和应用保持未观测。');
   if (!group && !isEvidence) notes.push('当前事件窗口中未找到该写入的 AppendEntries 证据。');
   if (group && index === undefined) notes.push('已找到复制事件，但缺少可关联的条目索引。');
   if (index !== undefined && later.length === 0) notes.push('写入后尚无状态采样，提交和应用保持未观测。');
   if (index !== undefined && later.length > 0 && !commit) notes.push('当前采样尚未显示 commitIndex 覆盖该索引。');
-  if (commit && !apply) notes.push('已观测到提交，但尚未观测到状态机应用。');
+  if (commit && !apply) notes.push('已观测到提交水位，但尚未观测到状态机应用水位。');
+  if (entryIdentity === 'unknown' && index !== undefined && !isEvidence)
+    notes.push('条目身份只来自索引关联，未确认 RPC 载荷与条目的对应关系。');
+  if (commit || apply) notes.push('提交/应用是状态采样水位，不等于精确事件时间，也不能单独证明条目身份。');
   if (batchSize > 1) notes.push(`该复制批次包含 ${batchSize} 条，当前追踪第 1 条。`);
   if (!response) notes.push('未观测到对应的客户端返回。');
 
@@ -250,5 +260,6 @@ export function deriveWriteTrace(
     nodes,
     notes,
     isEvidence,
+    entryIdentity,
   };
 }

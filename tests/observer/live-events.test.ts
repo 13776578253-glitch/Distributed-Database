@@ -2,6 +2,29 @@
 import { expect, it } from 'vitest';
 import { liveEvents } from '../../src/observer/live-events.ts';
 
+it('publishes a gap when log reads fail and recovers', async () => {
+  let now = Date.parse('2026-11-06T10:00:00.000Z');
+  let fail = true;
+  const row = `${new Date(now).toISOString()} {"kind":"raft.role","nodeId":"raft-1","role":"follower","term":3}`;
+  const feed = liveEvents(['raft-1'], {
+    now: () => now,
+    read: async () => {
+      if (fail) throw new Error('docker logs unavailable');
+      return { logs: row, containers: 'stable' };
+    },
+  });
+  await feed.refresh();
+  expect(feed.status().available).toBe(false);
+  expect(feed.replay().entries.at(-1)?.kind).toBe('observer.gap');
+
+  fail = false;
+  now += 1000;
+  await feed.refresh();
+  expect(feed.status().available).toBe(true);
+  expect(feed.replay().entries.some(entry => entry.kind === 'raft.role')).toBe(true);
+  feed.close();
+});
+
 it('deduplicates overlapping windows and identifies stale replay cursors', async () => {
   let now = Date.parse('2026-11-06T10:00:00.000Z');
   const row = (nodeId: string) => `${new Date(now).toISOString()} {"kind":"raft.role","nodeId":"${nodeId}","role":"follower","term":3}`;

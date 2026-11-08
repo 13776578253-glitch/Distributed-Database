@@ -53,19 +53,21 @@ describe('write trace', () => {
     expect(trace).toMatchObject({
       key: 'demo/s/k1', seq: 7, outcome: 'stored', httpStatus: 200,
       index: 9, term: 3, leader: 'raft-1', accepted: ['raft-2'], rejected: ['raft-3'],
-      commit: { at: t4, nodeId: 'raft-1', index: 9 },
-      apply: { at: t4, nodeId: 'raft-1', index: 9 },
+      entryIdentity: 'entries',
+      commit: { at: t4, nodeId: 'raft-1', index: 9, watermark: true },
+      apply: { at: t4, nodeId: 'raft-1', index: 9, watermark: true },
     });
     expect(trace?.request?.id).toBe('1');
     expect(trace?.response?.id).toBe('4');
     expect(trace?.nodes).toContainEqual({
       nodeId: 'raft-3', role: 'follower', replicated: 'rejected', applied: 'unobserved',
     });
+    expect(trace?.notes.join(' ')).toContain('提交/应用是状态采样水位');
   });
 
   it('keeps missing replication and status evidence explicit', () => {
     const trace = deriveWriteTrace([request, response], response, []);
-    expect(trace).toMatchObject({ key: 'demo/s/k1', outcome: 'stored', index: undefined });
+    expect(trace).toMatchObject({ key: 'demo/s/k1', outcome: 'stored', index: undefined, entryIdentity: 'unknown' });
     expect(trace?.group).toBeUndefined();
     expect(trace?.commit).toBeUndefined();
     expect(trace?.apply).toBeUndefined();
@@ -77,6 +79,7 @@ describe('write trace', () => {
     const trace = deriveWriteTrace([request, selected, response], selected, [sample(t4, 10, 10)]);
     expect(trace).toMatchObject({
       key: 'demo/s/k1', seq: 7, index: 9, groupKey: expect.any(String), outcome: 'stored',
+      entryIdentity: 'entries',
     });
     expect(trace?.request?.id).toBe('1');
   });
@@ -96,6 +99,7 @@ describe('write trace', () => {
     const trace = deriveWriteTrace([invoke, returned], returned, []);
     expect(trace).toMatchObject({
       key: 'k', outcome: 'ok', httpStatus: 200, isEvidence: true, index: undefined,
+      entryIdentity: 'unknown',
     });
     expect(trace?.request?.id).toBe('1');
     expect(trace?.response?.id).toBe('2');

@@ -52,6 +52,7 @@ export function WorkloadPanel() {
       <div><dt>当前 Leader</dt><dd>{data?.leader ?? '—'}</dd></div>
       <div><dt>操作数</dt><dd>{data?.operations ?? '—'}</dd></div>
       <div><dt>成功率</dt><dd>{successRate === undefined ? '—' : `${successRate}%`}</dd></div>
+      <div><dt>未知结果</dt><dd>{data?.unknown ?? 0}</dd></div>
       <div><dt>P50 延迟</dt><dd>{data?.p50LatencyMs === undefined ? '—' : `${data.p50LatencyMs} ms`}</dd></div>
       <div><dt>最近结果</dt>
         <dd className="workload-last" title={data?.lastKey ? `${data.lastKey} · ${data.lastOutcome ?? '—'}` : undefined}>

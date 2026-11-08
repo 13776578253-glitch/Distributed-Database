@@ -81,7 +81,7 @@ function Storage() {
       .then(([wal, recovery]) => {
         if (!stop.signal.aborted) setSample({ wal, recovery });
       }).catch((failure: Error) => {
-        if (!stop.signal.aborted) { setError(failure.message); setSample(undefined); }
+        if (!stop.signal.aborted) setError(failure.message);
       });
     return () => stop.abort();
   }, [revision]);
@@ -145,10 +145,10 @@ export function TransactionPage({ activeRun }: { activeRun?: string }) {
       <div><h1 id="transaction-heading">Transaction</h1><p>独立事务服务 · MVCC、WAL 与恢复</p></div>
       {!interval && <button type="button" className="action" onClick={() => refresh(revision + 1)}>刷新状态</button>}
     </header>
-    {error ? <p className="warning" role="status">
-      {error}。事务服务未连接，启动后会自动重试；下方仍可回放历史 Evidence。
-    </p>
-      : data ? <>
+    {error && <p className="warning" role="status">
+      {error}。显示最近一次成功采样；服务恢复后自动更新，下方仍可回放历史 Evidence。
+    </p>}
+    {data ? <>
         <section className="panel run-summary">
           <h2>事务状态</h2>
           <dl className="service-facts">
@@ -160,7 +160,7 @@ export function TransactionPage({ activeRun }: { activeRun?: string }) {
         </section>
         <AsOf />
         <Storage />
-      </> : <p className="muted" role="status">正在读取事务服务状态…</p>}
+      </> : !error ? <p className="muted" role="status">正在读取事务服务状态…</p> : null}
     <section className="panel run-summary"><h2>事务实验回放</h2><p className="muted">隔离级别、写偏斜和故障恢复的历史 Evidence。</p></section>
     <Experiments key={activeRun} activeRun={activeRun} ids={transactionExperiments} />
   </main>;

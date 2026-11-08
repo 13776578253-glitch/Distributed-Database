@@ -103,6 +103,8 @@ export interface WorkloadStatus {
   operations: number;
   successes: number;
   failures: number;
+  /** HTTP 504 UNKNOWN_OUTCOME：写请求可能已生效，不能算确认失败。 */
+  unknown: number;
   p50LatencyMs?: number;
   p95LatencyMs?: number;
   lastLatencyMs?: number;

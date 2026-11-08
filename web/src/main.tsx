@@ -122,11 +122,11 @@ function App() {
   }, [view]);
   const observations = new Map(snapshot?.nodes.map(node => [node.nodeId, node]));
   const statuses = snapshot?.nodes.flatMap(node => node.ok ? [node.status] : []) ?? [];
-  const leaders = statuses.filter(status => status.role === 'leader');
   const sampledTerm = statuses.length > 0 ? Math.max(...statuses.map(status => status.term)) : '—';
-  const leaderLabel = leaders.map(leader => leader.nodeId).join(' / ') || (snapshot ? '未观测到' : '—');
-  const connection = error ? 'offline' : snapshot ? 'online' : 'connecting';
   const { leader, points } = placeMembers(nodeIds, statuses);
+  const leaderClaims = statuses.filter(status => status.role === 'leader');
+  const leaderLabel = leader?.nodeId ?? (snapshot ? '未确认' : '—');
+  const connection = error ? 'offline' : snapshot ? 'online' : 'connecting';
   const relations = leader ? statuses.filter(status => status.nodeId !== leader.nodeId
     && status.term === leader.term && status.leader === leader.nodeId) : [];
   const rpc = snapshot?.recentRpc;
@@ -161,7 +161,9 @@ function App() {
           <h1 id="cluster-heading" tabIndex={-1}>Raft Cluster</h1>
           <p>Raft 集群 · {preferences.interval ? `每 ${preferences.interval / 1000} 秒采样` : '自动采样已暂停'}</p>
         </div>
-        {preferences.interval ? <small>协议多数派待观测</small>
+        {preferences.interval ? <small>{leader
+          ? `${leader.nodeId} · Leader · 任期 ${leader.term}`
+          : 'Leader 未确认'}</small>
           : <button type="button" className="action" onClick={() => refresh(revision + 1)}>刷新状态</button>}
       </header>
       {error && <p className="warning" role="alert">观测 API 暂不可用，正在等待重连。</p>}
@@ -170,10 +172,11 @@ function App() {
         <div className="panel metric"><dt><span className="metric-icon"><Icon name="reachability" /></span>HTTP 可达</dt>
           <dd><span id="reachable">{snapshot ? statuses.length : '—'}</span><small> / {nodeIds.length || '—'}</small>
             <span className="metric-note">节点 HTTP 状态采样</span></dd></div>
-        <div className="panel metric"><dt><span className="metric-icon"><Icon name="leader" /></span>自报 Leader</dt>
+        <div className="panel metric"><dt><span className="metric-icon"><Icon name="leader" /></span>观测 Leader</dt>
           <dd className="leader-text"><span id="leaders">{leaderLabel}</span>
-            <span className="metric-note">{leaders.length === 1 ? `任期 ${leaders[0].term}` : leaders.length > 1
-              ? leaders.map(leader => `${leader.nodeId} · 任期 ${leader.term}`).join(' / ') : '来自节点状态采样'}</span></dd></div>
+            <span className="metric-note">{leader ? `任期 ${leader.term}` : leaderClaims.length > 1
+              ? '多个自报 Leader，未确认' : leaderClaims.length === 1
+                ? '自报 Leader 不在最高观测任期' : '来自节点状态采样'}</span></dd></div>
         <div className="panel metric"><dt><span className="metric-icon"><Icon name="term" /></span>最高观测任期</dt>
           <dd><span id="term">{sampledTerm}</span>
             <span className="metric-note">

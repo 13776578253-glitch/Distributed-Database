@@ -28,6 +28,9 @@ it('does not choose a Leader from stale or ambiguous claims', () => {
   for (const id of nodeIds) expect(pending.points.get(id)).toEqual(fixed.points.get(id));
   expect(placeMembers(nodeIds, [status('raft-5', 2, 'leader'), status('raft-2', 2, 'leader')]).leader)
     .toBeUndefined();
+  // 更高任期的 follower 证据必须压过低任期自报 Leader。
+  expect(placeMembers(nodeIds, [status('raft-5', 1, 'leader'), status('raft-2', 2, 'follower')]).leader)
+    .toBeUndefined();
 });
 
 it('allocates fixed distinct slots to all six membership lab nodes', () => {
