@@ -1,0 +1,549 @@
+{
+  "experimentId": "T01",
+  "runId": "2026-11-08T14-15-50.333Z--f198395b",
+  "startedAt": "2026-11-08T14:15:50.333Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "transaction uses the dedicated project volume",
+      "passed": true,
+      "details": {
+        "container": "425303e6e7560478f28645d253c4528b216cef2aa97a59acaff515902d8c1031",
+        "name": "txn-t01-f198395b-boot-1",
+        "volume": "txn-t01-f198395b_data",
+        "boot": 1
+      }
+    },
+    {
+      "name": "fault interrupted the HTTP response",
+      "passed": true,
+      "details": {
+        "point": "after-update-wal",
+        "path": "/txn/txn-2/put"
+      }
+    },
+    {
+      "name": "observed SIGKILL exit 137",
+      "passed": true,
+      "details": {
+        "container": "425303e6e7560478f28645d253c4528b216cef2aa97a59acaff515902d8c1031",
+        "point": "after-update-wal",
+        "exit": "137",
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-11-08T14:15:53.05337708Z",
+          "FinishedAt": "2026-11-08T14:15:54.385870515Z"
+        }
+      }
+    },
+    {
+      "name": "loser UPDATE is durable without COMMIT",
+      "passed": true,
+      "details": {
+        "point": "after-update-wal",
+        "loser": "txn-2",
+        "updateLsns": [
+          7
+        ]
+      }
+    },
+    {
+      "name": "transaction uses the dedicated project volume",
+      "passed": true,
+      "details": {
+        "container": "1f4ace52f3adfca882d051f60e6264a1476cf3b1477397bb1e2e52e495a49625",
+        "name": "txn-t01-f198395b-boot-2",
+        "volume": "txn-t01-f198395b_data",
+        "boot": 2,
+        "startupFault": "during-redo"
+      }
+    },
+    {
+      "name": "observed SIGKILL exit 137",
+      "passed": true,
+      "details": {
+        "container": "1f4ace52f3adfca882d051f60e6264a1476cf3b1477397bb1e2e52e495a49625",
+        "point": "during-redo",
+        "exit": "137",
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-11-08T14:15:55.811573908Z",
+          "FinishedAt": "2026-11-08T14:15:56.562694524Z"
+        }
+      }
+    },
+    {
+      "name": "transaction uses the dedicated project volume",
+      "passed": true,
+      "details": {
+        "container": "4be8dc46fbd9589eff4f14d8f9da398f4ac9328d9bf65a151ffbdcd4516be1e4",
+        "name": "txn-t01-f198395b-boot-3",
+        "volume": "txn-t01-f198395b_data",
+        "boot": 3
+      }
+    },
+    {
+      "name": "loser undone and earlier confirmed versions preserved",
+      "passed": true,
+      "details": {
+        "point": "after-update-wal",
+        "recovery": {
+          "checkpointLsn": null,
+          "analysisStartLsn": 1,
+          "redoStartLsn": 1,
+          "redoLsns": [],
+          "winners": [],
+          "losers": [
+            "txn-2"
+          ],
+          "undoneLsns": [
+            7
+          ]
+        },
+        "status": {
+          "commitSeq": 1,
+          "active": [],
+          "pending": 0,
+          "committed": 2,
+          "appliedLsn": 10,
+          "lastLsn": 10
+        },
+        "values": [
+          {
+            "found": true,
+            "value": "original"
+          },
+          {
+            "found": true,
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "fault interrupted the HTTP response",
+      "passed": true,
+      "details": {
+        "point": "after-update-data",
+        "path": "/txn/txn-3/put"
+      }
+    },
+    {
+      "name": "observed SIGKILL exit 137",
+      "passed": true,
+      "details": {
+        "container": "4be8dc46fbd9589eff4f14d8f9da398f4ac9328d9bf65a151ffbdcd4516be1e4",
+        "point": "after-update-data",
+        "exit": "137",
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-11-08T14:15:58.302639784Z",
+          "FinishedAt": "2026-11-08T14:15:59.546878326Z"
+        }
+      }
+    },
+    {
+      "name": "loser UPDATE is durable without COMMIT",
+      "passed": true,
+      "details": {
+        "point": "after-update-data",
+        "loser": "txn-3",
+        "updateLsns": [
+          12
+        ]
+      }
+    },
+    {
+      "name": "transaction uses the dedicated project volume",
+      "passed": true,
+      "details": {
+        "container": "f26e8cdfae17b21e044bc5ed5254ac17ed941aac579733f1ad57b88506a53b01",
+        "name": "txn-t01-f198395b-boot-4",
+        "volume": "txn-t01-f198395b_data",
+        "boot": 4
+      }
+    },
+    {
+      "name": "loser undone and earlier confirmed versions preserved",
+      "passed": true,
+      "details": {
+        "point": "after-update-data",
+        "recovery": {
+          "checkpointLsn": null,
+          "analysisStartLsn": 1,
+          "redoStartLsn": 1,
+          "redoLsns": [],
+          "winners": [],
+          "losers": [
+            "txn-3"
+          ],
+          "undoneLsns": [
+            12
+          ]
+        },
+        "status": {
+          "commitSeq": 1,
+          "active": [],
+          "pending": 0,
+          "committed": 2,
+          "appliedLsn": 15,
+          "lastLsn": 15
+        },
+        "values": [
+          {
+            "found": true,
+            "value": "original"
+          },
+          {
+            "found": true,
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "fault interrupted the HTTP response",
+      "passed": true,
+      "details": {
+        "point": "before-commit-wal",
+        "path": "/txn/txn-4/commit"
+      }
+    },
+    {
+      "name": "observed SIGKILL exit 137",
+      "passed": true,
+      "details": {
+        "container": "f26e8cdfae17b21e044bc5ed5254ac17ed941aac579733f1ad57b88506a53b01",
+        "point": "before-commit-wal",
+        "exit": "137",
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-11-08T14:16:01.007822579Z",
+          "FinishedAt": "2026-11-08T14:16:02.308341024Z"
+        }
+      }
+    },
+    {
+      "name": "loser UPDATE is durable without COMMIT",
+      "passed": true,
+      "details": {
+        "point": "before-commit-wal",
+        "loser": "txn-4",
+        "updateLsns": [
+          17,
+          18
+        ]
+      }
+    },
+    {
+      "name": "transaction uses the dedicated project volume",
+      "passed": true,
+      "details": {
+        "container": "e76b44dd8e513a86a70f1391009e1fe8f3a0e1b0555a3ca301a145918790a52a",
+        "name": "txn-t01-f198395b-boot-5",
+        "volume": "txn-t01-f198395b_data",
+        "boot": 5
+      }
+    },
+    {
+      "name": "loser undone and earlier confirmed versions preserved",
+      "passed": true,
+      "details": {
+        "point": "before-commit-wal",
+        "recovery": {
+          "checkpointLsn": null,
+          "analysisStartLsn": 1,
+          "redoStartLsn": 1,
+          "redoLsns": [],
+          "winners": [],
+          "losers": [
+            "txn-4"
+          ],
+          "undoneLsns": [
+            18,
+            17
+          ]
+        },
+        "status": {
+          "commitSeq": 1,
+          "active": [],
+          "pending": 0,
+          "committed": 2,
+          "appliedLsn": 22,
+          "lastLsn": 22
+        },
+        "values": [
+          {
+            "found": true,
+            "value": "original"
+          },
+          {
+            "found": true,
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "fault interrupted the HTTP response",
+      "passed": true,
+      "details": {
+        "point": "after-commit-wal",
+        "path": "/txn/txn-5/commit"
+      }
+    },
+    {
+      "name": "observed SIGKILL exit 137",
+      "passed": true,
+      "details": {
+        "container": "e76b44dd8e513a86a70f1391009e1fe8f3a0e1b0555a3ca301a145918790a52a",
+        "point": "after-commit-wal",
+        "exit": "137",
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-11-08T14:16:03.775165087Z",
+          "FinishedAt": "2026-11-08T14:16:05.050805744Z"
+        }
+      }
+    },
+    {
+      "name": "transaction uses the dedicated project volume",
+      "passed": true,
+      "details": {
+        "container": "cdb20188fc7616a3ae155c2bd2a6e3fb6d303f4e719ba4e36602246ba79ac7ab",
+        "name": "txn-t01-f198395b-boot-6",
+        "volume": "txn-t01-f198395b_data",
+        "boot": 6
+      }
+    },
+    {
+      "name": "durable COMMIT redone atomically at its AS OF LSN",
+      "passed": true,
+      "details": {
+        "commit": {
+          "type": "COMMIT",
+          "txnId": "txn-5",
+          "commitSeq": 2,
+          "lsn": 26,
+          "prevLsn": 25
+        },
+        "recovery": {
+          "checkpointLsn": null,
+          "analysisStartLsn": 1,
+          "redoStartLsn": 1,
+          "redoLsns": [
+            26
+          ],
+          "winners": [
+            "txn-5"
+          ],
+          "losers": [],
+          "undoneLsns": []
+        },
+        "prior": [
+          {
+            "found": true,
+            "value": "original"
+          },
+          {
+            "found": true,
+            "value": 1
+          }
+        ],
+        "after": [
+          {
+            "found": true,
+            "value": "durable"
+          },
+          {
+            "found": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "fault interrupted the HTTP response",
+      "passed": true,
+      "details": {
+        "point": "during-checkpoint",
+        "path": "/internal/txn/checkpoint"
+      }
+    },
+    {
+      "name": "observed SIGKILL exit 137",
+      "passed": true,
+      "details": {
+        "container": "cdb20188fc7616a3ae155c2bd2a6e3fb6d303f4e719ba4e36602246ba79ac7ab",
+        "point": "during-checkpoint",
+        "exit": "137",
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-11-08T14:16:06.465205293Z",
+          "FinishedAt": "2026-11-08T14:16:07.730529574Z"
+        }
+      }
+    },
+    {
+      "name": "transaction uses the dedicated project volume",
+      "passed": true,
+      "details": {
+        "container": "e10cd117e686f69f16d4a7b932d921025e3125f05167a32f54f4e600993c84d3",
+        "name": "txn-t01-f198395b-boot-7",
+        "volume": "txn-t01-f198395b_data",
+        "boot": 7
+      }
+    },
+    {
+      "name": "interrupted checkpoint uses previous complete checkpoint",
+      "passed": true,
+      "details": {
+        "checkpoint": {
+          "type": "CHECKPOINT",
+          "beginLsn": 30,
+          "appliedLsn": 29,
+          "active": [
+            [
+              "txn-6",
+              29
+            ]
+          ],
+          "lsn": 31,
+          "prevLsn": null
+        },
+        "checkpointRecovery": {
+          "checkpointLsn": 31,
+          "analysisStartLsn": 32,
+          "redoStartLsn": 30,
+          "redoLsns": [],
+          "winners": [],
+          "losers": [
+            "txn-6"
+          ],
+          "undoneLsns": [
+            29
+          ]
+        },
+        "status": {
+          "commitSeq": 2,
+          "active": [],
+          "pending": 0,
+          "committed": 4,
+          "appliedLsn": 35,
+          "lastLsn": 35
+        },
+        "absent": {
+          "found": false
+        }
+      }
+    },
+    {
+      "name": "observed SIGKILL exit 137",
+      "passed": true,
+      "details": {
+        "container": "e10cd117e686f69f16d4a7b932d921025e3125f05167a32f54f4e600993c84d3",
+        "exit": "137",
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-11-08T14:16:09.159335146Z",
+          "FinishedAt": "2026-11-08T14:16:10.44741659Z"
+        }
+      }
+    },
+    {
+      "name": "transaction uses the dedicated project volume",
+      "passed": true,
+      "details": {
+        "container": "3d8f6d5399c16ab335754a06ac522e67bdb7b021f884dcf5e7e8c967c4eee4cc",
+        "name": "txn-t01-f198395b-boot-8",
+        "volume": "txn-t01-f198395b_data",
+        "boot": 8
+      }
+    },
+    {
+      "name": "repeated restart preserves WAL and historical reads",
+      "passed": true,
+      "details": {
+        "repeated": {
+          "checkpointLsn": 31,
+          "analysisStartLsn": 32,
+          "redoStartLsn": 30,
+          "redoLsns": [],
+          "winners": [],
+          "losers": [],
+          "undoneLsns": []
+        },
+        "seedValue": {
+          "found": true,
+          "value": "original"
+        },
+        "current": {
+          "found": true,
+          "value": "durable"
+        }
+      }
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

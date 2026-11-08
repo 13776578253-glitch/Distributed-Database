@@ -1,0 +1,17 @@
+{
+  "startedAt": "2026-11-08T14:16:14.217Z",
+  "endedAt": "2026-11-08T14:16:24.533Z",
+  "gitSha": "daa910bc989e2d9616f378f0825fe01c4fba1898",
+  "gitDirty": true,
+  "parameters": {
+    "signal": "SIGKILL",
+    "compose": "compose.transaction.yaml"
+  },
+  "environment": {
+    "image": "sha256:6a0783543dfcf2211a38edd353823da4b225347bfd693413a912389917df7c81",
+    "projects": [
+      "txn-t03-27c941a6",
+      "txn-t03-27c941a6-control"
+    ]
+  }
+}

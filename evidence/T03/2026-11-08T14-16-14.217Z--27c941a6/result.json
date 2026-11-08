@@ -1,0 +1,183 @@
+{
+  "experimentId": "T03",
+  "runId": "2026-11-08T14-16-14.217Z--27c941a6",
+  "startedAt": "2026-11-08T14:16:14.217Z",
+  "status": "FAIL",
+  "assertionResults": [
+    {
+      "name": "transaction uses the dedicated project volume",
+      "passed": true,
+      "details": {
+        "container": "22fa453a41375f39ab0c06b3d31959ae703a4175e69f6cf768c08b7f2e9a89d1",
+        "name": "txn-t03-27c941a6-boot-1",
+        "volume": "txn-t03-27c941a6_data",
+        "boot": 1
+      }
+    },
+    {
+      "name": "observed SIGKILL exit 137",
+      "passed": true,
+      "details": {
+        "container": "22fa453a41375f39ab0c06b3d31959ae703a4175e69f6cf768c08b7f2e9a89d1",
+        "exit": "137",
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-11-08T14:16:16.520195464Z",
+          "FinishedAt": "2026-11-08T14:16:18.011944268Z"
+        }
+      }
+    },
+    {
+      "name": "loser has three durable private updates before SIGKILL",
+      "passed": true,
+      "details": {
+        "project": "txn-t03-27c941a6",
+        "loser": "txn-2",
+        "status": {
+          "commitSeq": 1,
+          "active": [
+            "txn-2"
+          ],
+          "pending": 3,
+          "committed": 1,
+          "appliedLsn": 10,
+          "lastLsn": 10
+        },
+        "updates": [
+          6,
+          9,
+          10
+        ]
+      }
+    },
+    {
+      "name": "transaction uses the dedicated project volume",
+      "passed": true,
+      "details": {
+        "container": "433906a9313af932c26a13c1ff2c0a68fd698ad0cce8f6837870bd0575d23915",
+        "name": "txn-t03-27c941a6-boot-2",
+        "volume": "txn-t03-27c941a6_data",
+        "boot": 2,
+        "startupFault": "after-clr-wal"
+      }
+    },
+    {
+      "name": "observed SIGKILL exit 137",
+      "passed": true,
+      "details": {
+        "container": "433906a9313af932c26a13c1ff2c0a68fd698ad0cce8f6837870bd0575d23915",
+        "point": "after-clr-wal",
+        "exit": "137",
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-11-08T14:16:19.658201158Z",
+          "FinishedAt": "2026-11-08T14:16:20.439508183Z"
+        }
+      }
+    },
+    {
+      "name": "partial undo flushed one CLR with an undo-next link",
+      "passed": true,
+      "details": {
+        "firstClr": {
+          "type": "CLR",
+          "txnId": "txn-2",
+          "versionId": "txn-2:3",
+          "undoneLsn": 10,
+          "undoNextLsn": 9,
+          "lsn": 12,
+          "prevLsn": 11
+        },
+        "updates": [
+          6,
+          9,
+          10
+        ]
+      }
+    },
+    {
+      "name": "transaction uses the dedicated project volume",
+      "passed": true,
+      "details": {
+        "container": "1d8229442facb21d5e117adac7b1863b1369d41d41a0cbbf854f32a961b164e0",
+        "name": "txn-t03-27c941a6-boot-3",
+        "volume": "txn-t03-27c941a6_data",
+        "boot": 3
+      }
+    },
+    {
+      "name": "redo replays the durable CLR and undo resumes without duplicating it",
+      "passed": true,
+      "details": {
+        "resumed": {
+          "checkpointLsn": 8,
+          "analysisStartLsn": 9,
+          "redoStartLsn": 7,
+          "redoLsns": [
+            12
+          ],
+          "winners": [],
+          "losers": [
+            "txn-2"
+          ],
+          "undoneLsns": [
+            9,
+            6
+          ]
+        },
+        "clrs": [
+          {
+            "type": "CLR",
+            "txnId": "txn-2",
+            "versionId": "txn-2:3",
+            "undoneLsn": 10,
+            "undoNextLsn": 9,
+            "lsn": 12,
+            "prevLsn": 11
+          },
+          {
+            "type": "CLR",
+            "txnId": "txn-2",
+            "versionId": "txn-2:2",
+            "undoneLsn": 9,
+            "undoNextLsn": 6,
+            "lsn": 13,
+            "prevLsn": 12
+          },
+          {
+            "type": "CLR",
+            "txnId": "txn-2",
+            "versionId": "txn-2:1",
+            "undoneLsn": 6,
+            "undoNextLsn": 5,
+            "lsn": 14,
+            "prevLsn": 13
+          }
+        ]
+      }
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

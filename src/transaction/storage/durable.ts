@@ -14,7 +14,7 @@ export function openTransaction(directory: string, fault?: Fault) {
   const wal = new Wal(join(directory, 'wal.jsonl'));
   let data: SqliteVersions | undefined;
   try {
-    data = new SqliteVersions(join(directory, 'versions.sqlite'));
+    data = new SqliteVersions(join(directory, 'versions.sqlite'), wal.records());
     const recovery = recover(wal, data, fault);
     const storage = new DurableTransaction(wal, data, fault);
     return {

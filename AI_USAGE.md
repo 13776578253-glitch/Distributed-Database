@@ -18,3 +18,4 @@
 | Raft 控制台第二批 | 实现共享日志采集、SSE 游标与 Evidence 回放，运行隔离容器和 HTTP 验收 | [第二批验收记录](docs/current-task/2026-11-06-raft-console-timeline.md) |
 | Raft 控制台第三批 | 实现项目操作锁、任务进程与设置页，运行隔离的 R01/R02、互斥和重启验收 | [第三批验收记录](docs/current-task/2026-11-06-raft-console-operations.md) |
 | 冻结后端与控制台联调 | 合并冻结版，接入事务服务、验证 Evidence 和 Raft 扩展状态，执行隔离容器与 Edge 功能验收 | [联调记录](docs/current-task/2026-11-07-console-frozen-backend.md) |
+| 审计收束 · 事务持久化 | 复现 SQLite 键合并，修复键编码并实现旧库重建，补齐持久化和恢复回归 | [审计收束记录](docs/current-task/2026-11-08-closing-review-fixes.md) |

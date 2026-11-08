@@ -2,6 +2,7 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { TransactionEngine } from '../../src/transaction/core/engine.ts';
 import { openTransaction } from '../../src/transaction/storage/durable.ts';
@@ -80,6 +81,47 @@ describe('durable transactions', () => {
     } finally { reopened.close(); }
   });
 
+  it.each(['current', 'legacy'])('preserves distinct keys across recovery of a %s database', format => {
+    const keys = ['\ud800', '\ud801', '\ufffd', 'a\0b', '键😀'];
+    const first = openTransaction(directory);
+    const txn = begin(first.engine);
+    for (const [index, key] of keys.entries()) first.engine.put(txn, key, index);
+    first.engine.put(txn, keys[0], 10);
+    first.engine.commit(txn);
+    const loser = begin(first.engine);
+    first.engine.delete(loser, keys[0]);
+    const updateLsn = first.data.appliedLsn();
+    const checkpoint = first.checkpoint().lsn;
+    first.close();
+
+    if (format === 'legacy') {
+      const db = new DatabaseSync(join(directory, 'versions.sqlite'));
+      try {
+        // 旧实现会把三个不相等的键存成 U+FFFD，提交时只留下最后一次写入。
+        db.exec("DELETE FROM versions WHERE version_id IN ('txn-1:2', 'txn-1:3')");
+        const update = db.prepare('UPDATE versions SET key = ? WHERE version_id = ?');
+        update.run(keys[3], 'txn-1:4');
+        update.run(keys[4], 'txn-1:5');
+        update.run(keys[2], 'txn-1:6');
+        update.run(keys[2], 'txn-2:1');
+        db.exec('PRAGMA user_version = 0');
+      } finally { db.close(); }
+    }
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const reopened = openTransaction(directory);
+      try {
+        expect(reopened.recovery.checkpointLsn).toBe(checkpoint);
+        expect(reopened.recovery.undoneLsns).toEqual(attempt === 0 ? [updateLsn] : []);
+        expect(reopened.wal.records().filter(record => record.type === 'CLR')).toHaveLength(1);
+        expect(reopened.data.counts()).toEqual({ pending: 0, committed: keys.length });
+        expect(keys.map(key => reopened.engine.asOf(key, 1))).toEqual(
+          [10, 1, 2, 3, 4].map(value => ({ found: true, value })),
+        );
+      } finally { reopened.close(); }
+    }
+  });
+
   it.each(['before-commit-wal', 'after-commit-wal'] as const)('persists the expected boundary at %s', point => {
     const store = openTransaction(directory, current => {
       if (current === point) throw new Error('interrupted');
@@ -92,7 +134,7 @@ describe('durable transactions', () => {
     } finally { store.close(); }
 
     const wal = new Wal(join(directory, 'wal.jsonl'));
-    const data = new SqliteVersions(join(directory, 'versions.sqlite'));
+    const data = new SqliteVersions(join(directory, 'versions.sqlite'), wal.records());
     try {
       expect(data.counts()).toEqual({ pending: 2, committed: 0 });
       expect(wal.records().map(record => record.type)).toEqual(

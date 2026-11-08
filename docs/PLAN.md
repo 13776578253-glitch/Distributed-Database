@@ -20,6 +20,8 @@ Raft、MVCC/WAL 和一致性验证的后端核心已验收并冻结。后续范�
 
 三个方向的复现入口见[实验清单](experiments.md)。选型对比、时序图和报告分别放在 `docs/comparison.md`、`docs/diagrams/` 和 `docs/report.pdf`，成稿后逐项查看。
 
+审计收束分两批。先修复事务键编码并验证旧库升级与崩溃恢复，再收束演示会话、写追踪、事务恢复采样和 AS OF 输入透传。结果见[审计收束记录](current-task/2026-11-08-closing-review-fixes.md)。
+
 ## 数据库观测控制台
 
 第一批已交付一键启动、五节点状态聚合、拓扑和节点详情。见[首批任务记录](current-task/2026-11-06-raft-console.md)。第二批已接入[实时事件与实验回放](current-task/2026-11-06-raft-console-timeline.md)，第三批已接入[实验调度和服务管理](current-task/2026-11-06-raft-console-operations.md)。冻结版联调接入 Transaction、Verification 和 Raft 扩展状态。
