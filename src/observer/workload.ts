@@ -15,6 +15,8 @@ export interface DemoPlan {
   key: string;
 }
 
+type SessionPlan = DemoPlan & { session: string };
+
 export interface WorkloadTarget {
   nodeId: string;
   address?: string;
@@ -136,8 +138,10 @@ export function createWorkload(deps: WorkloadDependencies) {
   let leader: string | undefined;
   let leaderAt = 0;
   let timerHandle: unknown;
+  let inFlight: Promise<WorkloadStatus> | undefined;
 
   const interval = () => Math.max(100, Math.round(1000 / rate));
+  const isCurrent = (id: string) => running && session === id;
   const target = (nodeId: string | undefined) =>
     nodeId ? deps.targets.find(candidate => candidate.nodeId === nodeId && candidate.address) : undefined;
 
@@ -145,12 +149,17 @@ export function createWorkload(deps: WorkloadDependencies) {
     try { deps.publish(event); } catch { /* SSE 关闭时保持负载循环，事件只用于观测。 */ }
   }
 
-  function emitNoLeader(plan: DemoPlan) {
+  function noLeader(plan: SessionPlan, attempt: number) {
+    operations++;
+    failures++;
+    lastKey = plan.key;
+    lastOutcome = 'NO_LEADER';
     emit({
       at: new Date(now()).toISOString(), kind: 'demo.error', nodes: [],
       label: `${opLabel(plan.op)} 失败 · NO_LEADER`,
-      raw: { session, seq: plan.seq, op: plan.op, key: plan.key, error: 'NO_LEADER' },
+      raw: { ...plan, attempt, error: 'NO_LEADER' },
     });
+    return status();
   }
 
   function status(): WorkloadStatus {
@@ -175,15 +184,16 @@ export function createWorkload(deps: WorkloadDependencies) {
     };
   }
 
-  async function resolveLeader(force = false) {
+  async function resolveLeader(sessionId: string, force = false) {
     if (!force && leader && now() - leaderAt < leaderTtlMs) return target(leader);
     const observation = await deps.readStatuses();
+    if (!isCurrent(sessionId)) return;
     leader = pickLeader(observation.nodes);
     leaderAt = now();
     return target(leader);
   }
 
-  async function perform(node: WorkloadTarget, plan: DemoPlan) {
+  async function perform(node: WorkloadTarget, plan: SessionPlan, attempt: number) {
     const address = node.address!;
     const at = new Date(now()).toISOString();
     const label = opLabel(plan.op);
@@ -193,7 +203,7 @@ export function createWorkload(deps: WorkloadDependencies) {
     emit({
       at, kind: 'demo.request', nodes: [node.nodeId],
       label: `${label} ${plan.key}`,
-      raw: { session, seq: plan.seq, op: plan.op, key: plan.key },
+      raw: { ...plan, attempt },
     });
 
     const started = now();
@@ -214,41 +224,33 @@ export function createWorkload(deps: WorkloadDependencies) {
       at: new Date(now()).toISOString(), kind: 'demo.response', nodes: [node.nodeId],
       label: `${label} ${response.status} · ${latencyMs}ms`,
       raw: {
-        session, seq: plan.seq, op: plan.op, key: plan.key,
+        ...plan, attempt,
         latencyMs, status: response.status, outcome: result.outcome,
       },
     });
     return { ...result, latencyMs };
   }
 
-  async function runOnce(): Promise<WorkloadStatus> {
-    if (!running) return status();
+  async function runSession(sessionId: string): Promise<WorkloadStatus> {
+    if (!isCurrent(sessionId)) return status();
     if (deps.shouldPause()) { paused = true; return status(); }
     paused = false;
-    const plan = planOperation(session, seq++);
+    const plan = { ...planOperation(sessionId, seq++), session: sessionId };
+    let attempt = 1;
     let node: WorkloadTarget | undefined;
     try {
-      node = await resolveLeader();
-      if (!node) {
-        operations++;
-        failures++;
-        lastKey = plan.key;
-        lastOutcome = 'NO_LEADER';
-        emitNoLeader(plan);
-        return status();
-      }
-      let result = await perform(node, plan);
+      node = await resolveLeader(sessionId);
+      if (!isCurrent(sessionId)) return status();
+      if (!node) return noLeader(plan, attempt);
+      let result = await perform(node, plan, attempt);
+      if (!isCurrent(sessionId)) return status();
       if (result.retry) {
-        node = await resolveLeader(true);
-        if (!node) {
-          operations++;
-          failures++;
-          lastKey = plan.key;
-          lastOutcome = 'NO_LEADER';
-          emitNoLeader(plan);
-          return status();
-        }
-        result = await perform(node, plan);
+        attempt++;
+        node = await resolveLeader(sessionId, true);
+        if (!isCurrent(sessionId)) return status();
+        if (!node) return noLeader(plan, attempt);
+        result = await perform(node, plan, attempt);
+        if (!isCurrent(sessionId)) return status();
       }
       operations++;
       if (result.ok) successes++;
@@ -260,35 +262,47 @@ export function createWorkload(deps: WorkloadDependencies) {
       lastKey = plan.key;
       lastOutcome = result.outcome;
     } catch (failure) {
-      operations++;
-      failures++;
-      lastKey = plan.key;
-      lastOutcome = failure instanceof Error ? failure.message : String(failure);
-      // 连接异常时下一次立即重新解析 Leader，避免继续用旧地址。
-      leader = undefined;
-      leaderAt = 0;
+      const error = failure instanceof Error ? failure.message : String(failure);
+      if (isCurrent(sessionId)) {
+        operations++;
+        failures++;
+        lastKey = plan.key;
+        lastOutcome = error;
+        // 连接异常时下一次立即重新解析 Leader，避免继续用旧地址。
+        leader = undefined;
+        leaderAt = 0;
+      }
       emit({
         at: new Date(now()).toISOString(), kind: 'demo.error', nodes: node ? [node.nodeId] : [],
-        label: `${opLabel(plan.op)} 失败 · ${lastOutcome}`,
-        raw: { session, seq: plan.seq, op: plan.op, key: plan.key, error: lastOutcome },
+        label: `${opLabel(plan.op)} 失败 · ${error}`,
+        raw: { ...plan, attempt, error },
       });
     }
     return status();
   }
 
-  function schedule() {
-    if (!running || timerHandle !== undefined) return;
-    timerHandle = timer(tick, interval());
+  function runOnce(): Promise<WorkloadStatus> {
+    if (!running) return Promise.resolve(status());
+    if (inFlight) return inFlight;
+    const sessionId = session;
+    const pending = Promise.resolve().then(() => runSession(sessionId)).finally(() => {
+      if (inFlight === pending) inFlight = undefined;
+    });
+    inFlight = pending;
+    return pending;
   }
 
-  function tick() {
-    timerHandle = undefined;
-    if (!running) return;
-    void runOnce().finally(() => {
-      if (!running) return;
-      // 实验暂停时降低轮询，避免在锁释放前反复探测。
-      timerHandle = timer(tick, paused ? 1000 : interval());
-    });
+  function schedule(delay = interval()) {
+    if (!running || timerHandle !== undefined) return;
+    const sessionId = session;
+    timerHandle = timer(() => {
+      if (!isCurrent(sessionId)) return;
+      timerHandle = undefined;
+      void runOnce().finally(() => {
+        // 旧会话结束后不可替新会话调度下一次写入。
+        if (isCurrent(sessionId)) schedule(paused ? 1000 : interval());
+      });
+    }, delay);
   }
 
   async function cleanup(cleanupSession: string) {
@@ -297,7 +311,7 @@ export function createWorkload(deps: WorkloadDependencies) {
     let cleaned = 0;
     let failed = 0;
     try {
-      node = await resolveLeader(true);
+      node = target(pickLeader((await deps.readStatuses()).nodes));
       if (!node?.address) {
         emit({
           at: new Date(now()).toISOString(), kind: 'demo.cleanup', nodes: [],
@@ -359,6 +373,8 @@ export function createWorkload(deps: WorkloadDependencies) {
   function stop(): WorkloadStatus {
     if (!running) return status();
     const stoppedSession = session;
+    const pending = inFlight;
+    inFlight = undefined;
     running = false;
     paused = false;
     if (timerHandle !== undefined) {
@@ -370,13 +386,16 @@ export function createWorkload(deps: WorkloadDependencies) {
       label: '演示负载停止',
       raw: { session: stoppedSession, operations, successes, failures, unknown },
     });
-    void cleanup(stoppedSession);
+    // 等待已发出的写请求结束，再删除这个会话的演示键。
+    if (pending) void pending.finally(() => cleanup(stoppedSession));
+    else void cleanup(stoppedSession);
     return status();
   }
 
   function close() {
     running = false;
     paused = false;
+    inFlight = undefined;
     if (timerHandle !== undefined) {
       clearTimer(timerHandle);
       timerHandle = undefined;

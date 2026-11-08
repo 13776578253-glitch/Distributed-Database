@@ -150,6 +150,7 @@ describe('demo workload', () => {
   it('refreshes the leader and retries once after NOT_LEADER', async () => {
     let attempt = 0;
     const calls: string[] = [];
+    const events: Omit<TimelineEvent, 'id'>[] = [];
     const request: WorkloadRequest = async url => {
       calls.push(url);
       attempt++;
@@ -161,7 +162,7 @@ describe('demo workload', () => {
     const workload = createWorkload({
       targets: [{ nodeId: 'raft-1', address: 'http://leader' }],
       readStatuses: async () => leaderObservation,
-      publish: () => {},
+      publish: event => events.push(event),
       shouldPause: () => false,
       request,
       now: () => Date.parse('2026-11-07T12:00:00.000Z'),
@@ -173,6 +174,9 @@ describe('demo workload', () => {
     await workload.runOnce();
 
     expect(calls).toEqual(['http://leader/kv/put', 'http://leader/kv/put']);
+    expect(events.slice(1).map(event => [event.kind, (event.raw as { attempt: number }).attempt])).toEqual([
+      ['demo.request', 1], ['demo.response', 1], ['demo.request', 2], ['demo.response', 2],
+    ]);
     expect(workload.status()).toMatchObject({
       operations: 1, successes: 1, failures: 0, lastOutcome: 'stored',
     });
@@ -274,6 +278,59 @@ describe('demo workload', () => {
     expect(events.at(-1)).toMatchObject({ kind: 'demo.cleanup', raw: { session: expect.any(String), cleaned: 12, failed: 0 } });
     expect(deleted).toHaveLength(12);
     expect(new Set(deleted.map(key => key.split('/')[1])).size).toBe(1);
+    workload.close();
+  });
+
+  it('keeps a late response and its deferred cleanup in the stopped session', async () => {
+    const events: Omit<TimelineEvent, 'id'>[] = [];
+    const requestSent = Promise.withResolvers<void>();
+    const oldResponse = Promise.withResolvers<Awaited<ReturnType<WorkloadRequest>>>();
+    const cleanupFinished = Promise.withResolvers<void>();
+    const deleted: string[] = [];
+    let firstPut = true;
+    let clock = 0;
+    const workload = createWorkload({
+      targets: [{ nodeId: 'raft-1', address: 'http://leader' }],
+      readStatuses: async () => leaderObservation,
+      publish: event => {
+        events.push(event);
+        if (event.kind === 'demo.cleanup') cleanupFinished.resolve();
+      },
+      shouldPause: () => false,
+      request: async (url, init) => {
+        if (url.endsWith('/kv/delete')) {
+          deleted.push(JSON.parse(init.body!).key);
+          return { ok: true, status: 200, json: async () => ({ result: { deleted: true } }) };
+        }
+        if (firstPut) {
+          firstPut = false;
+          requestSent.resolve();
+          return oldResponse.promise;
+        }
+        return { ok: true, status: 200, json: async () => ({ result: { stored: true } }) };
+      },
+      now: () => clock++,
+      timer: () => 0,
+      clearTimer: () => {},
+    });
+
+    const old = workload.start(2).session;
+    const pending = workload.runOnce();
+    await requestSent.promise;
+    workload.stop();
+    const current = workload.start(2).session;
+    await workload.runOnce();
+    expect(deleted).toEqual([]);
+    oldResponse.resolve({ ok: true, status: 200, json: async () => ({ result: { stored: true } }) });
+    await pending;
+    await cleanupFinished.promise;
+    expect(workload.status()).toMatchObject({ session: current, operations: 1, successes: 1, lastKey: `demo/${current}/k0` });
+    expect(events.filter(event => event.kind === 'demo.response').map(event => event.raw)).toMatchObject([
+      { session: current, key: `demo/${current}/k0` },
+      { session: old, key: `demo/${old}/k0` },
+    ]);
+    expect(deleted).toHaveLength(12);
+    expect(deleted.every(key => key.startsWith(`demo/${old}/`))).toBe(true);
     workload.close();
   });
 });

@@ -84,6 +84,30 @@ describe('write trace', () => {
     expect(trace?.request?.id).toBe('1');
   });
 
+  it.each([true, false])('keeps rejection and retry success separate (attempt field: %s)', withAttempt => {
+    const first = { ...request, raw: { ...request.raw as object, ...(withAttempt ? { attempt: 1 } : {}) } };
+    const rejected = event('2', t1, 'demo.response', ['raft-1'], {
+      raw: { ...first.raw, status: 409, outcome: 'NOT_LEADER' },
+    });
+    const retry = event('3', t2, 'demo.request', ['raft-2'], {
+      raw: { ...request.raw as object, ...(withAttempt ? { attempt: 2 } : {}) },
+    });
+    const replicated = { ...append('4', t3, 'raft-3', true), nodes: ['raft-2', 'raft-3'] };
+    const stored = event('5', t4, 'demo.response', ['raft-2'], {
+      raw: { ...retry.raw as object, status: 200, outcome: 'stored' },
+    });
+    const events = [first, rejected, retry, replicated, stored];
+
+    expect(deriveWriteTrace(events, rejected)).toMatchObject({
+      request: first, response: rejected, outcome: 'NOT_LEADER', httpStatus: 409, leader: 'raft-1', group: undefined,
+    });
+    for (const selected of [retry, replicated, stored]) {
+      expect(deriveWriteTrace(events, selected)).toMatchObject({
+        request: retry, response: stored, outcome: 'stored', httpStatus: 200, leader: 'raft-2', index: 9,
+      });
+    }
+  });
+
   it('reports Evidence without entry-level replication as unknown', () => {
     const invoke = event('1', t0, 'client.invoke', ['raft-1'], {
       raw: { details: { operationId: '9', nodeId: 'raft-1', operation: { type: 'put', key: 'k', value: 1 } } },

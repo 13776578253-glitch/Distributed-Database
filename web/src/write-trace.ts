@@ -56,6 +56,22 @@ type Reachable = Extract<NodeObservation, { ok: true }>;
 const reachable = (sample: ClusterObservation): Reachable[] =>
   sample.nodes.filter((node): node is Reachable => node.ok);
 
+/** 新事件按尝试编号配对。旧事件使用同一逻辑操作中相邻的请求和返回。 */
+function demoAttempt(events: readonly TimelineEvent[], selected: TimelineEvent) {
+  const index = events.findIndex(event => event.id === selected.id);
+  const attempt = integer(record(selected.raw).attempt);
+  const matches = (event: TimelineEvent) => event.nodes[0] === selected.nodes[0]
+    && (attempt === undefined || record(event.raw).attempt === attempt);
+  if (selected.kind === 'demo.request') {
+    const after = index < 0 ? [] : events.slice(index + 1);
+    const next = after.find(event => event.kind === 'demo.request' || event.kind === 'demo.response' || event.kind === 'demo.error');
+    return { request: selected, response: next && next.kind !== 'demo.request' && matches(next) ? next : undefined };
+  }
+  const before = index < 0 ? [] : events.slice(0, index);
+  const request = before.findLast(event => event.kind === 'demo.request');
+  return { request: request && matches(request) ? request : undefined, response: selected };
+}
+
 export function deriveWriteTrace(
   events: readonly TimelineEvent[],
   selected: TimelineEvent,
@@ -79,7 +95,7 @@ export function deriveWriteTrace(
   if (selected.kind === 'append') {
     group = groups.find(item => item.events.some(event => event.id === selected.id));
     const entries = group?.entries ?? selected.entries ?? [];
-    const entry = entries.find(item => item.key !== undefined);
+    const entry = entries.find(item => item.key !== undefined && item.type !== 'delete');
     key = entry?.key;
     seq = typeof entry?.value === 'number' ? entry.value : undefined;
     index = entry?.index;
@@ -89,18 +105,7 @@ export function deriveWriteTrace(
     key = raw.key;
     seq = integer(raw.seq);
     session = text(raw.session);
-    const related = events.filter(event => {
-      const value = record(event.raw);
-      return value.op === 'put' && value.key === key
-        && (session === undefined || value.session === session)
-        && (seq === undefined || value.seq === seq);
-    });
-    request = related.find(event => event.kind === 'demo.request');
-    response = related.find(event => event.kind === 'demo.response')
-      ?? related.find(event => event.kind === 'demo.error');
-    const responseRaw = response ? record(response.raw) : {};
-    outcome = text(responseRaw.outcome) ?? (response?.kind === 'demo.error' ? 'error' : undefined);
-    httpStatus = integer(responseRaw.status) ?? integer(responseRaw.httpStatus);
+    if (selected.kind !== 'demo.request' && selected.kind !== 'demo.response' && selected.kind !== 'demo.error') return;
   } else if (selected.kind === 'client.invoke' || selected.kind === 'client.return') {
     isEvidence = true;
     const details = record(raw.details);
@@ -120,25 +125,33 @@ export function deriveWriteTrace(
 
   if (!key) return;
 
-  if (selected.kind === 'append') {
+  if (!isEvidence) {
     const related = events.filter(event => {
       const value = record(event.raw);
-      return value.op === 'put' && value.key === key && (seq === undefined || value.seq === seq);
+      return value.op === 'put' && value.key === key
+        && (session === undefined || value.session === session)
+        && (seq === undefined || value.seq === seq);
     });
-    request = related.find(event => event.kind === 'demo.request');
-    response = related.find(event => event.kind === 'demo.response')
-      ?? related.find(event => event.kind === 'demo.error');
+    if (selected.kind === 'append') {
+      const from = group?.from ?? selected.nodes[0];
+      const candidates = related.filter(event => event.kind === 'demo.request' && event.nodes[0] === from)
+        .map(event => demoAttempt(related, event))
+        .filter(pair => record(pair.response?.raw).outcome !== 'NOT_LEADER');
+      if (candidates.length === 1) ({ request, response } = candidates[0]);
+    } else {
+      ({ request, response } = demoAttempt(related, selected));
+    }
     const responseRaw = response ? record(response.raw) : {};
-    outcome = text(responseRaw.outcome) ?? (response?.kind === 'demo.error' ? 'error' : undefined);
+    outcome = text(responseRaw.outcome) ?? (response?.kind === 'demo.error' ? text(responseRaw.error) ?? 'error' : undefined);
     httpStatus = integer(responseRaw.status) ?? integer(responseRaw.httpStatus);
     session = text(record(request?.raw).session) ?? text(responseRaw.session);
   }
 
-  if (!group && seq !== undefined) {
-    const matches = groups.filter(item =>
-      item.entries?.some(entry => entry.key === key && entry.value === seq));
+  if (!group && !isEvidence && seq !== undefined && outcome !== 'NOT_LEADER') {
+    const from = request?.nodes[0] ?? response?.nodes[0];
     const anchor = request ? eventTime(request) : eventTime(selected);
-    group = matches.find(item => item.at >= anchor - 100) ?? matches.at(-1);
+    group = groups.find(item => item.from === from && (!request || item.at >= anchor - 100)
+      && item.entries?.some(entry => entry.key === key && entry.value === seq && entry.type !== 'delete'));
   }
   if (group && index === undefined) {
     const entry = group.entries?.find(item => item.key === key && (seq === undefined || item.value === seq));

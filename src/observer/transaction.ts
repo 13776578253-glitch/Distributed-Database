@@ -25,7 +25,7 @@ export function transactionReader(project = process.env.CONSOLE_TXN_PROJECT ?? '
   return async (query: keyof typeof paths, params = new URLSearchParams()) => {
     const key = params.get('key');
     const lsn = params.get('lsn');
-    if (query === 'as-of' && (!key?.trim() || key.length > 1024 || !lsn || !/^\d+$/.test(lsn)
+    if (query === 'as-of' && (!key || !lsn || !/^\d+$/.test(lsn)
       || !Number.isSafeInteger(Number(lsn)))) {
       return { status: 400, data: { error: '请输入有效的键和非负整数 LSN' } };
     }

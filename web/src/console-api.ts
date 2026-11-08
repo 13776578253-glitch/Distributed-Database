@@ -19,15 +19,17 @@ export async function postJson<T>(path: string, body: unknown): Promise<T> {
   }));
 }
 
-export function usePolling<T>(path: string, interval: number, revision = 0) {
+export function usePolling<T>(path: string | undefined, interval: number, revision = 0) {
   const [data, setData] = useState<T>();
   const [error, setError] = useState('');
   useEffect(() => {
+    if (path === undefined) return;
+    const url = path;
     const stop = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
     async function poll() {
       try {
-        const value = await getJson<T>(path, AbortSignal.any([stop.signal, AbortSignal.timeout(4000)]));
+        const value = await getJson<T>(url, AbortSignal.any([stop.signal, AbortSignal.timeout(4000)]));
         if (!stop.signal.aborted) { setData(value); setError(''); }
       } catch (failure) {
         if (!stop.signal.aborted) setError(failure instanceof Error ? failure.message : String(failure));

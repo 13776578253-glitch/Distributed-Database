@@ -57,7 +57,7 @@ function AsOf() {
       } catch (failure) { setError((failure as Error).message); }
       finally { setBusy(false); }
     }}>
-      <label>键<input name="key" required maxLength={1024} /></label>
+      <label>键<input name="key" required /></label>
       <label>LSN<input name="lsn" type="number" min="0" step="1" required /></label>
       <button className="action" type="submit" disabled={busy}>{busy ? '查询中…' : '查询'}</button>
     </form>
@@ -67,29 +67,40 @@ function AsOf() {
   </section>;
 }
 
-function Storage() {
-  const [sample, setSample] = useState<{ wal: WalRecord[]; recovery: Recovery }>();
+function Storage({ lastLsn, available }: { lastLsn: number; available: boolean }) {
+  const { interval } = useContext(PreferencesContext);
+  const [wal, setWal] = useState<WalRecord[]>();
   const [revision, refresh] = useState(0);
   const [error, setError] = useState('');
   const [key, setKey] = useState('');
   const [selected, select] = useState<number>();
+  const { data: recovery, error: recoveryError } = usePolling<Recovery>(
+    available ? api + '/recovery' : undefined, interval, revision,
+  );
+  // LSN 相同的重启也可能产生不同恢复报告。WAL 只在采样边界变化时重新获取全量。
+  const recoveryKey = JSON.stringify(recovery);
   useEffect(() => {
+    if (!available) return;
     const stop = new AbortController();
-    const signal = AbortSignal.any([stop.signal, AbortSignal.timeout(4000)]);
     setError('');
-    Promise.all([getJson<WalRecord[]>(api + '/wal', signal), getJson<Recovery>(api + '/recovery', signal)])
-      .then(([wal, recovery]) => {
-        if (!stop.signal.aborted) setSample({ wal, recovery });
-      }).catch((failure: Error) => {
-        if (!stop.signal.aborted) setError(failure.message);
-      });
-    return () => stop.abort();
-  }, [revision]);
-  const recovery = sample?.recovery;
-  const records = sample?.wal.filter(record => !key || record.key?.includes(key)) ?? [];
+    let retry: ReturnType<typeof setTimeout>;
+    async function load() {
+      try {
+        const records = await getJson<WalRecord[]>(api + '/wal', AbortSignal.any([stop.signal, AbortSignal.timeout(4000)]));
+        if (!stop.signal.aborted) { setWal(records); setError(''); }
+      } catch (failure) {
+        if (stop.signal.aborted) return;
+        setError(failure instanceof Error ? failure.message : String(failure));
+        if (interval > 0) retry = setTimeout(load, interval);
+      }
+    }
+    void load();
+    return () => { stop.abort(); clearTimeout(retry); };
+  }, [available, interval, lastLsn, recoveryKey, revision]);
+  const records = wal?.filter(record => !key || record.key?.includes(key)) ?? [];
   const visible = records.slice(-150).reverse();
   const record = visible.find(record => record.lsn === selected) ?? visible[0];
-  const checkpoint = sample?.wal.findLast(record => record.type === 'CHECKPOINT');
+  const checkpoint = wal?.findLast(record => record.type === 'CHECKPOINT');
 
   return <>
     <section className="panel run-summary">
@@ -97,7 +108,9 @@ function Storage() {
         <div><h2>最近启动恢复</h2><p className="muted">分析、重做和撤销来自事务服务本次启动的恢复报告。</p></div>
         <button type="button" className="action" onClick={() => refresh(revision + 1)}>刷新 WAL 与恢复报告</button>
       </div>
-      {error && <p className="warning" role="alert">{error}</p>}
+      {recoveryError && <p className="warning" role="alert">
+        {recoveryError}{recovery && '。显示最近一次成功的恢复采样。'}
+      </p>}
       {recovery ? <>
         <dl className="service-facts">
           <div><dt>分析起点 LSN</dt><dd>{recovery.analysisStartLsn}</dd></div>
@@ -108,14 +121,17 @@ function Storage() {
           <div><dt>WAL 最新 Checkpoint</dt><dd>{checkpoint?.lsn ?? '无'}</dd></div>
         </dl>
         <details><summary>恢复报告原文</summary><pre>{JSON.stringify(recovery, null, 2)}</pre></details>
-      </> : !error && <p className="muted" role="status">正在读取恢复报告…</p>}
+      </> : available && !recoveryError && <p className="muted" role="status">正在读取恢复报告…</p>}
     </section>
     <section className="panel activity">
       <div className="filters">
         <h2>WAL 记录</h2>
         <label>按键筛选版本写入<input value={key} onChange={event => { setKey(event.target.value); select(undefined); }} /></label>
-        <span className="muted">{sample ? '显示 ' + visible.length + ' / ' + records.length + ' 条' : '等待 WAL'}</span>
+        <span className="muted">{wal ? '显示 ' + visible.length + ' / ' + records.length + ' 条' : '等待 WAL'}</span>
       </div>
+      {error && <p className="warning" role="alert">{error}{wal && '。显示最近一次成功的 WAL 采样。'}</p>}
+      {available && !error && wal && (wal.at(-1)?.lsn ?? 0) < lastLsn
+        && <p className="muted" role="status">正在更新 WAL，当前显示上次采样。</p>}
       <div className="table-scroll">
         <table className="data-table">
           <thead><tr><th>LSN</th><th>类型</th><th>事务</th><th>前序 LSN</th><th>键 / 版本</th><th>撤销链</th></tr></thead>
@@ -127,7 +143,7 @@ function Storage() {
             <td>{row.undoneLsn === undefined ? '—' : row.undoneLsn + ' → ' + (row.undoNextLsn ?? '结束')}</td>
           </tr>)}</tbody>
         </table>
-        {sample && !visible.length && <p className="empty-state">当前筛选下没有 WAL 记录</p>}
+        {wal && !visible.length && <p className="empty-state">当前筛选下没有 WAL 记录</p>}
       </div>
       {record && <details className="raw-event" open><summary>原始记录 · LSN {record.lsn}</summary>
         <pre>{JSON.stringify(record, null, 2)}</pre></details>}
@@ -145,8 +161,8 @@ export function TransactionPage({ activeRun }: { activeRun?: string }) {
       <div><h1 id="transaction-heading">Transaction</h1><p>独立事务服务 · MVCC、WAL 与恢复</p></div>
       {!interval && <button type="button" className="action" onClick={() => refresh(revision + 1)}>刷新状态</button>}
     </header>
-    {error && <p className="warning" role="status">
-      {error}。显示最近一次成功采样；服务恢复后自动更新，下方仍可回放历史 Evidence。
+    {error && <p className="warning" role="status">{error}。
+      {data && '显示最近一次成功采样。'}{interval > 0 && '服务恢复后自动更新。'}下方仍可回放历史 Evidence。
     </p>}
     {data ? <>
         <section className="panel run-summary">
@@ -159,7 +175,7 @@ export function TransactionPage({ activeRun }: { activeRun?: string }) {
           </dl>
         </section>
         <AsOf />
-        <Storage />
+        <Storage available={!error} lastLsn={data.lastLsn} />
       </> : !error ? <p className="muted" role="status">正在读取事务服务状态…</p> : null}
     <section className="panel run-summary"><h2>事务实验回放</h2><p className="muted">隔离级别、写偏斜和故障恢复的历史 Evidence。</p></section>
     <Experiments key={activeRun} activeRun={activeRun} ids={transactionExperiments} />
