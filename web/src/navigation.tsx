@@ -3,21 +3,19 @@ import { useRef } from 'react';
 import { Icon } from './icons.tsx';
 
 const connectionLabels = { online: '已连接', offline: '观测离线', connecting: '连接中' };
+const raftViews = new Set(['', 'cluster-heading', '/timeline', '/runs']);
 const links = [
-  { target: 'cluster-heading', icon: 'overview', title: '总览', hint: '集群采样与 Leader' },
-  { target: 'topology-heading', icon: 'topology', title: '节点拓扑', hint: '成员角色与通信' },
-  { target: 'detail-heading', icon: 'detail', title: '节点详情', hint: '状态、日志进度与应答' },
-  { target: '/timeline', icon: 'term', title: '实时事件', hint: 'Raft Timeline · SSE' },
-  { target: '/runs', icon: 'detail', title: 'Raft 实验', hint: '调度与 Evidence 回放' },
-  { target: '/transaction', icon: 'detail', title: '事务与恢复', hint: 'Transaction · MVCC / WAL' },
-  { target: '/verification', icon: 'detail', title: '一致性验证', hint: 'Verification · 判定与反例' },
+  { target: 'cluster-heading', icon: 'topology', title: 'Raft', hint: '集群、实时事件与实验回放',
+    match: (view: string) => raftViews.has(view) },
+  { target: '/transaction', icon: 'detail', title: '事务', hint: 'MVCC / WAL 与恢复' },
+  { target: '/verification', icon: 'detail', title: '一致性验证', hint: '判定与反例' },
   { target: '/settings', icon: 'overview', title: '设置', hint: '服务、日志与外观' },
 ] as const;
 
 export function Navigation({ connection, view }: { connection: keyof typeof connectionLabels; view: string }) {
   const drawer = useRef<HTMLDialogElement>(null);
   const close = () => drawer.current?.close();
-  const page = links.find(item => item.target === view) ?? links[0];
+  const page = links.find(item => ('match' in item ? item.match(view) : item.target === view)) ?? links[0];
 
   return <>
     <header className="topbar">

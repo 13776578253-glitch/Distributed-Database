@@ -40,4 +40,24 @@ describe('recent RPC observation', () => {
     expect(containerEvent(read)?.event).toMatchObject({ kind: 'read-index', term: 4, indexSamples: [21] });
     expect(projectRpcReplies(snapshot + '\n' + read, members, now).map(rpc => rpc.kind)).toEqual(['read-index', 'snapshot']);
   });
+
+  it('extracts append entry identities and surfaces transport errors', () => {
+    const append = '2026-11-06T12:00:08Z {"kind":"raft.rpc","from":"raft-1","to":"raft-2","request":{"kind":"append","term":4,"prevLogIndex":28,"entries":[{"term":4,"command":{"type":"put","key":"demo/s/k1","value":7}},{"term":4,"command":{"type":"delete","key":"demo/s/k2"}}]},"reply":{"kind":"append","success":true}}';
+    const error = '2026-11-06T12:00:09Z {"kind":"raft.rpc.error","from":"raft-1","to":"raft-2","rpc":"append","reason":"timeout"}';
+
+    expect(containerEvent(append)?.event).toMatchObject({
+      kind: 'append',
+      indexes: [29, 30],
+      label: 'AppendEntries · demo/s/k1 +1 · 接受',
+      entries: [
+        { index: 29, key: 'demo/s/k1', value: 7, type: 'put' },
+        { index: 30, key: 'demo/s/k2', type: 'delete' },
+      ],
+    });
+    expect(containerEvent(error)?.event).toMatchObject({
+      kind: 'rpc.error',
+      nodes: ['raft-1', 'raft-2'],
+      label: 'AppendEntries 失败 · timeout',
+    });
+  });
 });

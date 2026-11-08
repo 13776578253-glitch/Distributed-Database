@@ -1,0 +1,47 @@
+{
+  "startedAt": "2026-11-08T10:55:49.896Z",
+  "endedAt": "2026-11-08T10:55:52.557Z",
+  "gitSha": "8f82b9b31599cbe9200ff251b6deb6b6f9792316",
+  "gitDirty": true,
+  "parameters": {
+    "project": "minidb-lab",
+    "action": {
+      "kind": "experiment",
+      "experimentId": "R02"
+    },
+    "nodeIds": [
+      "raft-1",
+      "raft-2",
+      "raft-3",
+      "raft-4",
+      "raft-5"
+    ],
+    "electionLimitMs": 8000,
+    "targets": [
+      {
+        "nodeId": "raft-1",
+        "address": "http://127.0.0.1:18081"
+      },
+      {
+        "nodeId": "raft-2",
+        "address": "http://127.0.0.1:18082"
+      },
+      {
+        "nodeId": "raft-3",
+        "address": "http://127.0.0.1:18083"
+      },
+      {
+        "nodeId": "raft-4",
+        "address": "http://127.0.0.1:18084"
+      },
+      {
+        "nodeId": "raft-5",
+        "address": "http://127.0.0.1:18085"
+      }
+    ]
+  },
+  "environment": {
+    "imageId": "sha256:83d0ea5c40147c59b104c0099972a4d443ae1d1fbcb03c7cc7dc5a555e2d16a4",
+    "node": "v24.21.0"
+  }
+}

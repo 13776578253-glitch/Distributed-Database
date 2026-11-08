@@ -4,8 +4,10 @@ import { experimentNames } from '../../src/contracts/console.ts';
 import type { ConsoleOperation, OperationJob, OperationsStatus, ServiceStatus } from '../../src/contracts/console.ts';
 import { postJson, usePolling } from './console-api.ts';
 import { Icon } from './icons.tsx';
-import { Clock, intervals, logLimits, PreferencesContext, themes } from './preferences.tsx';
+import { Clock, intervals, logLimits, PreferencesContext } from './preferences.tsx';
 import type { Preferences } from './preferences.tsx';
+import { Select } from './select.tsx';
+import { ThemePicker } from './theme-picker.tsx';
 import { Experiments } from './timeline.tsx';
 
 const actionLabels = {
@@ -14,6 +16,7 @@ const actionLabels = {
   R03: '采集并发读写历史，供验证器独立回放。',
 };
 const jobLabels = { running: '执行中', succeeded: '执行完成', failed: '执行失败' };
+const impactLabels = { R01: '影响：Leader 切换', R02: '影响：3–2 网络分区', R03: '影响：只采集，不改拓扑' } as const;
 
 function useOperations() {
   const { data, error } = usePolling<OperationsStatus>('/api/operations', 1000);
@@ -45,6 +48,7 @@ function JobList({ jobs }: { jobs: OperationJob[] }) {
           ? `${job.action.experimentId} · ${experimentNames[job.action.experimentId]}`
           : `重启 ${job.action.nodeId}`}</strong>
         {job.runId && <small>{job.runId}</small>}
+        {job.action.kind === 'experiment' && <small className="job-impact">{impactLabels[job.action.experimentId]}</small>}
         {job.error && <small className="job-error">{job.error}</small>}
       </div>
       <span className="muted"><Clock at={job.startedAt} /></span>
@@ -52,6 +56,8 @@ function JobList({ jobs }: { jobs: OperationJob[] }) {
         {job.phase === 'recovering' ? '恢复中' : jobLabels[job.status]}
       </span>
       {job.verdict && <span className={`badge verdict-${job.verdict.toLowerCase()}`}>{job.verdict}</span>}
+      {job.action.kind === 'experiment' && job.action.experimentId !== 'R03'
+        && <a className="job-link" href="#cluster-heading">查看集群</a>}
       {job.runId && job.verdict && <a className="file-link"
         href={`/api/runs/${job.action.kind === 'experiment' ? job.action.experimentId : 'SERVICE'}/${job.runId}/files/result.json`}
         target="_blank" rel="noreferrer">判定原文</a>}
@@ -59,18 +65,36 @@ function JobList({ jobs }: { jobs: OperationJob[] }) {
   </div>;
 }
 
-export function ExperimentPage({ activeRun }: { activeRun?: string }) {
+export interface ClusterContext {
+  leader?: string;
+  term?: number;
+  reachable: number;
+  total: number;
+  offline: boolean;
+}
+
+export function ExperimentPage({ activeRun, cluster }: { activeRun?: string; cluster: ClusterContext }) {
   const operations = useOperations();
   const jobs = operations.data?.jobs.filter(job => job.action.kind === 'experiment') ?? [];
   const finished = jobs.find(job => job.status !== 'running' && job.verdict);
 
-  return <main aria-labelledby="runs-heading">
+  return <>
     <header className="overview-banner">
       <span className="overview-icon"><Icon name="detail" /></span>
       <div><h1 id="runs-heading">实验与回放</h1><p>调度 Raft 实验，按 Run 查看原始 Evidence</p></div>
     </header>
     <section className="panel run-summary">
       <div className="activity-heading"><h2>实验调度</h2><span className="muted">{operations.data?.project}</span></div>
+      <div className={`cluster-context${cluster.offline ? ' offline' : ''}`}>
+        <span className="cluster-state">
+          <span className={`dot ${cluster.offline ? 'offline' : cluster.total === 0 ? 'unknown' : cluster.leader ? 'online' : 'unknown'}`} />
+          {cluster.offline ? '观测离线' : cluster.total === 0 ? '等待集群采样'
+            : cluster.leader ? `Leader ${cluster.leader}${cluster.term ? ` · T${cluster.term}` : ''}` : 'Leader 未确认'}
+          <span className="muted">{cluster.total ? `${cluster.reachable}/${cluster.total} 可达` : '—'}</span>
+        </span>
+        <span className="muted">R01 切换 Leader · R02 3–2 分区 · R03 只采集历史</span>
+        <a className="context-link" href="#cluster-heading">查看集群变化</a>
+      </div>
       <div className="activity-controls">
         {(['R01', 'R02', 'R03'] as const).map(experimentId => <button key={experimentId} type="button"
           className="action" disabled={operations.disabled || operations.data?.membershipLab}
@@ -85,8 +109,8 @@ export function ExperimentPage({ activeRun }: { activeRun?: string }) {
       {operations.feedback && <p className="muted" role="status">{operations.feedback}</p>}
       <JobList jobs={jobs} />
     </section>
-    <Experiments key={activeRun} activeRun={activeRun ?? finished?.runId} />
-  </main>;
+    <Experiments key={activeRun} activeRun={activeRun ?? finished?.runId} swimlane />
+  </>;
 }
 
 export function Services({ change }: { change: (preferences: Preferences) => void }) {
@@ -152,22 +176,18 @@ export function Services({ change }: { change: (preferences: Preferences) => voi
     <section className="panel run-summary">
       <div className="activity-heading"><div><h2>数据、日志与外观</h2><p className="muted">偏好保存在当前浏览器</p></div></div>
       <div className="filters preferences">
-        <label>集群轮询<select aria-label="集群轮询" value={preferences.interval}
-          onChange={event => change({ ...preferences, interval: Number(event.target.value) as Preferences['interval'] })}>
-          {intervals.map(interval => <option key={interval} value={interval}>{interval ? `${interval / 1000} 秒` : '暂停'}</option>)}
-        </select></label>
-        <label>时间格式<select aria-label="时间格式" value={preferences.hour12 ? '12' : '24'}
-          onChange={event => change({ ...preferences, hour12: event.target.value === '12' })}>
-          <option value="24">24 小时制</option><option value="12">12 小时制</option>
-        </select></label>
-        <label>主题<select aria-label="主题" value={preferences.theme}
-          onChange={event => change({ ...preferences, theme: event.target.value as Preferences['theme'] })}>
-          {themes.map(theme => <option key={theme} value={theme}>{{ light: '浅色', dark: '深色', system: '跟随系统' }[theme]}</option>)}
-        </select></label>
-        <label>实时日志显示上限<select aria-label="实时日志显示上限" value={preferences.logLimit}
-          onChange={event => change({ ...preferences, logLimit: Number(event.target.value) as Preferences['logLimit'] })}>
-          {logLimits.map(limit => <option key={limit} value={limit}>{limit} 条</option>)}
-        </select></label>
+        <div className="theme-field"><span>主题</span>
+          <ThemePicker value={preferences.theme} onChange={theme => change({ ...preferences, theme })} />
+        </div>
+        <label>集群轮询<Select label="集群轮询" value={preferences.interval}
+          options={intervals.map(interval => ({ value: interval, label: interval ? `${interval / 1000} 秒` : '暂停' }))}
+          onChange={interval => change({ ...preferences, interval })} /></label>
+        <label>时间格式<Select label="时间格式" value={preferences.hour12 ? '12' : '24'}
+          options={[{ value: '24', label: '24 小时制' }, { value: '12', label: '12 小时制' }]}
+          onChange={value => change({ ...preferences, hour12: value === '12' })} /></label>
+        <label>实时日志显示上限<Select label="实时日志显示上限" value={preferences.logLimit}
+          options={logLimits.map(limit => ({ value: limit, label: `${limit} 条` }))}
+          onChange={logLimit => change({ ...preferences, logLimit })} /></label>
       </div>
       <p className="muted">Observer 固定保留最近 400 条用于 SSE 续传。实验原始证据由运行器保存。</p>
     </section>

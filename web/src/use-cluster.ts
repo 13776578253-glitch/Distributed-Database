@@ -1,4 +1,4 @@
-/** Polls the observer and keeps only the latest view and last-seen times. */
+/** Polls the observer and keeps the last good view and last-seen times. */
 import { useEffect, useState } from 'react';
 import type { ClusterObservation } from '../../src/contracts/observation.ts';
 
@@ -31,7 +31,8 @@ export function useCluster(interval: number, revision: number) {
           return { snapshot, lastSeen, error: false };
         });
       } catch {
-        if (!stop.signal.aborted) setView(previous => ({ ...previous, snapshot: null, error: true }));
+        // 轮询失败保留最后一次成功快照，避免拓扑和详情在瞬时错误时消失。
+        if (!stop.signal.aborted) setView(previous => ({ ...previous, error: true }));
       } finally {
         // 本轮结束后再安排下一次请求，避免并发刷新覆盖较新的采样。
         if (!stop.signal.aborted && interval > 0) next = setTimeout(poll, interval);

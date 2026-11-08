@@ -145,7 +145,9 @@ export function TransactionPage({ activeRun }: { activeRun?: string }) {
       <div><h1 id="transaction-heading">Transaction</h1><p>独立事务服务 · MVCC、WAL 与恢复</p></div>
       {!interval && <button type="button" className="action" onClick={() => refresh(revision + 1)}>刷新状态</button>}
     </header>
-    {error ? <p className="warning" role="status">{error}。下方可回放已完成的事务实验。</p>
+    {error ? <p className="warning" role="status">
+      {error}。事务服务未连接，启动后会自动重试；下方仍可回放历史 Evidence。
+    </p>
       : data ? <>
         <section className="panel run-summary">
           <h2>事务状态</h2>

@@ -130,6 +130,7 @@ export function liveEvents(members: readonly string[], {
 
   return {
     subscribe, refresh, replay,
+    publish: (event: Omit<TimelineEvent, 'id'>) => publish(event),
     status: () => ({ available: available ?? null, subscribers: clients.size }),
     async recentRpc() {
       await refresh();

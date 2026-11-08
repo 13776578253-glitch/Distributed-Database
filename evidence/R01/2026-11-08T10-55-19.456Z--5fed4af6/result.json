@@ -1,0 +1,160 @@
+{
+  "experimentId": "R01",
+  "runId": "2026-11-08T10-55-19.456Z--5fed4af6",
+  "startedAt": "2026-11-08T10:55:19.456Z",
+  "status": "PASS",
+  "assertionResults": [
+    {
+      "name": "put previous",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-08T10-55-19.456Z--5fed4af6",
+        "operationId": "1",
+        "engine": "raft",
+        "clientId": "writer",
+        "operation": {
+          "type": "put",
+          "key": "R01/2026-11-08T10-55-19.456Z--5fed4af6",
+          "value": "previous"
+        },
+        "invocationNs": "28764814663400",
+        "responseNs": "28764831600400",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "stored": true
+        }
+      }
+    },
+    {
+      "name": "put confirmed",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-08T10-55-19.456Z--5fed4af6",
+        "operationId": "2",
+        "engine": "raft",
+        "clientId": "writer",
+        "operation": {
+          "type": "put",
+          "key": "R01/2026-11-08T10-55-19.456Z--5fed4af6",
+          "value": "confirmed"
+        },
+        "invocationNs": "28764832110100",
+        "responseNs": "28764844900400",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "stored": true
+        }
+      }
+    },
+    {
+      "name": "killed by SIGKILL",
+      "passed": true,
+      "details": {
+        "exit": "137"
+      }
+    },
+    {
+      "name": "new leader elected",
+      "passed": true,
+      "details": {
+        "previous": "raft-4",
+        "next": "raft-1",
+        "previousTerm": 130,
+        "term": 131,
+        "elapsedMs": 799.4614999999999
+      }
+    },
+    {
+      "name": "quorum read returns the latest confirmed write",
+      "passed": true,
+      "details": {
+        "runId": "2026-11-08T10-55-19.456Z--5fed4af6",
+        "operationId": "3",
+        "engine": "raft",
+        "clientId": "reader",
+        "operation": {
+          "type": "get",
+          "key": "R01/2026-11-08T10-55-19.456Z--5fed4af6"
+        },
+        "invocationNs": "28765799119000",
+        "responseNs": "28765801577700",
+        "httpStatus": 200,
+        "outcome": "ok",
+        "result": {
+          "found": true,
+          "value": "confirmed"
+        }
+      }
+    },
+    {
+      "name": "restarted node converges",
+      "passed": true,
+      "details": [
+        {
+          "nodeId": "raft-1",
+          "role": "follower",
+          "term": 134,
+          "leader": "raft-3",
+          "commitIndex": 43613,
+          "lastApplied": 43613,
+          "logLength": 43613,
+          "ready": false,
+          "committedDigest": "ac47cb56c1badc449e42a84f67b9d91014ec8efeca01f5e51321e30ee3d2a817"
+        },
+        {
+          "nodeId": "raft-2",
+          "role": "follower",
+          "term": 134,
+          "leader": "raft-3",
+          "commitIndex": 43613,
+          "lastApplied": 43613,
+          "logLength": 43613,
+          "ready": false,
+          "committedDigest": "ac47cb56c1badc449e42a84f67b9d91014ec8efeca01f5e51321e30ee3d2a817"
+        },
+        {
+          "nodeId": "raft-3",
+          "role": "leader",
+          "term": 134,
+          "leader": "raft-3",
+          "commitIndex": 43613,
+          "lastApplied": 43613,
+          "logLength": 43613,
+          "ready": true,
+          "committedDigest": "ac47cb56c1badc449e42a84f67b9d91014ec8efeca01f5e51321e30ee3d2a817"
+        },
+        {
+          "nodeId": "raft-4",
+          "role": "follower",
+          "term": 134,
+          "leader": "raft-3",
+          "commitIndex": 43613,
+          "lastApplied": 43613,
+          "logLength": 43613,
+          "ready": false,
+          "committedDigest": "ac47cb56c1badc449e42a84f67b9d91014ec8efeca01f5e51321e30ee3d2a817"
+        },
+        {
+          "nodeId": "raft-5",
+          "role": "follower",
+          "term": 134,
+          "leader": "raft-3",
+          "commitIndex": 43613,
+          "lastApplied": 43613,
+          "logLength": 43613,
+          "ready": false,
+          "committedDigest": "ac47cb56c1badc449e42a84f67b9d91014ec8efeca01f5e51321e30ee3d2a817"
+        }
+      ]
+    }
+  ],
+  "evidencePaths": [
+    "command.txt",
+    "metadata.json",
+    "events.jsonl",
+    "raw.log",
+    "result.json"
+  ]
+}

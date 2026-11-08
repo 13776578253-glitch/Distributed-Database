@@ -6,6 +6,7 @@ import { Icon } from './icons.tsx';
 import { Navigation } from './navigation.tsx';
 import { ExperimentPage, Services } from './operations.tsx';
 import { Clock, PreferencesContext, usePreferences } from './preferences.tsx';
+import { RaftTabs } from './raft-tabs.tsx';
 import { placeMembers } from './topology.ts';
 import { Timeline } from './timeline.tsx';
 import { TransactionPage } from './transaction.tsx';
@@ -116,7 +117,7 @@ function App() {
     return () => window.removeEventListener('hashchange', navigate);
   }, []);
   useEffect(() => {
-    if (view.startsWith('/')) window.scrollTo(0, 0);
+    if (view.startsWith('/') || view === 'cluster-heading') window.scrollTo(0, 0);
     else if (view) document.getElementById(view)?.scrollIntoView();
   }, [view]);
   const observations = new Map(snapshot?.nodes.map(node => [node.nodeId, node]));
@@ -139,11 +140,21 @@ function App() {
     return `M ${start.x * 10} ${start.y * 4} L ${midX} ${midY} L ${end.x * 10} ${end.y * 4}`;
   }
 
+  const raftView = view !== '/transaction' && view !== '/verification' && view !== '/settings';
+  const raftActive = view === '/timeline' ? 'timeline' : view === '/runs' ? 'runs' : 'cluster';
+  const raftHeading = view === '/timeline' ? 'timeline-heading'
+    : view === '/runs' ? 'runs-heading' : 'cluster-heading';
+
   return <PreferencesContext.Provider value={preferences}>
     <Navigation connection={connection} view={view.startsWith('/') ? view : 'cluster-heading'} />
-    {view === '/timeline' ? <Timeline /> : view === '/runs' ? <ExperimentPage activeRun={activeRun} />
-      : view === '/transaction' ? <TransactionPage activeRun={activeRun} /> : view === '/verification' ? <VerificationPage />
-      : view === '/settings' ? <Services change={changePreferences} /> : <main aria-labelledby="cluster-heading">
+    {raftView ? <main aria-labelledby={raftHeading}>
+      <RaftTabs active={raftActive} />
+      {view === '/timeline' ? <Timeline />
+        : view === '/runs' ? <ExperimentPage activeRun={activeRun} cluster={{
+          leader: leader?.nodeId, term: leader?.term, reachable: statuses.length,
+          total: nodeIds.length, offline: Boolean(error),
+        }} />
+        : <>
       <header className="overview-banner">
         <span className="overview-icon"><Icon name="topology" /></span>
         <div>
@@ -176,7 +187,6 @@ function App() {
             <p role="status">{leader ? `${leader.nodeId} · Leader · 任期 ${leader.term}` : '当前采样未确认唯一 Leader'}</p>
           </header>
           <div className="topology-map">
-            {!leader && <span className="leader-placeholder" aria-hidden="true">等待 Leader</span>}
             <svg className="connections" viewBox="0 0 1000 400" preserveAspectRatio="none" aria-hidden="true">
               <defs>
                 <marker id="rpc-arrow" viewBox="0 0 8 8" refX="4" refY="4"
@@ -185,7 +195,7 @@ function App() {
                 </marker>
                 <marker id="rpc-reject-arrow" viewBox="0 0 8 8" refX="4" refY="4"
                   markerWidth="6" markerHeight="6" orient="auto">
-                  <path d="M1 1 7 4 1 7Z" fill="var(--warning)" />
+                  <path d="M1 1 7 4 1 7Z" fill="var(--warning-fill)" />
                 </marker>
               </defs>
               <g key={leader?.nodeId ?? 'no-leader'} className="links">
@@ -224,7 +234,11 @@ function App() {
         {selected && <NodeDetails nodeId={selected} node={observations.get(selected)}
           lastSeen={lastSeen[selected]} observerOffline={error} rpc={rpc} />}
       </div>
-    </main>}
+        </>}
+    </main>
+    : view === '/transaction' ? <TransactionPage activeRun={activeRun} />
+      : view === '/verification' ? <VerificationPage />
+      : <Services change={changePreferences} />}
   </PreferencesContext.Provider>;
 }
 

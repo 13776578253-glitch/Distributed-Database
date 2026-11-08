@@ -1,5 +1,5 @@
 /** Read models for the live Timeline and experiment Evidence. */
-import type { ExperimentResult } from './history.ts';
+import type { ExperimentResult, Scalar } from './history.ts';
 
 export const raftExperiments = ['R01', 'R02', 'R03', 'R04', 'E0', 'E1', 'E2', 'E3B', 'E4B'] as const;
 export const transactionExperiments = ['T01', 'T02', 'T03'] as const;
@@ -14,6 +14,14 @@ export const experimentNames: Record<ExperimentId, string> = {
   V01: '线性一致性', V02: '事务依赖图', V03: '业务不变量',
 };
 
+/** AppendEntries 中的条目身份；index 使用 Raft 绝对索引。 */
+export interface TimelineEntry {
+  index: number;
+  key?: string;
+  value?: Scalar;
+  type?: string;
+}
+
 export interface TimelineEvent {
   id: string;
   at: string;
@@ -23,6 +31,7 @@ export interface TimelineEvent {
   terms?: number[];
   indexes?: [number, number];
   indexSamples?: number[];
+  entries?: TimelineEntry[];
   label: string;
   raw: unknown;
 }
@@ -82,3 +91,26 @@ export interface ServiceStatus {
   logs: { available: boolean | null; subscribers: number };
   lock: ProjectLock | null;
 }
+
+/** 控制台演示负载的只读状态；事件本身通过实时流发布。 */
+export interface WorkloadStatus {
+  running: boolean;
+  paused: boolean;
+  pausedReason?: 'experiment';
+  rate: number;
+  session?: string;
+  leader?: string;
+  operations: number;
+  successes: number;
+  failures: number;
+  p50LatencyMs?: number;
+  p95LatencyMs?: number;
+  lastLatencyMs?: number;
+  lastKey?: string;
+  lastOutcome?: string;
+  startedAt?: string;
+}
+
+export type WorkloadAction =
+  | { action: 'start'; rate: number }
+  | { action: 'stop' };

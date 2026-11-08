@@ -1,12 +1,16 @@
 /** Projects real container log records and Evidence lines into timeline rows. */
-import type { TimelineEvent } from '../contracts/console.ts';
+import type { TimelineEntry, TimelineEvent } from '../contracts/console.ts';
 import type { RpcObservation } from '../contracts/observation.ts';
+import { isScalar } from '../contracts/history.ts';
 
 const object = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 const number = (value: unknown) =>
   typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : undefined;
 const strings = (values: unknown[]) => [...new Set(values.filter((value): value is string => typeof value === 'string'))];
+const rpcNames: Record<string, string> = {
+  vote: 'RequestVote', append: 'AppendEntries', snapshot: 'InstallSnapshot', readIndex: 'ReadIndex',
+};
 
 function json(line: string): Record<string, unknown> {
   try { return object(JSON.parse(line)); } catch { return {}; }
@@ -26,6 +30,14 @@ export function containerEvent(line: string): { event: Omit<TimelineEvent, 'id'>
     return { event: { at, kind, nodes: [nodeId, ...peers], label: peers.length ? `阻断 ${peers.join('、')}` : '恢复 RPC 链路', raw } };
   }
   if (typeof from !== 'string' || typeof to !== 'string' || from === to) return;
+  if (kind === 'raft.rpc.error' && typeof raw.rpc === 'string' && typeof raw.reason === 'string') {
+    return {
+      event: {
+        at, kind: 'rpc.error', nodes: [from, to],
+        label: `${rpcNames[raw.rpc] ?? raw.rpc} 失败 · ${raw.reason}`, raw,
+      },
+    };
+  }
   const reply = object(raw.reply);
   if (kind === 'raft.read-index' && reply.ok === true) {
     const term = number(reply.term);
@@ -43,15 +55,30 @@ export function containerEvent(line: string): { event: Omit<TimelineEvent, 'id'>
     || reply.kind !== request.kind) return;
   const accepted = request.kind === 'vote' ? reply.granted : reply.success;
   if (typeof accepted !== 'boolean') return;
-  const count = Array.isArray(request.entries) ? request.entries.length : 0;
+  const entries = Array.isArray(request.entries) ? request.entries.map(object) : [];
   const previous = number(request.prevLogIndex);
+  const entryDetails: TimelineEntry[] = entries.flatMap((entry, offset) => {
+    const command = object(entry.command);
+    if (previous === undefined) return [];
+    return [{
+      index: previous + offset + 1,
+      ...(typeof command.key === 'string' ? { key: command.key } : {}),
+      ...(isScalar(command.value) ? { value: command.value } : {}),
+      ...(typeof command.type === 'string' ? { type: command.type } : {}),
+    }];
+  });
+  const count = entries.length;
   const indexes: [number, number] | undefined = count && previous !== undefined
     ? [previous + 1, previous + count] : undefined;
   const label = request.kind === 'vote' ? 'RequestVote' : request.kind === 'snapshot' ? 'InstallSnapshot' : 'AppendEntries';
+  const keys = strings(entryDetails.map(entry => entry.key));
+  const keyLabel = keys.length ? ` · ${keys[0]}${keys.length > 1 ? ` +${keys.length - 1}` : ''}` : '';
   const snapshotIndex = number(request.lastIncludedIndex);
   return {
     event: { at, kind: request.kind, nodes: [from, to], term, indexes,
-      indexSamples: snapshotIndex === undefined ? undefined : [snapshotIndex], label: `${label} · ${accepted ? '接受' : '拒绝'}`, raw },
+      entries: entryDetails.length ? entryDetails : undefined,
+      indexSamples: snapshotIndex === undefined ? undefined : [snapshotIndex],
+      label: `${label}${keyLabel} · ${accepted ? '接受' : '拒绝'}`, raw },
     rpc: { at, from, to, term, kind: request.kind, accepted },
   };
 }

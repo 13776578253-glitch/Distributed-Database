@@ -10,6 +10,7 @@ import { clusterReader } from '../src/observer/cluster.ts';
 import { evidenceReader } from '../src/observer/evidence.ts';
 import { liveEvents } from '../src/observer/live-events.ts';
 import { transactionReader } from '../src/observer/transaction.ts';
+import { createWorkload, parseWorkloadAction } from '../src/observer/workload.ts';
 import { acquireProjectLock, ProjectBusy, readProjectLock } from './cluster-lock.ts';
 import { prepareConsoleCluster } from './console-cluster.ts';
 import { composeServices } from './console-services.ts';
@@ -51,6 +52,12 @@ const cluster = prepareConsoleCluster(undefined, { initialize: !process.argv.inc
 const events = liveEvents(cluster.targets.map(target => target.nodeId), { membershipLab });
 const evidence = evidenceReader();
 const jobs = operationJobs(cluster.project);
+const workload = createWorkload({
+  targets: cluster.targets,
+  readStatuses: clusterReader(cluster.targets, { timeoutMs: 1000 }),
+  publish: event => events.publish(event),
+  shouldPause: () => jobs.busy() || Boolean(cluster.project && readProjectLock(cluster.project)),
+});
 const listener = `http://${host}:${port}`;
 const hosts = new Set([new URL(listener).host, new URL(`http://localhost:${port}`).host, `${host}:${port}`, `localhost:${port}`]);
 let closing = false;
@@ -73,7 +80,7 @@ server.on('request', async (request, response) => {
     return;
   }
   const path = request.url?.split('?', 1)[0] ?? '/';
-  if (request.method === 'POST' && (path === '/api/operations' || path === '/api/services/restart-observer')) {
+  if (request.method === 'POST' && (path === '/api/operations' || path === '/api/services/restart-observer' || path === '/api/workload')) {
     if (request.headers.origin !== new URL(`http://${authority}`).origin) return json(response, 403, { error: '仅接受同源控制台请求' });
     if (!/^application\/json(?:;|$)/i.test(request.headers['content-type'] ?? '')) return json(response, 415, { error: '需要 JSON 请求' });
     if (closing) return json(response, 409, { error: '观测服务正在重启' });
@@ -88,6 +95,14 @@ server.on('request', async (request, response) => {
         const action = parseOperation(input);
         if (!action) return json(response, 400, { error: '操作不在允许列表' });
         return json(response, 202, await jobs.start(action));
+      }
+      if (path === '/api/workload') {
+        const action = parseWorkloadAction(input);
+        if (!action) return json(response, 400, { error: '负载参数无效' });
+        if (action.action === 'start' && workload.status().paused) {
+          return json(response, 409, { error: '实验期间暂停演示负载' });
+        }
+        return json(response, 200, action.action === 'start' ? workload.start(action.rate) : workload.stop());
       }
       if (!process.connected) return json(response, 409, { error: '当前观测进程未由启动器托管' });
       if (jobs.busy()) throw new ProjectBusy('项目有操作正在执行');
@@ -107,6 +122,7 @@ server.on('request', async (request, response) => {
   }
   try {
     if (path === '/api/cluster') return json(response, 200, await readCluster());
+    if (path === '/api/workload') return json(response, 200, workload.status());
     const transaction = /^\/api\/transaction\/(status|wal|recovery|as-of)$/.exec(path)?.[1];
     if (transaction === 'status' || transaction === 'wal' || transaction === 'recovery' || transaction === 'as-of') {
       const sample = await readTransaction(transaction, new URLSearchParams(request.url?.slice(path.length + 1)));
@@ -160,6 +176,7 @@ let draining = false;
 function shutdown(code: number) {
   if (draining) return;
   draining = closing = true;
+  workload.close();
   events.close();
   server.close(() => {
     restartLease?.release();

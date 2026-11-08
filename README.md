@@ -87,10 +87,10 @@ docker compose --profile membership down
 
 页面每 3 秒向同源观测 API 请求节点状态。点击节点可查看任期、提交和应用索引、快照边界和投票配置。常规集群有五个成员，隔离成员实验用 `RAFT_MEMBERSHIP=1` 启用第六个节点。单独构建前端可运行 `pnpm build:web`，产物在 `dist/console/`。
 
-侧栏的「实时事件」使用 SSE 读取容器日志。「实验与回放」可执行 R01–R03，并按 Run 查看 R01–R04 的事件、断言与原始 Evidence。「设置」展示实际监听地址和 Compose 容器状态，支持重启单节点或 Observer，以及配置本地轮询、时间格式、实时日志显示上限和主题。
+侧栏按 Raft、事务、一致性验证和设置四组收束；Raft 内用「集群 / 实时事件 / 实验回放」三个页签切换。Raft 页的「实时事件」页签使用 SSE 读取容器日志，泳道按时序展示角色区间、按逻辑复制聚合的 RPC 节拍和故障窗口；选中一条 PUT 或 AppendEntries 可查看请求、复制、提交和应用的证据追踪，缺失证据显示未观测。下方表格保留逐条原始事件与筛选。页面可启动非破坏性演示负载，按 1/2/5 ops/s 对 `demo/` 前缀执行写读删；请求与响应进入实时事件，实验期间自动暂停。「实验回放」页签可执行 R01–R03，并按 Run 查看 R01–R04 的事件、断言与原始 Evidence。「设置」展示实际监听地址和 Compose 容器状态，支持重启单节点或 Observer，以及配置本地轮询、时间格式、实时日志显示上限和主题。
 
 网页操作与 `pnpm experiment` 共用项目锁。R01、R02 会对控制台当前挂接的 Compose 项目执行故障实验。R04 作为历史探针回放。见[实时事件验收](docs/current-task/2026-11-06-raft-console-timeline.md)和[调度验收与恢复说明](docs/current-task/2026-11-06-raft-console-operations.md)。
 
-侧栏的 Transaction 页面提供只读 MVCC 历史查询、WAL 和恢复报告。运行 `docker compose -f compose.transaction.yaml up --build -d` 启动独立事务服务后，Observer 自动发现其本机端口。隔离实例可用 `CONSOLE_TXN_PROJECT` 指定 Compose 项目。事务服务停止时仍可回放 T01–T03。
+「事务」页面提供只读 MVCC 历史查询、WAL 和恢复报告。运行 `docker compose -f compose.transaction.yaml up --build -d` 启动独立事务服务后，Observer 自动发现其本机端口。隔离实例可用 `CONSOLE_TXN_PROJECT` 指定 Compose 项目。事务服务停止时仍可回放 T01–T03。
 
 Verification 从 V01–V03 Evidence 展示线性化顺序、反例、事务依赖和不变量结果，并链接原始操作历史。使用 `pnpm verify` 生成新的验证记录。R03 原采集的 `INCONCLUSIVE` 与 V01 的独立判定分别保留。
