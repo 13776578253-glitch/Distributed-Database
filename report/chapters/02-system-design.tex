@@ -1,0 +1,114 @@
+\clearpage
+\section{系统设计}
+
+\newcommand{\ReportBlock}[1]{%
+  \fbox{\parbox[c][12mm][c]{.26\linewidth}{\centering\small #1}}}
+\newcommand{\ReportArrow}{\enspace→\enspace}
+
+\subsection{总体架构}
+系统由服务层、记录与验证层、观测层组成。客户端经 HTTP 访问键值集群或事务服务。五个 Raft 节点通过节点间 RPC 复制命令，各自使用独立的 SQLite 数据卷。事务服务在独立进程中执行多键事务，由同一持久卷保存 WAL 和 SQLite 版本表。两套服务的操作记录采用共享数据契约，分别进入一致性检查。图~\ref{fig:architecture} 给出组件关系。
+
+\begin{figure}[htbp]
+\centering
+\ReportBlock{键值客户端}\ReportArrow
+\ReportBlock{Raft 键值集群\\五个独立节点}\ReportArrow
+\ReportBlock{节点 SQLite\\日志、状态与快照}\\[5pt]
+\ReportBlock{事务客户端}\ReportArrow
+\ReportBlock{MVCC 事务服务\\RC / SI}\ReportArrow
+\ReportBlock{事务持久卷\\WAL 与 SQLite}\\[5pt]
+\ReportBlock{调用历史与版本记录}\ReportArrow
+\ReportBlock{离线一致性验证}\ReportArrow
+\ReportBlock{观测控制台\\状态、事件和判定}
+\caption{系统组成与主要数据流}
+\label{fig:architecture}
+\end{figure}
+
+Observer 并行采样 Raft 节点，读取容器日志与运行归档，并通过本机端口查询事务服务。浏览器经同源接口访问 Observer。运维操作通过运行器执行，项目锁协调同一 Compose 集群上的互斥操作；协议核心继续由节点进程驱动。各模块的状态归属见表~\ref{tab:ownership}。
+
+\begin{table}[htbp]
+\centering
+\caption{主要模块及其职责}
+\label{tab:ownership}
+\begin{tabularx}{\linewidth}{@{}l l X@{}}
+\toprule
+模块 & 源码位置 & 职责与状态 \\
+\midrule
+Raft 协议与适配 & \path{src/raft/} & 选举、日志复制、提交和读屏障；经 SQLite 和 HTTP 适配器执行持久化与传输。 \\
+事务执行与恢复 & \path{src/transaction/} & 事务上下文、私有写集、锁、版本链和 WAL；启动时恢复已提交状态。 \\
+记录契约与验证 & \path{src/contracts/}、\path{src/verification/} & 定义历史记录；从调用及版本证据计算顺序、依赖和业务判定。 \\
+观测与交互 & \path{src/observer/}、\path{web/} & 汇集状态、容器事件、事务记录和判定，提供页面查询与回放。 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{节点角色与数据结构}
+Follower 接收 Leader 的追加日志请求，保存任期、投票和复制进度所需的本地日志；选举计时到期后，具备投票资格的节点转为 Candidate。Candidate 自投一票并向其他投票节点请求投票。取得当前配置的多数票后，节点成为 Leader，管理客户端请求及各副本的复制进度。
+
+\begin{table}[htbp]
+\centering
+\caption{关键结构与顺序标识}
+\label{tab:structures}
+\begin{tabularx}{\linewidth}{@{}l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X@{}}
+\toprule
+结构 & 主要字段 & 用途 \\
+\midrule
+任期与投票 & \texttt{term}、\texttt{votedFor} & 任期标识领导周期；任期和投票结果持久化后才对外应答。 \\
+日志和应用水位 & 条目任期、命令、绝对索引；\texttt{commitIndex}、\texttt{lastApplied} & 提交水位决定可应用前缀；应用水位标记状态机已经执行的位置。 \\
+复制进度与快照 & \texttt{nextIndex}、\texttt{matchIndex}；快照边界索引、任期、状态和配置 & 定位待复制后缀；落后节点先安装快照，再按绝对索引追赶。 \\
+事务及版本链 & 事务 ID、隔离级别、快照序号、写集；版本 ID、\texttt{commitSeq}、值或墓碑 & 将事务私有修改与已提交版本分开；提交序号决定逻辑可见性。 \\
+WAL 记录 & \texttt{lsn}、\texttt{prevLsn}、类型及负载 & LSN 定位物理动作，前驱指针连接同一事务的记录。 \\
+操作历史 & 操作 ID、调用及返回时刻、结果、读写版本 & 保存客户端视角的顺序约束以及事务依赖所需的版本身份。 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Raft 的日志索引表示一条复制命令在集群日志中的位置；事务的提交序号描述已提交版本的先后；WAL 的 LSN 则标识物理动作。事务的多条 WAL 记录可以对应一次提交，多个键的最终版本在同一提交序号下发布。
+
+\subsection{Raft 选举与读写流程}
+\subsubsection{选举与日志追赶}
+选举超时后，Candidate 增加任期并持久化自投票。接收端先处理请求任期，再按最后一条日志的任期、索引依次比较新旧，并检查本任期的投票状态。获得多数票后，新 Leader 追加当前任期空操作。图~\ref{fig:election} 概括了选举过程。
+
+\begin{figure}[htbp]
+\centering
+\ReportBlock{选举计时到期\\持久化新任期和自投票}\ReportArrow
+\ReportBlock{发送 RequestVote\\比较日志任期和末尾索引}\ReportArrow
+\ReportBlock{取得多数票\\成为 Leader 并追加空操作}
+\caption{Leader 选举流程}
+\label{fig:election}
+\end{figure}
+
+追加日志时，Follower 用请求携带的前序索引与任期对照本地日志。匹配后持久化新增或替换的后缀，并返回确认。前缀不匹配时，Leader 根据应答调整下一次发送位置；当该位置落到已压缩区域，Leader 先发送快照。快照记录状态机在指定索引的完整状态和配置，节点由该边界接续日志。
+
+\subsubsection{写入与读取}
+写命令在 Leader 按批追加到本地日志，再发送给 Follower。Leader 根据各节点已匹配的位置寻找达到多数且属于当前任期的条目。提交位置推进后，状态机按索引顺序应用整个新增前缀，客户端随后收到写入结果。图~\ref{fig:write-read} 对照了写入和默认读取的确认过程。
+
+\begin{figure}[htbp]
+\centering
+\ReportBlock{写入\\批量追加并持久化}\ReportArrow
+\ReportBlock{复制\\多数节点确认日志}\ReportArrow
+\ReportBlock{提交与应用\\返回写入结果}\\[5pt]
+\ReportBlock{读取\\当前任期空操作已应用}\ReportArrow
+\ReportBlock{读屏障\\多数确认当次读请求}\ReportArrow
+\ReportBlock{应用水位达到读索引\\返回当前值}
+\caption{键值写入与默认读取的确认顺序}
+\label{fig:write-read}
+\end{figure}
+
+默认读取由 Leader 在当次读屏障后执行。安全 Follower 读向 Leader 取得读索引，并等待本地应用到该位置；本地 Follower 读直接查询已应用状态，同时返回应用索引，便于调用方识别读到的位置。
+
+\subsection{事务提交与恢复流程}
+事务开始时分配 ID，快照隔离事务同时记录开始时的提交序号。读取先检查本事务私有写集，然后按隔离级别选择已提交版本。每次写入记录一条 \texttt{UPDATE} 并在 SQLite 中物化为待提交版本。提交时引擎完成快照隔离的写冲突检查，持久化 \texttt{COMMIT} 后发布每个键的最终版本，最后以 \texttt{END} 结束该事务的日志链。
+
+\begin{figure}[htbp]
+\centering
+\ReportBlock{提交检查\\分配提交序号}\ReportArrow
+\ReportBlock{写入并同步 COMMIT\\保存提交决定}\ReportArrow
+\ReportBlock{发布版本并写 END\\返回提交结果}\\[5pt]
+\ReportBlock{启动分析\\重建未结束事务链}\ReportArrow
+\ReportBlock{重做\\按物化游标补齐日志动作}\ReportArrow
+\ReportBlock{撤销与收尾\\写 CLR 或补齐 END}
+\caption{事务提交与启动恢复}
+\label{fig:recovery}
+\end{figure}
+
+恢复时，分析阶段利用最近完整检查点识别未结束的事务，重做阶段按 SQLite 的应用游标补齐持久化动作。对于日志中已有 \texttt{COMMIT} 的事务，系统恢复已提交结果并补齐收尾记录；对未提交事务则沿前驱链撤销，通过补偿日志记录（CLR）保存下次应继续的位置。图~\ref{fig:recovery} 展示了正常提交与故障恢复如何共用同一份日志。

@@ -1,0 +1,124 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{styles/school}[2026/11/08 Starter stylesheet for a Chinese course report]
+\RequirePackage[a4paper,left=2.0cm,right=2.0cm,top=2.45cm,bottom=2.35cm,headheight=17pt,headsep=0.52cm]{geometry}
+\RequirePackage{fontspec}
+\RequirePackage{xcolor}
+\RequirePackage{setspace}
+\RequirePackage{indentfirst}
+\RequirePackage{fancyhdr}
+\RequirePackage{graphicx}
+\RequirePackage{caption}
+\RequirePackage{booktabs}
+\RequirePackage{array}
+\RequirePackage{tabularx}
+\RequirePackage{longtable}
+\RequirePackage{amsmath}
+\RequirePackage{float}
+\RequirePackage{listings}
+\RequirePackage{hyperref}
+
+% 显式选用 V1 的宋、黑、楷字族。Windows 字体嵌入为 TrueType，
+% 避开内置编译器使用 Fandol 时观察到的中文映射问题。
+\IfFontExistsTF{SimSun}
+  {\setCJKmainfont[AutoFakeBold]{SimSun}\setCJKmonofont{SimSun}}
+  {\IfFontExistsTF{Noto Serif CJK SC}{\setCJKmainfont{Noto Serif CJK SC}}{}}
+\IfFontExistsTF{SimHei}
+  {\setCJKsansfont[AutoFakeBold]{SimHei}}
+  {\IfFontExistsTF{Noto Sans CJK SC}{\setCJKsansfont{Noto Sans CJK SC}}{}}
+\IfFontExistsTF{KaiTi}
+  {\newCJKfontfamily\reportkai{KaiTi}}
+  {\IfFontExistsTF{AR PL KaitiM GB}
+    {\newCJKfontfamily\reportkai{AR PL KaitiM GB}}
+    {\newcommand{\reportkai}{\kaishu}}}
+\IfFontExistsTF{Times New Roman}{\setmainfont{Times New Roman}}
+  {\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{}}
+\IfFontExistsTF{Courier New}{\setmonofont{Courier New}}
+  {\IfFontExistsTF{DejaVu Sans Mono}{\setmonofont{DejaVu Sans Mono}}{}}
+\newcommand{\reporthei}{\sffamily}
+
+\AtBeginDocument{\zihao{-4}\setstretch{1.25}}
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0pt}
+\setlength{\emergencystretch}{2em}
+
+% 用 ctexart 的 section 对应模板的“第 X 章”。
+\ctexset{
+  section={
+    name={第,章},
+    number=\chinese{section},
+    format=\centering\reporthei\bfseries\fontsize{21pt}{29pt}\selectfont,
+    beforeskip=19pt,
+    afterskip=20pt
+  },
+  subsection={
+    format=\reporthei\bfseries\fontsize{17pt}{24pt}\selectfont,
+    beforeskip=16pt,
+    afterskip=9pt
+  },
+  subsubsection={
+    format=\reporthei\bfseries\fontsize{14pt}{21pt}\selectfont,
+    beforeskip=12pt,
+    afterskip=6pt
+  }
+}
+% 小节编号始终显示 2.1、2.1.1，而不是“二.1”。
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+\renewcommand{\thesubsubsection}{\thesubsection.\arabic{subsubsection}}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
+
+% 图/表按章编号；附录随 \thesection 改用字母。
+\counterwithin{figure}{section}
+\counterwithin{table}{section}
+\renewcommand{\thefigure}{\thesection-\arabic{figure}}
+\renewcommand{\thetable}{\thesection-\arabic{table}}
+\renewcommand{\figurename}{图}
+\renewcommand{\tablename}{表}
+\captionsetup{font=small,labelsep=space,justification=centering,singlelinecheck=false}
+
+% 页眉、右侧页码、细横线。首页与各章正文同一种页眉。
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\reportkai\small\ReportShortTitle}
+\fancyhead[R]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyhead[C]{\reportkai\small\ReportShortTitle}\fancyhead[R]{\small\thepage}\renewcommand{\headrulewidth}{0.4pt}}
+
+% 保留 PDF 跳转，隐藏链接的边框和颜色。
+\hypersetup{unicode=true,hypertexnames=false,colorlinks=false,pdfborder={0 0 0},bookmarksnumbered=true}
+
+% 代码清单：不用 -shell-escape，跨设备容易编译。
+\definecolor{codebg}{RGB}{239,239,239}
+\definecolor{codegray}{RGB}{55,55,55}
+\lstdefinestyle{coursecode}{
+  basicstyle=\ttfamily\fontsize{10pt}{13pt}\selectfont,
+  backgroundcolor=\color{codebg},
+  keywordstyle=\bfseries,
+  commentstyle=\itshape\color{codegray},
+  breaklines=true,
+  breakatwhitespace=false,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  frame=none,
+  xleftmargin=7pt,
+  xrightmargin=7pt,
+  aboveskip=8pt,
+  belowskip=8pt
+}
+\lstdefinelanguage{JavaScript}{
+  keywords={const,let,var,function,return,if,else,for,while,async,await,import,export,class,new},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]'
+}
+\lstset{style=coursecode}
+\renewcommand{\lstlistingname}{代码清单}
+
+% 独立页标题（摘要、目录、参考文献等）。
+\newcommand{\ReportFrontTitle}[1]{%
+  \begin{center}\vspace*{0.2cm}{\reporthei\bfseries\fontsize{21pt}{29pt}\selectfont #1}\end{center}\vspace{0.55cm}%
+}

@@ -1,0 +1,67 @@
+\clearpage
+\section{系统运行与结果分析}
+
+\subsection{部署与基本读写}
+运行记录来自 Docker Compose 部署。五个 Raft 容器使用同一镜像，每个容器挂载独立数据卷；事务服务使用独立容器及持久卷。记录按运行编号归档，其中 \path{metadata.json} 保存环境与版本，\path{events.jsonl} 保存操作和状态，\path{result.json} 保存检查项及结果。以下各场景的归档位置见表~\ref{tab:records}。
+
+集群启动后，客户端对同一个键依次写入 JSON \texttt{null}、读取并删除。表~\ref{tab:kv-results} 列出三次 HTTP 调用的返回字段。读取同时返回 \texttt{found=true} 和 \texttt{value=null}，因此应用可以区分空值与缺失键。删除返回 \texttt{deleted=true}，表示被删除的键此前存在。
+
+\begin{table}[htbp]
+\centering
+\caption{键值客户端的运行记录}
+\label{tab:kv-results}
+\begin{tabularx}{\linewidth}{@{}l l c X@{}}
+\toprule
+操作 ID & 请求 & HTTP 状态 & 返回字段 \\
+\midrule
+1 & \texttt{POST /kv/put} & 200 & \texttt{stored=true} \\
+2 & \texttt{GET /kv} & 200 & \texttt{found=true}，\texttt{value=null} \\
+3 & \texttt{POST /kv/delete} & 200 & \texttt{deleted=true} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{节点切换与副本收敛}
+\subsubsection{Leader 停止后的服务接续}
+在 R01 记录中，客户端向 \texttt{raft-1} 写入值 \texttt{confirmed} 并收到成功结果。随后运行器向该容器发出 \texttt{SIGKILL}，容器退出码为 137。观测端在发出故障命令后 844.327\,ms 发现 \texttt{raft-5} 当选，任期从 8 增至 9。客户端随后向新 Leader 读取同一键，返回 \texttt{found=true} 与 \texttt{value=confirmed}。下列摘录按时间排列，时刻为 UTC，字段来自同一次运行的事件文件。
+
+\begin{lstlisting}
+10:57:02.781  fault.kill  node=raft-1 signal=SIGKILL
+10:57:03.617  container exit=137
+10:57:03.625  new leader elected: raft-5 term=9 elapsedMs=844.327
+10:57:03.630  read from new leader: found=true value=confirmed
+10:57:06.108  restarted node converges
+\end{lstlisting}
+
+故障节点使用原卷重启并恢复为 Follower。该次收敛记录中，五个节点处于任期 11，提交和应用索引均为 22。切换读与收敛采样分别对应两个时刻：前者反映客户端恢复访问，后者反映重启节点重新进入复制进程。
+
+\subsubsection{网络分区恢复后的前缀一致性}
+R02 将五节点分成三节点组和两节点组。三节点组确认新写入并提供多数派读；两节点组的写入结果为 \path{UNKNOWN_OUTCOME}，读取返回 \path{NO_QUORUM}。恢复后，五个节点的提交及应用索引均为 24，已提交前缀摘要相同。多数派确认的值仍可读，少数派提出的冲突键返回 \texttt{found=false}。
+
+快照记录进一步展示了落后副本的追赶路径。E3B 中，Leader 将 153 行已覆盖日志压缩至 0 行保留日志；落后节点从索引 603 恢复，安装边界为 606 的快照后继续应用到 608。持有快照的 Leader 使用原卷重启后，从索引 607 继续保留日志后缀，节点最终应用到 610。
+
+\subsection{事务提交边界与恢复}
+T01 在事务的 \texttt{COMMIT} 写入 WAL 后、SQLite 应用前中止进程。该事务将第一个键更新为 \texttt{durable}，同时删除第二个键。原卷重启后，恢复报告将 LSN 26 列入重做序列。按 LSN 25 查询时仍返回旧版本；按 LSN 26 查询时，两项修改在同一个提交边界生效。表~\ref{tab:as-of} 列出了实际返回。
+
+\begin{table}[htbp]
+\centering
+\caption{按 WAL 位置读取提交前后版本}
+\label{tab:as-of}
+\begin{tabularx}{\linewidth}{@{}l X X@{}}
+\toprule
+查询位置 & 更新键 & 删除键 \\
+\midrule
+LSN 25 & \texttt{found=true}，值为 \texttt{original} & \texttt{found=true}，值为 1 \\
+LSN 26 & \texttt{found=true}，值为 \texttt{durable} & \texttt{found=false} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+检查点中断后，恢复选用最近的完整检查点 31，撤销了尚未提交的更新。T03 则记录了撤销过程本身被中断的情况。首次恢复在 WAL 的 LSN 12 持久化一条 CLR，记录已处理 UPDATE 10，下一位置为 9。再次启动时，系统先重做 CLR 12，再继续撤销 UPDATE 9 和 6；归档中 UPDATE 10 对应的 CLR 只出现一次。两个场景分别体现了持久化提交决定和持久化撤销进度的作用。
+
+\subsection{操作顺序与业务约束}
+R03 记录六次有返回的操作，其中有调用在时间上重叠。V01 对这份历史找到合法顺序 \mbox{2 → 1 → 3 → 4 → 5 → 6}。每次读取均与前序操作得到的状态一致，先返回的操作也排在随后开始的操作之前。原始请求与返回和判定结果分别归档。
+
+值班业务要求 Alice 和 Bob 至少一人在岗。在无锁运行中，两笔快照事务都读到对方仍在岗，各自写入不同的键并提交。V02 从版本记录得到两条读写反依赖：\texttt{txn-3} 读取 Bob 的旧版本，后继版本来自 \texttt{txn-4}；\texttt{txn-4} 读取 Alice 的旧版本，后继版本来自 \texttt{txn-3}。这两条边构成环。V03 在 \texttt{txn-4} 提交时定位到首次违规，提交序号为 3，实际在岗人数为 0。
+
+采用具名锁后，等待方重新开始事务，以新快照判断是否离岗。加锁阶段的依赖子图无环，三个受检提交均满足值班条件，最终保留一人在岗。

@@ -1,0 +1,10 @@
+\thispagestyle{empty}
+\ReportFrontTitle{Abstract}
+This project implements a distributed database system with a five-node Raft key-value cluster, an MVCC transaction service, a consistency verifier, and an observation console. The cluster replicates a command log, commits entries through a quorum, and serves linearizable reads through read barriers. It also supports batched writes, snapshot installation, and joint membership changes.
+
+The transaction service provides Read Committed and Snapshot Isolation. Write-ahead logging records durable commit decisions, while checkpoints and recovery cursors guide the restoration of version state. The verifier reconstructs legal orders for client histories, derives dependencies from observed versions, and checks business invariants at transaction commit boundaries. The console links node status and runtime events to their source records.
+
+Recorded runs show that a new leader returned an acknowledged value after its predecessor stopped and that the five committed prefixes matched after a network partition healed. The transaction service recovered committed versions and resumed interrupted undo using compensation log records. An on-call scheduling case illustrates how two read-write anti-dependencies expose write skew and how a named lock serializes the business decision.
+
+\vspace{0.8cm}
+\noindent\textbf{Keywords:} Raft, distributed databases, MVCC, write-ahead logging, consistency verification
