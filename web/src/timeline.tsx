@@ -1,4 +1,8 @@
-/** Renders live protocol events and stepwise playback of immutable Evidence. */
+/**
+ * Renders live protocol events and immutable Evidence playback. The live shell
+ * keeps selections and filters stable while rows append; playback advances the
+ * selected event only until the operator chooses one manually.
+ */
 import { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { experimentNames, raftExperiments } from '../../src/contracts/console.ts';
@@ -34,6 +38,7 @@ const EventTable = memo(function EventTable({ events, selectedId, onSelect, foll
   reverse?: boolean;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
+  // 正序表滚到末尾，倒序表滚到顶部；只在新事件数变化时执行。
   useLayoutEffect(() => {
     if (!followLatest || !scroller.current) return;
     scroller.current.scrollTop = reverse ? 0 : scroller.current.scrollHeight;
@@ -89,6 +94,7 @@ function EventExplorer({ events, lanes, extent, windowMs, follow, seeds, samples
   const rows = useMemo(() => reverse ? filtered.toReversed() : filtered, [filtered, reverse]);
   const selected = rows.find(event => event.id === selection)
     ?? (playback ? rows.at(-1) : rows[0]);
+  // 回放未手动选择时跟随末尾；手动选择在数据追加后保持。
   useEffect(() => {
     const latest = playback ? rows.at(-1) : rows[0];
     if (playback && !manual) {
@@ -105,6 +111,7 @@ function EventExplorer({ events, lanes, extent, windowMs, follow, seeds, samples
     setManual(true);
     select(id);
   }, []);
+  // 只有用户明确选中事件后才生成追踪，避免把自动跟随误当成一次写入。
   const writeTrace = useMemo(() => trace && manual && selected
     ? deriveWriteTrace(events, selected, samples) : undefined,
   [trace, manual, events, selected, samples]);
@@ -172,6 +179,7 @@ export function Timeline() {
 
   const live = frozen ?? entries;
   const lanes = useMemo(() => cluster?.nodes.map(node => node.nodeId), [cluster]);
+  // 每个 seed 用自己的 observedAt；失败采样在该时刻转为 unknown。
   const seeds = useMemo<RoleSeed[]>(() => samples.flatMap(sample => {
     const sampledAt = Date.parse(sample.sampledAt);
     return sample.nodes.flatMap((node): RoleSeed[] => {

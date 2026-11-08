@@ -1,10 +1,15 @@
-/** Recovers materialized versions and closes unfinished transactions before the engine starts. */
+/** Checkpoints and recovers materialized versions before the engine starts. */
 import type { TransactionId } from '../../contracts/transaction.ts';
 import type { SqliteVersions } from './sqlite.ts';
 import type { Fault, Wal, WalRecord } from './wal.ts';
 
+/** 恢复分析中的事务链尾；只有 committed 进入 winner，其他沿链 Undo。 */
 type TransactionTail = { lastLsn: number; status: 'active' | 'committed' | 'aborted' };
 
+/**
+ * 写入检查点开始/完成记录，不截断 WAL。完成的检查点保存 SQLite 已物化
+ * 游标和当时所有未结束事务的链尾，供下次恢复从正确位置分析。
+ */
 export function checkpoint(wal: Wal, data: SqliteVersions, fault?: Fault): WalRecord {
   const begin = wal.append({ type: 'CHECKPOINT_BEGIN' });
   fault?.('during-checkpoint', begin);
@@ -13,6 +18,11 @@ export function checkpoint(wal: Wal, data: SqliteVersions, fault?: Fault): WalRe
   });
 }
 
+/**
+ * Analysis 从检查点之后开始；Redo 从 SQLite 游标之后重放物理记录；随后
+ * 提交者补 END，未结束者补 ABORT/CLR/END。CLR 沿 undoNextLsn 逆行，避免
+ * 二次恢复重复撤销同一条 UPDATE。
+ */
 export function recover(wal: Wal, data: SqliteVersions, fault?: Fault) {
   const records = wal.records();
   const lastCheckpoint = records.findLast(record => record.type === 'CHECKPOINT');
@@ -37,6 +47,7 @@ export function recover(wal: Wal, data: SqliteVersions, fault?: Fault) {
     }
   }
 
+  // Redo 由 SQLite 的 applied_lsn 做幂等跳过。
   const redoLsns: number[] = [];
   for (const record of records.slice(redoStartLsn - 1)) {
     if (!data.apply(record)) continue;
@@ -49,6 +60,7 @@ export function recover(wal: Wal, data: SqliteVersions, fault?: Fault) {
   const undoneLsns: number[] = [];
   for (const [txnId, tail] of transactions) {
     if (tail.status === 'committed') {
+      // COMMIT 已落 WAL；补 END 只收尾链，不再改变已提交版本。
       winners.push(txnId);
       wal.append({ type: 'END', txnId, outcome: 'committed' });
       continue;
@@ -59,6 +71,7 @@ export function recover(wal: Wal, data: SqliteVersions, fault?: Fault) {
     let lsn: number | null = tail.lastLsn;
     while (lsn !== null) {
       const record: WalRecord = records[lsn - 1];
+      // 已经写下的 CLR 表示这一段已经撤销，直接跳到它的下一条目标。
       if (record.type === 'CLR') {
         lsn = record.undoNextLsn;
         continue;

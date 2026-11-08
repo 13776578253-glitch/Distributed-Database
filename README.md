@@ -1,6 +1,6 @@
 # Distributed Database
 
-三人课程项目，依次实现 Raft KV、单节点 MVCC/WAL、外部一致性验证。见[开发计划](docs/PLAN.md)、[任务记录](docs/current-task/)和[实验清单](docs/experiments.md)。
+三人课程项目，依次实现 Raft KV、单节点 MVCC/WAL、外部一致性验证。见[开发计划](docs/PLAN.md)、[系统设计](docs/system-design.md)、[AI 使用记录](AI_USAGE.md)、[任务记录](docs/current-task/)和[实验清单](docs/experiments.md)。
 
 ## 单节点事务服务
 

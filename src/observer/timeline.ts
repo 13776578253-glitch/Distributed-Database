@@ -1,4 +1,4 @@
-/** Projects real container log records and Evidence lines into timeline rows. */
+/** Projects container log lines and Evidence records into timeline rows. */
 import type { TimelineEntry, TimelineEvent } from '../contracts/console.ts';
 import type { RpcObservation } from '../contracts/observation.ts';
 import { isScalar } from '../contracts/history.ts';
@@ -16,6 +16,10 @@ function json(line: string): Record<string, unknown> {
   try { return object(JSON.parse(line)); } catch { return {}; }
 }
 
+/**
+ * 解析一行带 ISO 时间戳的容器输出。只有能确认节点/方向/请求应答形状的
+ * raft.rpc 才产生 RpcObservation；缺字段或请求应答 kind 不一致则丢弃。
+ */
 export function containerEvent(line: string): { event: Omit<TimelineEvent, 'id'>; rpc?: RpcObservation } | undefined {
   const match = /^(\S+)\s+(\{.*\})\s*$/.exec(line);
   if (!match || !Number.isFinite(Date.parse(match[1]))) return;
@@ -38,6 +42,7 @@ export function containerEvent(line: string): { event: Omit<TimelineEvent, 'id'>
       },
     };
   }
+  // ReadIndex 只投影明确成功的应答；其他形状不产生事件。
   const reply = object(raw.reply);
   if (kind === 'raft.read-index' && reply.ok === true) {
     const term = number(reply.term);
@@ -55,6 +60,7 @@ export function containerEvent(line: string): { event: Omit<TimelineEvent, 'id'>
     || reply.kind !== request.kind) return;
   const accepted = request.kind === 'vote' ? reply.granted : reply.success;
   if (typeof accepted !== 'boolean') return;
+  // AppendEntries 条目的绝对索引由 prevLogIndex 和批内偏移推出。
   const entries = Array.isArray(request.entries) ? request.entries.map(object) : [];
   const previous = number(request.prevLogIndex);
   const entryDetails: TimelineEntry[] = entries.flatMap((entry, offset) => {
@@ -83,6 +89,7 @@ export function containerEvent(line: string): { event: Omit<TimelineEvent, 'id'>
   };
 }
 
+/** Evidence 行只保证 at/kind；节点和索引是从已知 details 字段提取的样本。 */
 export function evidenceEvent(line: string, lineNumber: number): TimelineEvent | undefined {
   const raw = json(line);
   const { at, kind } = raw;

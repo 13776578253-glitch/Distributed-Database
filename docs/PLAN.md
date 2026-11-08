@@ -14,11 +14,11 @@ Raft、MVCC/WAL 和一致性验证的后端核心已验收并冻结。后续范�
 | S3C · Recovery | 已验证 | Checkpoint、Analysis/Redo/Undo、CLR 与恢复中断 |
 | S3D · 系统实验 | 已验证 | [独立事务服务及 T01/T02/T03 证据](current-task/2026-11-07-s3b-s3d-wal-recovery.md)，真实 SIGKILL 和原卷恢复 |
 | S4A–S4D · 一致性验证 | 已验收 | [V01/V02/V03、R03 与 T02 回放](current-task/2026-11-07-s4-verification.md)，以及[六维选型对比](comparison.md) |
-| S5 · 课程交付 | 待开始 | 注释、文档、时序图、报告、可视化探针和前端数据结构 |
+| S5 · 课程交付 | 进行中 | 注释已补；[系统设计](system-design.md)和 [AI 使用记录](../AI_USAGE.md)已整理；控制台小修记录已合并，报告待收束 |
 
 实验运行器通过公开 API 或故障接口操作。Raft term 和 log index、事务 LSN、实验 operation ID 各自独立。
 
-三个方向的复现入口见[实验清单](experiments.md)。选型对比、时序图和报告分别放在 `docs/comparison.md`、`docs/diagrams/` 和 `docs/report.pdf`，成稿后逐项查看。
+三个方向的复现入口见[实验清单](experiments.md)。系统设计、选型对比和报告分别放在[系统设计](system-design.md)、[选型对比](comparison.md)和 `docs/report.pdf`；时序图包含在系统设计中，成稿后逐项查看。
 
 审计收束分两批。先修复事务键编码并验证旧库升级与崩溃恢复，再收束演示会话、写追踪、事务恢复采样和 AS OF 输入透传。结果见[审计收束记录](current-task/2026-11-08-closing-review-fixes.md)。
 

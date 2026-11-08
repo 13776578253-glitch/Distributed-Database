@@ -1,6 +1,6 @@
 # 实验清单
 
-正式实验的命令和结果随实现补充。每次运行将命令、UTC 时间、Git SHA、参数、事件、原始日志和判定写入 `evidence/<ID>/<runId>/`。
+正式实验的命令和结果随实现补充。每次运行将命令、UTC 时间、Git SHA、参数、事件、原始日志和判定写入 `evidence/<ID>/<runId>/`。各实验的引用 Run、关键数字及截图见[实验审计索引](../evidence/README.md)。
 
 ## 方向一 · Raft KV
 

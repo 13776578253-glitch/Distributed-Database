@@ -1,4 +1,7 @@
-/** Materializes WAL actions into SQLite version rows and an atomic replay cursor. */
+/**
+ * Materializes physical WAL actions into SQLite version rows and an atomic
+ * applied_lsn cursor. Keys are stored as JSON strings.
+ */
 import { DatabaseSync } from 'node:sqlite';
 import type { VersionData } from '../../contracts/transaction.ts';
 import type { CommittedVersion } from '../core/versions.ts';
@@ -7,6 +10,7 @@ import type { WalRecord } from './wal.ts';
 export class SqliteVersions {
   private readonly db: DatabaseSync;
 
+  /** 初始化 schema 与用户版本，再按已物化游标完成旧库键编码升级。 */
   constructor(path: string, records: readonly WalRecord[]) {
     this.db = new DatabaseSync(path);
     try {
@@ -28,7 +32,10 @@ export class SqliteVersions {
     }
   }
 
-  /** v0 的 TEXT 键可能已合并。按原物化游标从 WAL 重建，版本标记与数据原子升级。 */
+  /**
+   * v0 的 TEXT 键可能因代理码元替换而合并。按原 applied_lsn 从 WAL 前缀
+   * 重建所有版本，并连同 user_version 在同一 SQLite 事务中提交；中断可重试。
+   */
   private upgradeKeys(records: readonly WalRecord[]): void {
     const { user_version: version } = this.db.prepare('PRAGMA user_version').get()!;
     if (version === 1) return;
@@ -47,11 +54,15 @@ export class SqliteVersions {
     }
   }
 
+  /** 最近一个已物化的物理 WAL LSN；非物理动作不推进它。 */
   appliedLsn(): number {
     return this.db.prepare('SELECT applied_lsn FROM progress WHERE id = 1').get()!.applied_lsn as number;
   }
 
-  /** 物化动作与游标在同一个 SQLite 事务中提交，重放可以安全跳过已落盘动作。 */
+  /**
+   * 物化动作与 applied_lsn 在同一个 SQLite 事务中提交；重放可安全跳过
+   * 已落盘动作。返回 false 表示非物理动作或已应用。
+   */
   apply(record: WalRecord): boolean {
     const physical = record.type === 'UPDATE' || record.type === 'COMMIT' || record.type === 'CLR'
       || (record.type === 'END' && record.outcome === 'aborted');
@@ -71,11 +82,12 @@ export class SqliteVersions {
   private materialize(record: WalRecord): void {
     switch (record.type) {
       case 'UPDATE':
-        // JSON 字符串保留原始 UTF-16 码元，SQLite 按编码后的键分组。
+        // 写先以未提交版本保存；JSON 字符串保留原始 UTF-16 码元，供按编码后键分组。
         this.db.prepare('INSERT INTO versions VALUES (?, ?, ?, ?, ?, NULL)')
           .run(record.versionId, record.txnId, JSON.stringify(record.key), JSON.stringify(record.after), record.lsn);
         break;
       case 'COMMIT':
+        // 同一事务同一键只保留最后一条未提交写，再统一发布为本提交序号。
         this.db.prepare(`
           DELETE FROM versions WHERE txn_id = ? AND commit_seq IS NULL AND update_lsn NOT IN (
             SELECT MAX(update_lsn) FROM versions WHERE txn_id = ? AND commit_seq IS NULL GROUP BY key
@@ -85,16 +97,19 @@ export class SqliteVersions {
           .run(record.commitSeq, record.txnId);
         break;
       case 'END':
+        // 中止/撤销完成后清除该事务所有未发布版本；已提交版本不受影响。
         if (record.outcome === 'aborted') {
           this.db.prepare('DELETE FROM versions WHERE txn_id = ? AND commit_seq IS NULL').run(record.txnId);
         }
         break;
       case 'CLR':
+        // CLR 只撤销指定未提交版本；已发布版本不可被补偿记录删除。
         this.db.prepare('DELETE FROM versions WHERE version_id = ? AND commit_seq IS NULL').run(record.versionId);
         break;
     }
   }
 
+  /** 按 commitSeq 顺序重建已提交版本链；JSON 解码键和值。 */
   committed(): CommittedVersion[] {
     return this.db.prepare(`
       SELECT key, version_id, txn_id, commit_seq, data FROM versions

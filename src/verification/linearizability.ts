@@ -1,15 +1,22 @@
-/** Searches legal per-key register orders over a client-side history. */
+/**
+ * Searches legal per-key register orders over a client-side history. Malformed
+ * evidence or an exhausted search budget yields INCONCLUSIVE; a complete search
+ * with no legal order yields FAIL.
+ */
 import { performance } from 'node:perf_hooks';
 import { isOperation, isScalar } from '../contracts/history.ts';
 import type { ClientHistory, Operation, OperationResult, Scalar } from '../contracts/history.ts';
 
+/** 寄存器状态；undefined 表示键缺失，没有单独的墓碑值。 */
 type Register = Scalar | undefined;
+/** initial 是每个键的初始状态；预算耗尽时返回 INCONCLUSIVE。 */
 type Options = {
   initial: ReadonlyMap<string, Scalar>;
   maxStates?: number;
   timeoutMs?: number;
   maxOperationsPerKey?: number;
 };
+/** 参与搜索的调用；unknown 写没有 returned/result，因而可被选中或省略。 */
 type Call = {
   id: string;
   operation: Operation;
@@ -28,6 +35,7 @@ export type LinearizabilityResult =
     } }
   | { status: 'INCONCLUSIVE'; states: number; reason: string };
 
+/** 结果必须完整对应操作类型；缺失或形状不符的 ok 历史不可判定。 */
 function validResult(type: Operation['type'], result?: OperationResult): result is OperationResult {
   if (!result || typeof result !== 'object') return false;
   if (type === 'put') return 'stored' in result && result.stored === true;
@@ -35,6 +43,7 @@ function validResult(type: Operation['type'], result?: OperationResult): result 
   return 'found' in result && (result.found === false || (result.found === true && isScalar(result.value)));
 }
 
+/** 单个键的寄存器状态转移；删除在缺失键上也返回 deleted:false。 */
 function effect(operation: Operation, current: Register): [Register, OperationResult] {
   if (operation.type === 'put') return [operation.value, { stored: true }];
   if (operation.type === 'delete') return [undefined, { deleted: current !== undefined }];
@@ -59,6 +68,7 @@ export function checkLinearizable(history: readonly ClientHistory[], options: Op
 
   for (const entry of history) {
     const { operationId: id, operation, invocationNs, responseNs, outcome, result } = entry;
+    // 同一 run/engine、唯一 ID、十进制纳秒时间和完整 outcome 是搜索前提。
     if (!id || seen.has(id) || entry.runId !== history[0].runId || entry.engine !== history[0].engine
       || !isOperation(operation) || typeof invocationNs !== 'string' || !decimal.test(invocationNs)
       || (responseNs !== undefined && (typeof responseNs !== 'string' || !decimal.test(responseNs)))
@@ -70,6 +80,7 @@ export function checkLinearizable(history: readonly ClientHistory[], options: Op
     if (response !== undefined && response < invoked) return incomplete(`Invalid time interval: ${id}`);
     if (outcome === 'ok' && !validResult(operation.type, result)) return incomplete(`Missing result: ${id}`);
     if (outcome === 'rejected') { rejected.push(id); continue; }
+    // unknown 读没有可匹配的结果；unknown 写仍进入搜索，可能生效也可能未生效。
     if (outcome === 'unknown' && operation.type === 'get') { unobservedReads.push(id); continue; }
 
     const calls = byKey.get(operation.key) ?? [];
@@ -86,8 +97,10 @@ export function checkLinearizable(history: readonly ClientHistory[], options: Op
   for (const [key, calls] of byKey) {
     if (calls.length > (options.maxOperationsPerKey ?? 64)) return incomplete(`Too many operations for ${key}`);
     const bits = calls.map((_, index) => 1n << BigInt(index));
+    // 只有带结果的调用必须被放置；unknown 写可以被省略。
     const required = calls.reduce((mask, call, i) => call.result ? mask | bits[i] : mask, 0n);
     const realTime: { before: string; after: string }[] = [];
+    // 已返回且返回时间早于当前调用发起的操作，顺序必须在当前调用之前。
     const predecessors = calls.map(call => calls.reduce((mask, earlier, i) => {
       if (earlier.returned === undefined || earlier.returned >= call.invoked) return mask;
       realTime.push({ before: earlier.id, after: call.id });
@@ -118,6 +131,7 @@ export function checkLinearizable(history: readonly ClientHistory[], options: Op
         if (answer !== 'failed') return answer;
         prefix.pop();
       }
+      // 无可用调用且未覆盖全部 required：保留最长的失败前缀作为反例。
       if (!advanced && prefix.length >= deadEnd.prefix.length) deadEnd = { prefix: [...prefix], mismatches };
       failed.add(fingerprint);
       return 'failed';

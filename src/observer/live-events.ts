@@ -1,4 +1,8 @@
-/** Shared bounded Compose log reader, replay buffer and SSE subscribers. */
+/**
+ * Shared Compose log reader with bounded replay history and SSE subscribers.
+ * Events are projected from overlapping log windows, deduplicated by full-line
+ * occurrence, and emitted with an explicit gap when the window is incomplete.
+ */
 import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import type { ServerResponse } from 'node:http';
@@ -8,6 +12,7 @@ import { projectRpcReplies } from './rpc-observation.ts';
 import { containerEvent } from './timeline.ts';
 
 const exec = promisify(execFile);
+/** Docker 日志窗口；两次采样间隔超过它会显式报缺口。 */
 const windowMs = 8000;
 
 export function liveEvents(members: readonly string[], {
@@ -28,6 +33,7 @@ export function liveEvents(members: readonly string[], {
   const epoch = randomUUID();
   const history: TimelineEvent[] = [];
   const clients = new Set<ServerResponse>();
+  /** 上一次日志窗口里每条完整日志行出现的次数，用于跨窗口去重。 */
   let seen = new Map<string, number>();
   let sequence = 0;
   let sampledAt = -Infinity;
@@ -45,6 +51,7 @@ export function liveEvents(members: readonly string[], {
     const entry = { ...event, id: `${epoch}:${++sequence}` };
     history.push(entry);
     if (history.length > capacity) history.shift();
+    // 慢客户端断开，但不阻塞其他订阅者或历史缓存。
     for (const response of clients) {
       if (response.writableLength > 512 * 1024) response.destroy();
       else response.write(frame(entry));
@@ -56,10 +63,12 @@ export function liveEvents(members: readonly string[], {
   }
 
   function refresh() {
+    // 800ms 节流避免日志命令和轮询同时堆积；并发调用共享同一个 Promise。
     if (closed || now() - sampledAt < 800) return Promise.resolve();
     inFlight ??= read().then(snapshot => {
       if (closed) return;
       const current = now();
+      // 容器集合变化或采样间隔超过 Docker 窗口都可能漏行，先记录缺口。
       if (containers !== undefined && containers !== snapshot.containers) gap('Compose 容器集合变化，日志窗口可能有缺口');
       else if (Number.isFinite(sampledAt) && current - sampledAt > windowMs) gap('两次采样间隔超过日志窗口');
       containers = snapshot.containers;
@@ -70,6 +79,7 @@ export function liveEvents(members: readonly string[], {
         const parsed = containerEvent(line);
         if (!parsed || !membersSet.has(parsed.event.nodes[0])) continue;
         if (Buffer.byteLength(line) > 16 * 1024) { skipped = true; continue; }
+        // 同一个 8 秒窗口来回重叠时，只发布新出现的那一次完整行。
         const occurrence = (next.get(line) ?? 0) + 1;
         next.set(line, occurrence);
         if (occurrence > (seen.get(line) ?? 0)) additions.push(parsed.event);
@@ -82,6 +92,7 @@ export function liveEvents(members: readonly string[], {
       sampledAt = current;
     }).catch(() => {
       if (closed) return;
+      // 连续失败只发一次缺口；恢复后由下一次成功采样继续。
       if (available !== false) gap('Compose 日志读取中断，正在重试');
       available = false;
       sampledAt = now();
@@ -89,6 +100,7 @@ export function liveEvents(members: readonly string[], {
     return inFlight;
   }
 
+  /** 有游标时补发其后的事件；游标已被容量淘汰则重发当前缓存并报缺口。 */
   function replay(cursor?: string) {
     if (!cursor) return { entries: [...history], gap: false };
     const index = history.findIndex(event => event.id === cursor);
@@ -101,6 +113,7 @@ export function liveEvents(members: readonly string[], {
     ticker = heartbeat = undefined;
   }
 
+  /** SSE 订阅上限 12；首个订阅者启用采样/心跳，最后一个离开时停止。 */
   function subscribe(response: ServerResponse, cursor?: string) {
     if (closed || clients.size >= 12) {
       response.writeHead(503).end();

@@ -1,10 +1,20 @@
-/** Indexes a complete committed transaction prefix and its final per-key versions. */
+/**
+ * Indexes a complete committed transaction prefix and its final per-key
+ * versions. Missing or duplicate evidence returns a reason instead of a
+ * partial index, so callers must report INCONCLUSIVE.
+ */
 import type { CommittedTransaction, TransactionHistory, VersionData } from '../contracts/transaction.ts';
 import { isScalar } from '../contracts/history.ts';
 
+/** 已提交版本；commitSeq 唯一决定链位置，id 用于匹配读写观测。 */
 export type Version = { id: string; txnId: string; key: string; commitSeq: number; data: VersionData };
+/** writes 是每个提交事务每个键的最后一次写；chains 是按 commitSeq 排列的键版本链。 */
 type IndexedHistory = { commits: CommittedTransaction[]; chains: Map<string, Version[]>; writes: Map<string, Version[]> };
 
+/**
+ * 验证事务边界、写证据和提交序号连续性，再构造版本链。中止事务参与证据
+ * 校验但不进入链；空 history 也是合法索引。
+ */
 export function indexHistory(history: readonly TransactionHistory[]): IndexedHistory | { reason: string } {
   const ids = new Set<string>();
   const versionIds = new Set<string>();
@@ -16,6 +26,7 @@ export function indexHistory(history: readonly TransactionHistory[]): IndexedHis
     if (!txn?.txnId || ids.has(txn.txnId) || (txn.status !== 'committed' && txn.status !== 'aborted')
       || !Array.isArray(txn.accesses)) return { reason: `Invalid transaction boundary: ${txn?.txnId}` };
     ids.add(txn.txnId);
+    // 一个事务可以多次写同一键；只有最后一次写会成为提交版本。
     const final = new Map<string, Version>();
     for (const access of txn.accesses) {
       if (access?.kind === 'read') continue;
@@ -36,6 +47,7 @@ export function indexHistory(history: readonly TransactionHistory[]): IndexedHis
     }
   }
 
+  // 提交序号必须从 1 连续递增；缺口或重复都使证据不可判定。
   commits.sort((left, right) => left.commitSeq - right.commitSeq);
   for (const [i, txn] of commits.entries()) {
     if (txn.commitSeq !== i + 1) return { reason: `Missing or duplicate commit sequence at ${i + 1}` };

@@ -1,4 +1,7 @@
-/** Reads completed experiment Evidence without changing its files or verdicts. */
+/**
+ * Reads completed experiment Evidence without changing files or verdicts.
+ * Only whitelisted file names and exact run directory names are accessible.
+ */
 import { lstat, readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { experimentIds } from '../contracts/console.ts';
@@ -12,6 +15,7 @@ const isExperiment = (value: string): value is ExperimentId => experimentIds.som
 const info = (path: string) => lstat(path).catch(() => undefined);
 
 export function evidenceReader(root = 'evidence') {
+  /** 逐段拒绝非法实验/run/文件名，避免把 Evidence 之外的路径带入读取。 */
   async function file(experimentId: string, runId: string, name: string) {
     if ((!isExperiment(experimentId) && experimentId !== 'SERVICE') || !runPattern.test(runId) || !files.includes(name)) return;
     let directory = root;
@@ -31,6 +35,7 @@ export function evidenceReader(root = 'evidence') {
     return readFile(target.path, 'utf8');
   }
 
+  /** result.json 必须与目录身份一致；缺失或损坏时该 Run 不出现在列表。 */
   async function result(experimentId: ExperimentId, runId: string): Promise<ExperimentResult | undefined> {
     try {
       const input = await text(experimentId, runId, 'result.json');
@@ -53,6 +58,7 @@ export function evidenceReader(root = 'evidence') {
         const directory = join(root, experimentId);
         if (!(await info(directory))?.isDirectory()) continue;
         const entries = await readdir(directory, { withFileTypes: true }).catch(() => []);
+        // 每个实验只列出最近的 100 个 Run；结果缺失的目录被跳过。
         const ids = entries.filter(entry => entry.isDirectory() && runPattern.test(entry.name))
           .map(entry => entry.name).sort().reverse().slice(0, 100);
         for (const runId of ids) {
@@ -71,8 +77,10 @@ export function evidenceReader(root = 'evidence') {
         ...files.map(async name => await file(experimentId, runId, name) ? name : undefined),
       ]);
       let metadata: unknown = null;
+      // metadata 解析失败不影响原始文件访问。
       try { if (metadataText) metadata = JSON.parse(metadataText); } catch { /* 原文仍可访问。 */ }
       let invalidLines = 0;
+      // 无法投影的行计入 invalidLines，不进入事件数组。
       const events = (lines ?? '').split(/\r?\n/).flatMap((line, index) => {
         if (!line.trim()) return [];
         const event = evidenceEvent(line, index + 1);

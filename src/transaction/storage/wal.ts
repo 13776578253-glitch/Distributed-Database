@@ -1,10 +1,17 @@
-/** Owns the append-only transaction journal, LSN assignment, and transaction log links. */
+/**
+ * Append-only JSONL transaction journal. Owns global LSN assignment,
+ * per-transaction prevLsn chains, fsync-before-return, and partial-tail repair.
+ */
 import {
   closeSync, constants, fsyncSync, ftruncateSync, openSync, readFileSync, writeSync,
 } from 'node:fs';
 import { dirname } from 'node:path';
 import type { CommitSeq, TransactionId, VersionData, VersionId } from '../../contracts/transaction.ts';
 
+/**
+ * 物理日志动作。UPDATE 不保存 before 镜像，撤销依赖 versionId 与未提交版本。
+ * CLR 的 undoNextLsn 为 null 表示该事务没有更早的更新需要撤销。
+ */
 export type WalAction =
   | { type: 'BEGIN'; txnId: TransactionId }
   | { type: 'ABORT'; txnId: TransactionId }
@@ -15,7 +22,9 @@ export type WalAction =
   | { type: 'CHECKPOINT_BEGIN' }
   | { type: 'CHECKPOINT'; beginLsn: number; appliedLsn: number; active: [TransactionId, number][] };
 
+/** lsn 是全局 1-based 序号；prevLsn 指向同一事务的上一条记录。 */
 export type WalRecord = WalAction & { lsn: number; prevLsn: number | null };
+/** 实验故障注入点；由独立事务服务在测试模式下按名称触发。 */
 export const faultPoints = [
   'after-update-wal', 'after-update-data', 'before-commit-wal', 'after-commit-wal',
   'during-checkpoint', 'during-redo', 'after-clr-wal',
@@ -27,8 +36,13 @@ export class Wal {
   private readonly fd: number;
   private endOffset: number;
   private readonly entries: WalRecord[] = [];
+  /** 每个有 txnId 且尚未 END 的事务末条记录 LSN；END 后移除。 */
   private readonly tails = new Map<TransactionId, number>();
 
+  /**
+   * 打开已有日志。只截断末尾未成帧的半条记录；已成帧但链校验失败必须抛错。
+   * 目录 fsync 仅在支持该语义的平台执行，用于持久化目录项。
+   */
   constructor(path: string) {
     this.fd = openSync(path, constants.O_CREAT | constants.O_RDWR);
     try {
@@ -57,6 +71,10 @@ export class Wal {
     }
   }
 
+  /**
+   * 追加并 fsync 后才返回。写入循环处理短写；未完成 fsync 前不推进 endOffset
+   * 或内存链，确保调用方看到的记录一定已越过持久化边界。
+   */
   append(action: WalAction): WalRecord {
     const record: WalRecord = {
       ...action, lsn: this.entries.length + 1, prevLsn: this.tail(action),
@@ -78,6 +96,7 @@ export class Wal {
     return this.entries;
   }
 
+  /** 返回 LSN（含）之前最近一次提交的 commitSeq；没有提交时返回 0。 */
   commitSeqAt(lsn: number): CommitSeq {
     if (!Number.isSafeInteger(lsn) || lsn < 0 || lsn > this.entries.length) throw new RangeError('INVALID_LSN');
     for (let index = lsn - 1; index >= 0; index--) {
@@ -87,6 +106,7 @@ export class Wal {
     return 0;
   }
 
+  /** 检查点写入的活跃事务末 LSN 快照。 */
   activeTails(): [TransactionId, number][] {
     return [...this.tails];
   }
@@ -95,6 +115,7 @@ export class Wal {
     closeSync(this.fd);
   }
 
+  /** 维护全局记录和每个事务的链尾；END 关闭链，物理记录本身仍保留。 */
   private track(record: WalRecord): void {
     this.entries.push(record);
     if (!('txnId' in record)) return;

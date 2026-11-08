@@ -1,11 +1,17 @@
-/** Samples Raft over HTTP and shares one in-flight read across clients. */
+/**
+ * Samples each configured Raft node over HTTP and returns independent
+ * observations. A failed probe only marks that node; concurrent callers share
+ * one in-flight batch, and the next caller always samples again.
+ */
 import type { ClusterObservation, NodeObservation, RaftStatus, RpcObservation } from '../contracts/observation.ts';
 
+/** 节点身份与可选监听地址；缺少地址时该节点按 unconfigured 记录。 */
 export interface NodeTarget {
   nodeId: string;
   address?: string;
 }
 
+/** 校验节点身份和关键协议字段；形状不符不能进入状态聚合。 */
 function isStatus(value: unknown, nodeId: string): value is RaftStatus {
   if (value === null || typeof value !== 'object') return false;
   const status = value as Record<string, unknown>;
@@ -59,7 +65,7 @@ export function clusterReader(
 
   let inFlight: Promise<ClusterObservation> | undefined;
   return () => {
-    // 仅合并并发请求。下一轮始终重新采样节点。
+    // 并发调用共享同一批探测；settle 后清空，下一轮始终重新采样。
     inFlight ??= Promise.all([Promise.all(targets.map(observe)), readRpc?.()])
       .then(([nodes, recentRpc]) => ({ nodes, recentRpc, sampledAt: new Date().toISOString(), startupWarning }))
       .finally(() => { inFlight = undefined; });

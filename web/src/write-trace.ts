@@ -1,4 +1,7 @@
-/** Derives an evidence-backed PUT trace from timeline events and cluster samples. */
+/**
+ * Derives a PUT trace from timeline events and cluster samples. Missing
+ * evidence stays unobserved; commit and apply are sampled watermarks.
+ */
 import type { TimelineEvent } from '../../src/contracts/console.ts';
 import type { ClusterObservation, NodeObservation } from '../../src/contracts/observation.ts';
 import { groupReplication } from './swimlane.ts';
