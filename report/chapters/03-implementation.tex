@@ -1,0 +1,49 @@
+\clearpage
+\section{系统实现}
+
+\subsection{工程组织与运行方式}
+后端采用 TypeScript、Node.js 与 SQLite，界面采用 React 与 Vite。\path{src/raft/main.ts} 装配协议核心、存储、传输与 HTTP 服务。核心以同步事件推进协议状态，节点入口负责计时和异步 I/O。每个对端最多有一个在途 RPC，待发槽保留该对端的最新消息。事务入口先恢复持久状态，再开放请求。共享契约在 \path{src/contracts/}，启动和回放入口在 \path{scripts/}。
+
+部署使用 Node.js 24.21.0、pnpm 11.25.0 与 Docker Compose。五个节点发布端口 18081 至 18085。键值接口为 \texttt{POST /kv/put}、\texttt{GET /kv?key=x} 和 \texttt{POST /kv/delete}。事务服务提供事务读写、提交、中止及按 LSN 历史读取接口。启动命令见附录。
+
+\subsection{复制核心与存储适配}
+写入进入 API 的批量队列，等待窗口为 5\,ms，达到 64 条即提交批次。SQLite 适配器采用 WAL 日志模式与 \texttt{synchronous=FULL}，任期、投票及日志更新先经过存储层。每批日志在一次本地 SQLite 事务内追加，随后发送复制请求。节点入口配置随机选举超时 400 至 750\,ms、心跳间隔 75\,ms 和客户端请求期限 1800\,ms。
+
+清单~\ref{lst:commit} 节选自 \path{src/raft/core/node.ts} 的 \texttt{advanceCommit}。循环从末尾回查候选索引，比较条目任期与当前任期，并以复制进度计算配置多数。推进提交索引后，\texttt{apply()} 依次执行新增的已提交条目，包括随当前任期条目一并确认的旧任期前缀。
+
+\begin{lstlisting}[language=JavaScript,caption={按任期和配置多数推进提交},label={lst:commit}]
+for (let index = this.log.lastIndex; index > this.commitIndex; index--) {
+  if (this.log.termAt(index) !== this.hard.term || !hasQuorum(configuration, id =>
+    id === this.options.id || (this.progress.get(id)?.matchIndex ?? 0) >= index)) continue;
+  this.commitIndex = index;
+  this.apply();
+  advanced = true;
+  break;
+}
+\end{lstlisting}
+
+快照由隔离运行的内部接口触发。SQLite 在同一事务内保存已应用状态并裁剪快照覆盖的日志。接收端仅在快照索引超出本地提交位置时安装，边界任期匹配时保留其后的本地后缀。可选成员变更使用预配置的第六个节点，加入者先追到当前提交位置。联合配置的选举和提交都要求旧、新集合各自过半；联合条目提交后，Leader 再追加最终配置。调用方通过已应用配置确认变更生效。
+
+\subsection{MVCC、WAL 与恢复}
+\path{src/transaction/core/engine.ts} 管理活动事务和版本链。RC 逐次读取当前提交水位，SI 固定开始时的水位，两者都优先读取本事务的私有写入。SI 提交时核对写集，任一键在快照后已有新提交即返回 \path{WRITE_CONFLICT} 并中止整笔事务。不同键的业务约束由调用方选择同名锁保护：在取得 SI 快照前申请，争用时返回 \path{LOCK_CONFLICT}，释放后用新事务重试。
+
+事务 WAL 以换行分隔 JSON 记录。追加完成并经 \texttt{fsyncSync} 同步后才返回，SQLite 将物化结果和应用游标写入同一事务。清单~\ref{lst:wal} 节选自 \path{src/transaction/storage/durable.ts} 的 \texttt{commit}，展示提交落盘、物化与收尾的顺序。
+
+\begin{lstlisting}[language=JavaScript,caption={WAL 提交与版本发布顺序},label={lst:wal}]
+commit(txnId: TransactionId, commitSeq: CommitSeq): void {
+  this.fault?.('before-commit-wal');
+  const record = this.wal.append({ type: 'COMMIT', txnId, commitSeq });
+  this.fault?.('after-commit-wal', record);
+  this.data.apply(record);
+  this.wal.append({ type: 'END', txnId, outcome: 'committed' });
+}
+\end{lstlisting}
+
+启动读取 WAL，截去未成帧的尾部；完整帧的 LSN 或事务前驱链不符时报告错误。\path{src/transaction/storage/recovery.ts} 依次执行分析、重做与撤销。补偿记录先同步到 WAL 再应用，恢复遇到已有 CLR 时沿 \texttt{undoNextLsn} 继续。历史查询把指定 LSN 映射到不晚于该位置的最后一笔提交，再选择可见版本；墓碑保留删除的版本身份。
+
+\subsection{一致性验证与观测控制台}
+\textbf{键值历史。} \texttt{checkLinearizable} 从给定初值按键回溯，保留已完成操作的实时先后约束，并核对每一步的返回值。已确认的操作须进入顺序，结果未决的写可进入或省略。默认每键最多 64 个候选操作，全历史最多搜索 100\,000 个状态，时间预算为 1 秒。记录缺失或超出预算时返回 \path{INCONCLUSIVE}。
+
+\textbf{事务历史。} \texttt{buildDependencyGraph} 根据完整提交历史和实际读到的版本构造依赖。相邻提交版本形成写写依赖（WW），被读版本的写入者指向读取者（WR），读取者指向所读版本的直接后继写入者（RW）。环给出该历史的顺序冲突。业务检查是独立判定：按提交更新可见状态，再判断指定键对应的值班人数是否达到下限。
+
+\textbf{观测控制台。} 集群页显示角色、任期及提交与应用位置。实时事件经 SSE 推送，断线补发超出缓存时显示缺口。写入追踪保留请求、响应和观测到的复制活动；提交与应用取自节点水位采样。回放页链接归档，事务页提供版本、WAL 和恢复报告，验证页显示顺序、依赖与业务判定。

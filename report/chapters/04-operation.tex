@@ -1,0 +1,93 @@
+\clearpage
+\section{系统运行与结果分析}
+
+\subsection{部署与基本读写}
+以下结果来自归档运行。SMOKE、R01 与 R02 使用五节点 Compose 集群，节点各有独立数据卷；E1 至 E3B 使用独立的五节点项目，E4B 启用预配置的第六个节点。T01 至 T03 使用独立事务容器和卷。记录保留代码版本、运行条件及结果，位置见表~\ref{tab:records}。
+
+集群启动后，客户端对同一个键依次写入 JSON \texttt{null}、读取并删除。表~\ref{tab:kv-results} 列出三次 HTTP 调用的返回字段。读取同时返回 \texttt{found=true} 和 \texttt{value=null}，因此应用可以区分空值与缺失键。删除返回 \texttt{deleted=true}，表示被删除的键此前存在。
+
+\begin{table}[htbp]
+\centering
+\caption{键值客户端的运行记录}
+\label{tab:kv-results}
+\begin{tabularx}{\linewidth}{@{}l l c X@{}}
+\toprule
+操作 ID & 请求 & HTTP 状态 & 返回字段 \\
+\midrule
+1 & \texttt{POST /kv/put} & 200 & \texttt{stored=true} \\
+2 & \texttt{GET /kv} & 200 & \texttt{found=true}，\texttt{value=null} \\
+3 & \texttt{POST /kv/delete} & 200 & \texttt{deleted=true} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{并发写入与批次聚合}
+E1 两次运行均启用批量写。客户端每轮并发发出 16 次 PUT，等该轮返回后再发下一轮，共 128 次。吞吐量按 128 次写除以整段发送与等待时间计算；P50、P95 取自客户端调用至返回的延迟分布。批次数来自 Leader 的 \path{raft.write.batch} 日志。
+
+\begin{table}[htbp]
+\centering
+\caption{两次 E1 运行的写入与批次记录}
+\label{tab:batch-results}
+\begin{tabularx}{\linewidth}{@{}X r r r r@{}}
+\toprule
+记录后缀 & 写入/秒 & P50（ms） & P95（ms） & 本地批次数 \\
+\midrule
+\texttt{e0847ed4} & 416.09 & 24.84 & 45.21 & 10 \\
+\texttt{a1068c91} & 505.54 & 25.53 & 34.16 & 8 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+表~\ref{tab:batch-results} 中，后一次运行的 8 个批次各含 16 条写入。两行反映启用批量机制后的运行差异。该次记录还包含故障阶段：128 笔已确认写在切换后仍可读，12 笔在途请求的结果记为未决。
+
+\subsection{节点切换与副本收敛}
+\subsubsection{Leader 停止后的服务接续}
+R01 中客户端向 \texttt{raft-1} 写入 \texttt{confirmed} 并收到成功结果。运行器发出 \texttt{SIGKILL} 后，容器以 137 退出；运行器从发出命令计时到发现可用新 Leader，本次测得 844.327\,ms，任期由 8 到 9。随后从 \texttt{raft-5} 读回该值。下列摘录取自同一运行的事件字段，时刻为 UTC。
+
+\begin{lstlisting}[caption={R01 节点切换事件摘录}]
+10:57:02.781  fault.kill  node=raft-1 signal=SIGKILL
+10:57:03.617  container exit=137
+10:57:03.625  new leader elected: raft-5 term=9 elapsedMs=844.327
+10:57:03.630  read from new leader: found=true value=confirmed
+10:57:06.108  restarted node converges
+\end{lstlisting}
+
+故障节点使用原卷重启并恢复为 Follower。该次收敛记录中，五个节点处于任期 11，提交和应用索引均为 22。切换读与收敛采样分别对应两个时刻：前者反映客户端恢复访问，后者反映重启节点重新进入复制进程。
+
+\subsubsection{网络分区恢复后的前缀一致性}
+R02 双向阻断两组间的 Raft RPC，形成三节点组和两节点组。三节点组确认新写入并完成多数派读；两节点组的写入结果为 \path{UNKNOWN_OUTCOME}，读取返回 \path{NO_QUORUM}。解除阻断后，五个节点的提交及应用索引均为 24，已提交前缀摘要相同。多数派确认的值仍可读，少数派提出的冲突键返回 \texttt{found=false}。
+
+E2 在分区期间对照两种 Follower 读取。少数派的本地读在应用索引 289 返回旧值，安全读返回 HTTP 503；解除阻断后，安全读在读索引 291 返回多数派确认的新值。
+
+\subsubsection{跨任期提交、快照与配置变更}
+R04 在确定性消息调度下先放行旧任期条目的复制，此时虽已覆盖多数节点，提交索引仍为 0。放行当前任期空操作后，提交与应用位置一并推进到 66。该记录单独验证跨任期提交规则。
+
+E3B 中 Leader 的 SQLite 日志表由 153 行减至 0 行。落后节点从应用索引 603 安装边界为 606 的快照，再继续应用到 608。随后持有快照的 Leader 使用原卷重启，恢复从 607 开始的后缀，节点最终应用到 610。不同快照边界的节点通过已应用状态摘要核对结果。
+
+E4B 中索引 18 的联合配置条目已复制到旧配置的三个节点，仍未提交。原 Leader 退出后，新 Leader 应用索引 20 的六节点投票配置。后续移除现任 Leader，最终配置在索引 24 生效；被移除节点从快照重启后保留非投票身份。
+
+\subsection{事务提交边界与恢复}
+T01 使用 \texttt{SIGKILL} 在提交刷盘前、刷盘后及检查点和重做期间中止事务进程，并使用原卷重启。提交刷盘前中止的事务被撤销。在刷盘后、SQLite 应用前中止的一次运行中，恢复重做 LSN 26，使更新值和删除墓碑一同生效。表~\ref{tab:as-of} 对比提交位置前后的历史查询。
+
+\begin{table}[htbp]
+\centering
+\caption{按 WAL 位置读取提交前后版本}
+\label{tab:as-of}
+\begin{tabularx}{\linewidth}{@{}l X X@{}}
+\toprule
+查询位置 & 更新键 & 删除键 \\
+\midrule
+LSN 25 & \texttt{found=true}，值为 \texttt{original} & \texttt{found=true}，值为 1 \\
+LSN 26 & \texttt{found=true}，值为 \texttt{durable} & \texttt{found=false} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+检查点中断后，恢复选用最近的完整检查点 31，撤销了尚未提交的更新。T03 则记录了撤销过程本身被中断的情况。首次恢复在 WAL 的 LSN 12 持久化一条 CLR，记录已处理 UPDATE 10，下一位置为 9。再次启动时，系统先重做 CLR 12，再继续撤销 UPDATE 9 和 6；归档中 UPDATE 10 对应的 CLR 只出现一次。两个场景分别体现了持久化提交决定和持久化撤销进度的作用。
+
+\subsection{操作顺序与业务约束}
+R03 采集五节点集群中针对同一键的六次有返回操作。V01 回放该历史，找到合法顺序 \mbox{2 → 1 → 3 → 4 → 5 → 6}。V01 还包含一份反例历史：两次读取之间无写入，第二次读到的值与前序状态不符，判为 \texttt{FAIL}。原始采集与离线判定分别归档。
+
+值班业务要求 Alice 和 Bob 至少一人在岗。在无锁运行中，两笔快照事务都读到对方仍在岗，各自写入不同的键并提交。V02 从版本记录得到两条读写反依赖：\texttt{txn-3} 读取 Bob 的旧版本，后继版本来自 \texttt{txn-4}；\texttt{txn-4} 读取 Alice 的旧版本，后继版本来自 \texttt{txn-3}。这两条边构成环。V03 在 \texttt{txn-4} 提交时定位到首次违规，提交序号为 3，实际在岗人数为 0。
+
+采用具名锁后，等待方重新开始事务，以新快照判断是否离岗。加锁阶段的依赖子图无环，三个受检提交均满足值班条件，最终保留一人在岗。

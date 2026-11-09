@@ -1,0 +1,67 @@
+\subsection{启动与访问}
+从仓库根目录执行以下命令。启动时依次准备依赖、Raft 节点、事务服务和控制台。控制台入口为 \url{http://127.0.0.1:5173}，事务端口以 Compose 输出为准。浏览器接入同一个 Observer，通过对应页面读取节点、事务和归档数据。
+
+\begin{lstlisting}
+pnpm install --frozen-lockfile
+pnpm demo
+docker compose -f compose.transaction.yaml up -d --build transaction
+docker compose -f compose.transaction.yaml port transaction 8080
+pnpm console
+\end{lstlisting}
+
+在另一个终端可使用 \texttt{pnpm verify} 对归档历史生成 V01--V03 判定。也可指定来源历史，回放一次键值调用序列：
+
+\begin{lstlisting}
+pnpm verify V01 2026-11-07T12-03-08.334Z--8c1d3503
+\end{lstlisting}
+
+\subsection{隔离运行与归档}
+Raft 故障场景使用单独的 Compose 项目和空闲端口，便于区分容器、卷和证据。以下为 PowerShell 示例。在专用项目中完成启动后，再按需执行所选场景。
+
+\begin{lstlisting}
+$env:RAFT_LAB_NAME = 'report-raft-review'
+$env:RAFT_PORT_PREFIX = '1818'
+pnpm demo
+pnpm experiment R01
+pnpm experiment R02
+pnpm experiment R03
+pnpm experiment E1
+pnpm experiment E2
+pnpm experiment E3B
+\end{lstlisting}
+
+E4B 使用独立项目，启动前设置 \texttt{RAFT\_MEMBERSHIP=1}，再用 \texttt{pnpm experiment E4B}。事务场景入口为 \texttt{pnpm txn:experiment T01}、\texttt{T02}、\texttt{T03}，各自创建专用容器与卷。R04 的复现脚本随该 Run 的 \path{probe.mjs} 归档。
+
+\par\vbox{%
+\subsection{运行记录索引}
+表~\ref{tab:records} 的每行对应仓库 \path{evidence/} 下按编号和 Run ID 命名的目录。\path{metadata.json} 保存运行参数、基线提交与工作区状态，\path{events.jsonl} 保存事件与调用历史，\path{result.json} 汇总判定及其依据。表中时间使用 UTC。
+
+\begin{center}
+\footnotesize
+\captionsetup{hypcap=false}
+\captionof{table}{正文引用的运行记录}
+\label{tab:records}
+\begin{tabularx}{\linewidth}{@{}l l X@{}}
+\toprule
+编号 & Run ID & 对应内容 \\
+\midrule
+SMOKE & \texttt{2026-11-07T12-02-33.941Z--13aad51c} & 五节点部署及键值读写 \\
+R01 & \texttt{2026-11-06T10-57-02.353Z--76c65d01} & Leader 切换、已确认值与原节点重启 \\
+R02 & \texttt{2026-11-06T10-57-06.906Z--77080c4c} & 分区两侧返回与前缀收敛 \\
+R03 & \texttt{2026-11-07T12-03-08.334Z--8c1d3503} & 并发客户端调用历史 \\
+R04 & \texttt{2026-11-06T11-15-26.546Z--b81c0076} & 跨任期提交探针 \\
+E1 & \texttt{2026-11-07T10-07-32.331Z--e0847ed4} & 批量写入首轮 \\
+E1 & \texttt{2026-11-07T10-17-40.126Z--a1068c91} & 批量写入复跑及切换 \\
+E2 & \texttt{2026-11-07T10-17-47.341Z--6409a5ac} & 分区前后的 Follower 读 \\
+E3B & \texttt{2026-11-07T10-50-57.016Z--9be3bb1d} & 日志压缩、快照安装与重启 \\
+E4B & \texttt{2026-11-07T12-01-22.592Z--17b84b20} & 联合配置、节点加入和移除 \\
+T01 & \texttt{2026-11-08T14-15-50.333Z--f198395b} & 提交边界、历史读取与检查点恢复 \\
+T02 & \texttt{2026-11-07T13-41-40.891Z--561ddfc6} & 值班约束对应的事务历史 \\
+T03 & \texttt{2026-11-08T14-17-06.819Z--58518223} & CLR 重做与继续撤销 \\
+V01 & \texttt{2026-11-07T14-45-07.744Z--aa3b0215} & R03 的合法顺序 \\
+V02 & \texttt{2026-11-07T14-45-07.833Z--4a533f0f} & T02 的版本依赖与环 \\
+V03 & \texttt{2026-11-07T14-45-07.911Z--30b03c6e} & T02 的值班人数判定 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+}

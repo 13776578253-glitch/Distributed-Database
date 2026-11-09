@@ -1,0 +1,13 @@
+\begin{tabular}{@{}c@{\hspace{13mm}}c@{}}
+\ReportDiagramNode{.35\linewidth}{键值客户端} &
+\ReportDiagramNode{.35\linewidth}{事务客户端} \\
+\small ↓ HTTP 键值接口 & \small ↓ HTTP 事务接口 \\
+\ReportDiagramNode{.35\linewidth}{Raft 键值集群\\五节点通过 RPC 复制命令} &
+\ReportDiagramNode{.35\linewidth}{独立事务服务\\RC 与 SI 多版本读写} \\
+\small ↓ 各节点独立持久化 & \small ↓ 服务本地持久化 \\
+\ReportDiagramNode{.35\linewidth}{每节点 SQLite\\任期、日志和快照} &
+\ReportDiagramNode{.35\linewidth}{事务卷\\WAL 与 SQLite 版本表} \\
+\noalign{\vskip 5pt}
+\multicolumn{2}{c}{\small 调用历史和版本记录\ReportDiagramArrow 离线验证\ReportDiagramArrow 判定归档} \\
+\multicolumn{2}{c}{\small 状态、容器事件与判定归档\ReportDiagramArrow Observer\ReportDiagramArrow 浏览器}
+\end{tabular}

@@ -1,0 +1,66 @@
+% 编译：latexmk -xelatex -interaction=nonstopmode main.tex
+\documentclass[UTF8,a4paper,12pt]{ctexart}
+\input{config}
+\usepackage{styles/school}
+\hypersetup{pdftitle={\ReportTitle},pdfsubject={\ReportShortTitle}}
+
+\begin{document}
+\pagestyle{empty}
+\input{frontmatter/cover}
+\clearpage
+\ifReportIntegrity
+  \input{frontmatter/integrity}
+  \clearpage
+\fi
+\ifReportAbstractZH
+  \input{frontmatter/abstract-zh}
+  \clearpage
+\fi
+\ifReportAbstractEN
+  \input{frontmatter/abstract-en}
+  \clearpage
+\fi
+
+% 目录使用罗马数字；与旧报告保持相似的页眉、顶端页码风格。
+\pagenumbering{roman}
+\pagestyle{fancy}
+\tableofcontents
+\clearpage
+
+\pagenumbering{arabic}
+\input{chapters/01-introduction}
+\input{chapters/02-system-design}
+\input{chapters/03-implementation}
+\input{chapters/04-operation}
+\input{chapters/05-conclusion}
+\clearpage
+\phantomsection
+\addcontentsline{toc}{section}{参考文献}
+\renewcommand{\refname}{参考文献}
+\begin{thebibliography}{9}
+\bibitem{raft}
+Ongaro, D., and Ousterhout, J.
+In Search of an Understandable Consensus Algorithm.
+\emph{USENIX Annual Technical Conference}, 2014, pp.~305--319.
+\href{https://www.usenix.org/system/files/conference/atc14/atc14-paper-ongaro.pdf}{USENIX 正文}.
+\bibitem{linearizability}
+Herlihy, M. P., and Wing, J. M.
+Linearizability: A Correctness Condition for Concurrent Objects.
+\emph{ACM Transactions on Programming Languages and Systems}, 12(3), 1990, pp.~463--492.
+\href{https://www.cs.cmu.edu/~wing/publications/HerlihyWing90.pdf}{作者存档}.
+\bibitem{isolation}
+Berenson, H., Bernstein, P., Gray, J., Melton, J., O'Neil, E., and O'Neil, P.
+A Critique of ANSI SQL Isolation Levels.
+\emph{ACM SIGMOD International Conference on Management of Data}, 1995, pp.~1--10.
+\href{https://doi.org/10.1145/223784.223785}{DOI}.
+\bibitem{aries}
+Mohan, C., Haderle, D., Lindsay, B., Pirahesh, H., and Schwarz, P.
+ARIES: A Transaction Recovery Method Supporting Fine-Granularity Locking and Partial Rollbacks Using Write-Ahead Logging.
+\emph{ACM Transactions on Database Systems}, 17(1), 1992, pp.~94--162.
+\href{https://doi.org/10.1145/128765.128770}{DOI}.
+\end{thebibliography}
+\clearpage
+\appendix
+\section{补充材料}
+\input{chapters/appendix}
+\end{document}
