@@ -1,0 +1,9 @@
+\ReportDiagramNode{.26\linewidth}{选举超时\\持久化任期和自投票}\ReportDiagramArrow
+\ReportDiagramNode{.26\linewidth}{RequestVote\\比较末尾日志并投票}\ReportDiagramArrow
+\ReportDiagramNode{.26\linewidth}{多数票选出 Leader\\追加本任期空操作}\\[5pt]
+\ReportDiagramNode{.26\linewidth}{写入请求\\本地追加并持久化}\ReportDiagramArrow
+\ReportDiagramNode{.26\linewidth}{AppendEntries\\对齐前缀并收集确认}\ReportDiagramArrow
+\ReportDiagramNode{.26\linewidth}{本任期条目获多数\\推进提交、应用并应答}\\[5pt]
+\ReportDiagramNode{.26\linewidth}{读取请求\\登记读编号和读索引}\ReportDiagramArrow
+\ReportDiagramNode{.26\linewidth}{本任期空操作已应用\\多数确认该读编号}\ReportDiagramArrow
+\ReportDiagramNode{.26\linewidth}{本地应用达到读索引\\返回键值或读屏障}

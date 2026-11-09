@@ -76,6 +76,11 @@
 \renewcommand{\tablename}{表}
 \captionsetup{font=small,labelsep=space,justification=centering,singlelinecheck=false}
 
+% 报告流程图的统一节点样式，图的内容保存在 figures/。
+\newcommand{\ReportDiagramNode}[2]{%
+  \fbox{\parbox[c][11mm][c]{#1}{\centering\small #2}}}
+\newcommand{\ReportDiagramArrow}{\enspace→\enspace}
+
 % 页眉、右侧页码、细横线。首页与各章正文同一种页眉。
 \pagestyle{fancy}
 \fancyhf{}

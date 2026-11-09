@@ -1,6 +1,6 @@
 # 分布式数据库课程设计报告
 
-报告初稿沿用桌面 LaTeX Starter 的 A4、中文章标题和页眉样式。正文分为引言、系统设计、系统实现、系统运行与结果分析、总结与展望五章。附录列出启动方式和正文引用的运行记录。往届样式记录见 [TEMPLATE_NOTES.md](TEMPLATE_NOTES.md)。
+报告封稿候选版沿用桌面 LaTeX Starter 的 A4、中文章标题和页眉样式。正文分为引言、系统设计、系统实现、系统运行与结果分析、总结与展望五章。附录列出启动方式、隔离运行命令与正文引用的运行记录。往届样式记录见 [TEMPLATE_NOTES.md](TEMPLATE_NOTES.md)。
 
 ## 运行环境
 
@@ -34,4 +34,4 @@ latexmk -C main.tex
 
 - 系统设计与实现以[系统设计](../docs/system-design.md)和对应版本的源码为起点。代码节选标注源码路径与提交号。
 - 运行结果按[归档索引](../evidence/README.md)追溯。图表和日志注明来源 Run ID。
-- 图表编号用 `\label` 和 `\ref` 引用。课程版式确定后集中调整样式和前置页。
+- 图表编号用 `\label` 和 `\ref` 引用。正式模板发布后，在 `config.tex` 确认元数据，在 `frontmatter/` 适配封面与声明，在 `styles/school.sty` 统一调整字体、边距、页眉和标题。
